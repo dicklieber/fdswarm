@@ -26,6 +26,17 @@ trait CommonSettings extends ScalaModule:
   val otelAlphaV = "1.49.0-alpha"
   val scoverageV = "2.1.1"
   val munitV = "1.0.0"
+  val scalaFxDep =
+    mvn"org.scalafx:scalafx_3:20.0.0-R31"
+      .exclude(
+        "org.openjfx" -> "javafx-base",
+        "org.openjfx" -> "javafx-controls",
+        "org.openjfx" -> "javafx-fxml",
+        "org.openjfx" -> "javafx-graphics",
+        "org.openjfx" -> "javafx-media",
+        "org.openjfx" -> "javafx-swing",
+        "org.openjfx" -> "javafx-web"
+      )
 
   def scalaVersion = scalaV
 
@@ -60,7 +71,7 @@ object common extends CommonSettings with BuildInfo:
     mvn"org.apache.logging.log4j:log4j-api:$log4jV",
     mvn"org.apache.commons:commons-text:1.10.0",
     mvn"com.lihaoyi::os-lib:0.11.6",
-    mvn"org.scalafx:scalafx_3:20.0.0-R31",
+    scalaFxDep,
     mvn"jakarta.inject:jakarta.inject-api:2.0.1",
     mvn"com.typesafe:config:1.4.3",
     mvn"org.scala-lang.modules::scala-xml:2.2.0",
@@ -240,25 +251,6 @@ object fdswarm
         val mainJarName = stageJpackageInput(inputDir, cp)
         (inputDir, mainJarName)
 
-  private def getJpackageInputFromAssemblyJar(
-      dest: os.Path
-    ): (os.Path, String) =
-
-    val jarPath = sys.env
-      .get("FDSWARM_ASSEMBLY_JAR")
-      .map(os.Path(_, os.pwd))
-      .filter(os.exists)
-      .getOrElse {
-        throw new RuntimeException(
-          "fdswarm.winMsi requires FDSWARM_ASSEMBLY_JAR to point at an existing assembly jar."
-        )
-      }
-
-    val inputDir = dest / "jpackage-input"
-    os.makeDir.all(inputDir)
-    os.copy.over(jarPath, inputDir / jarPath.last, createFolders = true)
-    (inputDir, jarPath.last)
-
   private def stageJpackageInput(
       inputDir: os.Path,
       cp: Seq[PathRef]
@@ -336,7 +328,7 @@ object fdswarm
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInputFromAssemblyJar(Task.dest)
+      getJpackageInput(Task.dest)(jpackageRunClasspath())
 
     val baseArgs = Seq(
       "jpackage",
@@ -458,7 +450,7 @@ object fdswarm
     mvn"org.http4s:http4s-dsl_3:$http4sV",
     mvn"org.http4s:http4s-circe_3:$http4sV",
     mvn"org.typelevel:cats-effect_3:3.5.7",
-    mvn"org.scalafx:scalafx_3:20.0.0-R31",
+    scalaFxDep,
     mvn"org.scala-lang.modules::scala-xml:2.3.0",
     mvn"org.typelevel::otel4s-oteljava:0.16.0-M1",
     mvn"com.lihaoyi::mainargs:0.7.8"
@@ -492,7 +484,7 @@ object monitor extends CommonSettings:
     mvn"nl.gn0s1s::elastic4s-client-esjava:$elastic4sV",
     mvn"com.fasterxml.jackson.core:jackson-databind:$jacksonV",
     mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonV",
-    mvn"org.scalafx:scalafx_3:20.0.0-R31",
+    scalaFxDep,
     mvn"net.codingwell::scala-guice:7.0.0",
     mvn"com.google.inject:guice:7.0.0",
     mvn"com.typesafe:config:1.4.3"
@@ -513,7 +505,7 @@ object manager extends CommonSettings:
     mvn"org.apache.logging.log4j:log4j-core:$log4jV",
     mvn"org.apache.logging.log4j:log4j-slf4j2-impl:$log4jV",
     mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonV",
-    mvn"org.scalafx:scalafx_3:20.0.0-R31",
+    scalaFxDep,
     mvn"io.circe::circe-core:0.14.10",
     mvn"io.circe::circe-generic:0.14.10",
     mvn"io.circe::circe-parser:0.14.10",

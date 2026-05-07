@@ -52,7 +52,7 @@ A manager is available to manage a bunch of instances of fdswarm, on a single ho
 Running `manager.run` keeps that Mill process alive. Using a dedicated `MILL_OUTPUT_DIR` prevents it from blocking other commands (for example `./mill fdswarm.compile`) in another terminal.
 
 ## Logging
-For information on how to configure and change log levels, see [docs/logging.md](docs/logging.md).
+For information on how to configure and change log levels, see [docs/logging.md](docsOLD/logging.md).
 
 Other coverage report formats:
 - **XML Report**: `./mill fdswarm.scoverage.xmlReport`
