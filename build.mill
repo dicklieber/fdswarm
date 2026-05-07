@@ -240,6 +240,25 @@ object fdswarm
         val mainJarName = stageJpackageInput(inputDir, cp)
         (inputDir, mainJarName)
 
+  private def getJpackageInputFromAssemblyJar(
+      dest: os.Path
+    ): (os.Path, String) =
+
+    val jarPath = sys.env
+      .get("FDSWARM_ASSEMBLY_JAR")
+      .map(os.Path(_, os.pwd))
+      .filter(os.exists)
+      .getOrElse {
+        throw new RuntimeException(
+          "fdswarm.winMsi requires FDSWARM_ASSEMBLY_JAR to point at an existing assembly jar."
+        )
+      }
+
+    val inputDir = dest / "jpackage-input"
+    os.makeDir.all(inputDir)
+    os.copy.over(jarPath, inputDir / jarPath.last, createFolders = true)
+    (inputDir, jarPath.last)
+
   private def stageJpackageInput(
       inputDir: os.Path,
       cp: Seq[PathRef]
@@ -317,7 +336,7 @@ object fdswarm
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest)(jpackageRunClasspath())
+      getJpackageInputFromAssemblyJar(Task.dest)
 
     val baseArgs = Seq(
       "jpackage",
