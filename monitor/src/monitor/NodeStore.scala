@@ -4,9 +4,9 @@ import fdswarm.DirectoryProvider
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.util.NodeIdentity
 import fdswarm.util.Ids.Id
-import io.circe.Printer
-import io.circe.parser.decode
-import io.circe.syntax.*
+import _root_.io.circe.Printer
+import _root_.io.circe.parser.decode
+import _root_.io.circe.syntax.*
 import jakarta.inject.{Inject, Singleton}
 import scalafx.collections.ObservableBuffer
 
@@ -41,6 +41,13 @@ class NodeStore @Inject() (directoryProvider: DirectoryProvider) extends LazyStr
 
   def nodes: Seq[NodeData] =
     _nodes.values.toSeq
+
+  def clear(): Unit = synchronized:
+    _nodes.clear()
+    observableNodes.clear()
+    lastIndexOffsets.clear()
+    if os.exists(offsetFile) then os.remove(offsetFile)
+    logger.info(s"NodeStore cleared and $offsetFile deleted")
 
   private def persistOffset(instanceId: Id, offset: Long): Unit = synchronized:
     lastIndexOffsets.update(instanceId, offset)

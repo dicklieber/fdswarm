@@ -19,20 +19,40 @@
 package monitor
 
 import com.google.inject.Inject
+import scalafx.geometry.Insets
 import scalafx.scene.Scene
-import scalafx.scene.control.Label
+import scalafx.scene.control.Button
+import scalafx.scene.layout.{BorderPane, HBox}
 import scalafx.stage.Stage
+
+import java.awt.Desktop
+import java.net.URI
 
 final class MonitorUi @Inject() (
     nodeStore: NodeStore,
     nodeStatusView: NodeStatusView,
-    logProcesser: LogProcesser
+    logProcesser: LogProcesser,
+    elasticsearchLogIndexer: ElasticsearchLogIndexer
 ):
 
   def start(primaryStage: Stage): Unit =
     primaryStage.title = "Monitor"
     primaryStage.scene = new Scene:
-      root = nodeStatusView.content(nodeStore.observableNodes)
+      root = new BorderPane:
+        center = nodeStatusView.content(nodeStore.observableNodes)
+        bottom = new HBox:
+          padding = Insets(10)
+          spacing = 10
+          children = Seq(
+            new Button("Clear"):
+              onAction = _ =>
+                nodeStore.clear()
+                elasticsearchLogIndexer.deleteElasticsearchIndex()
+            ,
+            new Button("Open Kibana"):
+              onAction = _ =>
+                Desktop.getDesktop.browse(URI("http://localhost:5601/app/discover"))
+          )
 
 //  private def stop(): Unit =
 //    logProcesser.stop()

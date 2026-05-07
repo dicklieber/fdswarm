@@ -43,7 +43,7 @@ import java.net.InetAddress
   * Methods:
   *   - `toString`: Returns a string representation of the node in the format
   *     `host:port-instanceId`.
-  *   - `short`: A lazily evaluated property that provides the last segment of the host name.
+  *   - `shortHost`: A lazily evaluated property that provides a compact host and port.
   *   - `toURL`: Converts the node's information into a URL string.
   *   - `toURI`: Converts the node's information into a URI instance using the scheme "http".
   *   - `compare`: Compares two `NodeIdentity` instances first by host, then by port.
@@ -59,6 +59,7 @@ case class NodeIdentity(hostIp: String, port: Int, hostName: String, instanceId:
   val udpHeaderPiece: String =
     toString
   val external: String = s"$hostName:$instanceId"
+  lazy val shortHost: String = s"$hostName:$port"
   override def compare(that: NodeIdentity): Int =
     this.hostName.compareTo(that.hostName)
 

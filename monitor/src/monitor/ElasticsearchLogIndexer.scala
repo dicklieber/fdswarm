@@ -6,6 +6,9 @@ import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.typesafe.config.Config
 import fdswarm.logging.LazyStructuredLogging
+import fdswarm.util.NodeIdentity
+import _root_.io.circe.Json
+import _root_.io.circe.parser.parse
 import jakarta.inject.{Inject, Singleton}
 
 import java.nio.charset.StandardCharsets
@@ -36,17 +39,21 @@ final class ElasticsearchLogIndexer @Inject()(config: Config) extends LazyStruct
 
   val client = ElasticClient(JavaClient(ElasticProperties(elasticsearchUrl)))
 
-  def indexLog(logBytes: Array[Byte]): LogIndexResult =
+  def indexLog(logBytes: Array[Byte], nodeIdentity: NodeIdentity): LogIndexResult =
 
     val payload = new String(logBytes, StandardCharsets.UTF_8)
-    val ops = payload.split('\n').iterator.filter(_.nonEmpty).map(line => indexInto(elasticsearchIndex).doc(line)).toSeq
+    val ops = payload
+      .split('\n')
+      .iterator
+      .filter(_.nonEmpty)
+      .map(line => indexInto(elasticsearchIndex).doc(ElasticsearchLogIndexer.documentForLine(line, nodeIdentity)))
+      .toSeq
 
     if ops.isEmpty then
       LogIndexResult(attemptedLines = 0, indexedLines = 0, failures = Seq.empty)
     else
       val future: Future[Response[BulkResponse]] = client.execute(bulk(ops))
       val value: Response[BulkResponse] = Await.result(future, 10.seconds)
-      value
       value.fold(
         failure =>
           LogIndexResult(
@@ -64,3 +71,20 @@ final class ElasticsearchLogIndexer @Inject()(config: Config) extends LazyStruct
             )
           )
       )
+
+  def deleteElasticsearchIndex(): Unit =
+    logger.info(s"Deleting Elasticsearch index: $elasticsearchIndex")
+    val future = client.execute(deleteIndex(elasticsearchIndex))
+    val response = Await.result(future, 10.seconds)
+    response.fold(
+      failure => logger.error(s"Failed to delete index $elasticsearchIndex: ${failure.error.reason}"),
+      _ => logger.info(s"Successfully deleted index $elasticsearchIndex")
+    )
+
+object ElasticsearchLogIndexer:
+  private[monitor] def documentForLine(line: String, nodeIdentity: NodeIdentity): String =
+    val node = nodeIdentity.shortHost
+    parse(line).toOption
+      .flatMap(_.asObject)
+      .map(jsonObject => Json.fromJsonObject(jsonObject.add("node", Json.fromString(node))).noSpaces)
+      .getOrElse(line)
