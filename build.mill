@@ -92,6 +92,7 @@ object fdswarm
 
   private val macIconIcns = repoPath("fdswarm/resources/icons/icon.icns")
   private val winIconIco = repoPath("fdswarm/resources/icons/icon.ico")
+  private val winUpgradeUuid = "8F095DE2-D316-43A7-94C3-7702217CAE1D"
 
   private val macJavaOptions = Seq(
     "--java-options",
@@ -399,7 +400,9 @@ object fdswarm
       if os.exists(winIconIco) then Seq("--icon", winIconIco.toString)
       else Seq.empty
 
-    val cmd = baseArgs ++ iconArgs
+    val winUpgradeUuidArgs = Seq("--win-upgrade-uuid", winUpgradeUuid)
+
+    val cmd = baseArgs ++ iconArgs ++ winUpgradeUuidArgs
     println(cmd.mkString(" "))
 
     val exit =
