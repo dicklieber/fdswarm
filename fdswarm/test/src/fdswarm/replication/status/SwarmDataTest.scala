@@ -310,6 +310,41 @@ class SwarmDataTest extends FunSuite:
       expected = "contestConfigMajority"
     )
 
+  test("local status is detected by instance id even when received through UDP"):
+    val localIdentity = NodeIdentity(
+      hostIp = "192.168.1.10",
+      port = 8090,
+      hostName = "local",
+      instanceId = "same-instance"
+    )
+    val udpIdentity = localIdentity.copy(
+      hostIp = "10.0.0.44",
+      hostName = "udp-source"
+    )
+    val remoteLookingStatus = nodeStatus(
+      hostName = "udp-source",
+      contestConfig = contestConfig(
+        contestType = ContestType.WFD,
+        callsign = "W9AAA",
+        transmitters = 1,
+        stationClass = "A",
+        section = "IL"
+      )
+    ).copy(
+      nodeIdentity = udpIdentity,
+      isLocal = false
+    )
+
+    val normalized = SwarmData.normalizeLocalNodeStatus(
+      nodeStatus = remoteLookingStatus,
+      localNodeIdentity = localIdentity
+    )
+
+    assert(normalized.isLocal)
+    assertEquals(normalized.nodeIdentity, localIdentity)
+    assertEquals(normalized.nodeIdentity.hostIp, localIdentity.hostIp)
+    assertEquals(normalized.nodeIdentity.hostName, localIdentity.hostName)
+
   private def contestConfig(
     contestType: ContestType,
     callsign: String,

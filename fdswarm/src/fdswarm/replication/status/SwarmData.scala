@@ -208,15 +208,19 @@ class SwarmData @Inject() (
       .foreach(key => renderedCellNodes.remove(key))
 
   def update(nodeStatus: NodeStatus): Unit =
-    val nodeIdentity = nodeStatus.nodeIdentity
-    nodeMap.put(nodeIdentity, nodeStatus)
-    ageCellStyleRefresher.track(nodeStatus = nodeStatus)
+    val normalizedNodeStatus = SwarmData.normalizeLocalNodeStatus(
+      nodeStatus = nodeStatus,
+      localNodeIdentity = NodeIdentityManager.nodeIdentity
+    )
+    val nodeIdentity = normalizedNodeStatus.nodeIdentity
+    nodeMap.put(nodeIdentity, normalizedNodeStatus)
+    ageCellStyleRefresher.track(nodeStatus = normalizedNodeStatus)
 
     updateOnFxThread {
-      val staticValues = staticFieldValues(nodeStatus)
+      val staticValues = staticFieldValues(normalizedNodeStatus)
       staticValues.foreach { case (field, value) =>
         propertyFor(nodeIdentity, field).value = value
-        notifyCellNodeListeners(nodeStatus, field)
+        notifyCellNodeListeners(normalizedNodeStatus, field)
       }
     }
     updateKnownCollectionsFromNodeMap()
@@ -476,6 +480,17 @@ class SwarmData @Inject() (
   )
 
 object SwarmData:
+  private[status] def normalizeLocalNodeStatus(
+      nodeStatus: NodeStatus,
+      localNodeIdentity: NodeIdentity
+  ): NodeStatus =
+    if nodeStatus.nodeIdentity == localNodeIdentity then
+      nodeStatus.copy(
+        nodeIdentity = localNodeIdentity,
+        isLocal = true
+      )
+    else nodeStatus
+
   private[status] val rowCellDifferenceValueColorFields: Seq[NodeDataField] =
     NodeDataField.values.filter(
       _.colorDeffCells
