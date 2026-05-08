@@ -33,7 +33,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -59,14 +59,14 @@ jobs:
           fi
 
       - name: Set up JDK 21 (Full)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'liberica'
           java-package: 'jdk+fx'
 
       - name: Cache Mill / Coursier
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/coursier
@@ -84,7 +84,7 @@ jobs:
 
       - name: Publish test results
         if: always()
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: 'out/fdswarm/test/**/*.xml'
           detailed_summary: true
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload HTML test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Test-Report-HTML
           path: out/reports/test-report.html
@@ -118,7 +118,7 @@ jobs:
 
       - name: Upload Scoverage HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Coverage-Report-HTML
           path: out/fdswarm/scoverage/htmlReport.dest/
@@ -145,7 +145,7 @@ jobs:
 
       - name: Upload JAR artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: FdSwarm-Assembly-JAR
           path: out/fdswarm/assembly.dest/fdswarm-all.jar
@@ -162,7 +162,7 @@ jobs:
     needs: package-assembly
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -188,14 +188,14 @@ jobs:
           }
 
       - name: Set up JDK 21 (Full)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'liberica'
           java-package: 'jdk+fx'
 
       - name: Cache Mill / Coursier
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~\.cache\coursier
@@ -205,7 +205,7 @@ jobs:
             ${{ runner.os }}-mill-
 
       - name: Download JAR artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-Assembly-JAR
           path: out/fdswarm/assembly.dest
@@ -216,7 +216,7 @@ jobs:
           FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm-all.jar
 
       - name: Upload MSI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: FdSwarm-Windows-x64-MSI
           path: out/fdswarm/winMsi.dest/jpackage-win-*/*.msi
@@ -233,7 +233,7 @@ jobs:
     needs: package-assembly
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -259,7 +259,7 @@ jobs:
           }
 
       - name: Set up JDK 21 ARM64 (Full)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'liberica'
@@ -267,7 +267,7 @@ jobs:
           architecture: 'aarch64'
 
       - name: Cache Mill / Coursier
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~\.cache\coursier
@@ -298,7 +298,7 @@ jobs:
           & "$wixDir\light.exe" -?
 
       - name: Download JAR artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-Assembly-JAR
           path: out/fdswarm/assembly.dest
@@ -310,7 +310,7 @@ jobs:
           FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm-all.jar
 
       - name: Upload ARM64 MSI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: FdSwarm-Windows-ARM64-MSI
           path: out/fdswarm/winMsi.dest/jpackage-win-*/*.msi
@@ -327,7 +327,7 @@ jobs:
     needs: package-assembly
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -353,14 +353,14 @@ jobs:
           fi
 
       - name: Set up JDK 21 (Full)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'liberica'
           java-package: 'jdk+fx'
 
       - name: Cache Mill / Coursier
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/coursier
@@ -370,7 +370,7 @@ jobs:
             ${{ runner.os }}-mill-
 
       - name: Download JAR artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-Assembly-JAR
           path: out/fdswarm/assembly.dest
@@ -384,7 +384,7 @@ jobs:
           FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm-all.jar
 
       - name: Upload PKG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: FdSwarm-macOS-PKG
           path: out/fdswarm/macPkg.dest/jpackage/*.pkg
@@ -401,31 +401,31 @@ jobs:
 
     steps:
       - name: Download JAR artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-Assembly-JAR
           path: release-artifacts/jar
 
       - name: Download Windows x64 MSI artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-Windows-x64-MSI
           path: release-artifacts/windows-x64
 
       - name: Download Windows ARM64 MSI artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-Windows-ARM64-MSI
           path: release-artifacts/windows-arm64
 
       - name: Download macOS PKG artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: FdSwarm-macOS-PKG
           path: release-artifacts/macos
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             release-artifacts/**/*.jar
