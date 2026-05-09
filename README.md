@@ -58,3 +58,13 @@ Other coverage report formats:
 - **XML Report**: `./mill fdswarm.scoverage.xmlReport`
 - **Console Report**: `./mill fdswarm.scoverage.consoleReport`
 - **Cobertura XML**: `./mill fdswarm.scoverage.xmlCoberturaReport`
+
+## Documentation
+
+Documentation sources live in `docs/src` and are rendered with Laika.
+
+```bash
+./mill docs.site
+```
+
+The generated site is available at `out/docs/site.dest/site/index.html`.

@@ -2,9 +2,20 @@
 //| mvnDeps:
 //| - com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION
 //| - com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION
+//| - org.typelevel::laika-io:1.3.2
 
 package build
 
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
+import laika.api.Transformer
+import laika.api.format.TagFormatter
+import laika.ast.Path.Root
+import laika.ast.{ExternalTarget, InternalTarget, SpanLink, Target}
+import laika.helium.config.{HeliumIcon, IconLink}
+import laika.format.{HTML, Markdown}
+import laika.helium.Helium
+import laika.io.syntax.*
 import mill.*
 import mill.contrib.buildinfo.BuildInfo
 import mill.contrib.scoverage.*
@@ -597,3 +608,56 @@ object manager extends CommonSettings:
 //      "-Dprism.order=sw",
 //      "--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED"
 //    )
+
+object docs extends Module:
+  def sources = Task.Source(moduleDir / "src")
+
+  def site = Task {
+    val source = sources().path
+    val dest = Task.dest / "site"
+    os.makeDir.all(dest)
+
+    val theme = Helium.defaults
+      .all
+      .metadata(
+        title = Some("FdSwarm"),
+        language = Some("en")
+      )
+      .site
+      .topNavigationBar(
+        homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home)
+      )
+      .build
+
+    val transformer = Transformer
+      .from(Markdown)
+      .to(HTML)
+      .using(Markdown.GitHubFlavor)
+      .rendering {
+        case (fmt: TagFormatter, link: SpanLink) =>
+          def renderTarget(target: Target): String =
+            fmt.pathTranslator.translate(target) match
+              case external: ExternalTarget => external.url
+              case internal: InternalTarget =>
+                internal.relativeTo(fmt.path).relativePath.toString
+
+          val attributes = fmt.optAttributes(
+            "href" -> Some(renderTarget(link.target)),
+            "title" -> link.title.map(fmt.text)
+          )
+          fmt.element("a", link, attributes *)
+      }
+      .parallel[IO]
+      .withTheme(theme)
+      .build
+
+    transformer
+      .use(
+        _.fromDirectory(source.toString)
+          .toDirectory(dest.toString)
+          .transform
+      )
+      .unsafeRunSync()
+
+    PathRef(dest)
+  }
