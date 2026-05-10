@@ -33,7 +33,8 @@ final class UserConfig @Inject()(fileHelper:FileHelper) :
     new BooleanProperty(this, "developerMode", false),
     new BooleanProperty(this, "useNextField", true),
     new IntegerProperty(this, "qsoListLines", 10),
-    new IntegerProperty(this, "lastQsoCount", 25)
+    new IntegerProperty(this, "qsoListLines", 10),
+    new BooleanProperty(this, "showWelcomeDialog", true)
   )
 
   private val properties: Map[String, Property[?, ?]] =

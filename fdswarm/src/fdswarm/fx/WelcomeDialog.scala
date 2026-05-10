@@ -30,6 +30,7 @@ import jakarta.inject.{Inject, Singleton}
 import javafx.application.Platform
 import javafx.stage.Modality
 import scalafx.Includes.*
+import scalafx.beans.property.BooleanProperty
 import scalafx.geometry.Insets
 import scalafx.scene.Node
 import scalafx.scene.control.*
@@ -42,7 +43,8 @@ final class WelcomeDialog @Inject() (
     contestStartManager: ContestStartManager,
     contestConfigDialog: ContestConfigDialog,
     stationConfigManager: StationConfigManager,
-    stationEditor: StationEditor
+    stationEditor: StationEditor,
+    userConfig: UserConfig
 ):
 
   def show(
@@ -53,6 +55,15 @@ final class WelcomeDialog @Inject() (
   def showAndWait(
       ownerWindow: Window
   ): Unit =
+    def canDismissWelcome: Boolean =
+      contestConfigManager.contestConfigProperty.value.isDefined &&
+        contestStartManager.contestStart.value.isStarted
+
+    val showWelcomeDialogProperty =
+      userConfig.getProperty[BooleanProperty]("showWelcomeDialog")
+
+    if canDismissWelcome && !showWelcomeDialogProperty.value then return
+
     val dialog = new StyledDialog[ButtonType]:
       title = "Welcome"
       headerText = "Welcome to FdSwarm"
@@ -77,12 +88,41 @@ final class WelcomeDialog @Inject() (
         style = s"-fx-border-color: #666; -fx-border-width: 1 $right $bottom 1;"
         children = Seq(node)
 
-    def canDismissWelcome: Boolean =
-      contestConfigManager.contestConfigProperty.value.isDefined &&
-        contestStartManager.contestStart.value.isStarted
-
     def refreshOkButton(): Unit =
       Option(dialog.dialogPane().lookupButton(ButtonType.OK)).foreach(_.setDisable(!canDismissWelcome))
+
+    def installDoNotShowCheckBox(): Unit =
+      val doNotShowCheckBox = new CheckBox("Don't show if configured"):
+        minWidth = Region.USE_PREF_SIZE
+        prefWidth = Region.USE_COMPUTED_SIZE
+        textOverrun = OverrunStyle.Clip
+        selected = !showWelcomeDialogProperty.value
+        selected.onChange { (_, _, doNotShow) =>
+          showWelcomeDialogProperty.value = !doNotShow
+        }
+
+      Platform.runLater(() =>
+        Option(dialog.dialogPane().delegate.lookup(".button-bar")).foreach {
+          case buttonBar: javafx.scene.control.ButtonBar =>
+            javafx.scene.control.ButtonBar.setButtonData(
+              doNotShowCheckBox.delegate,
+              javafx.scene.control.ButtonBar.ButtonData.OTHER
+            )
+            buttonBar.getButtons.add(0, doNotShowCheckBox.delegate)
+            val dialogPane = dialog.dialogPane().delegate
+            dialogPane.applyCss()
+            buttonBar.applyCss()
+            doNotShowCheckBox.delegate.setMinWidth(doNotShowCheckBox.delegate.prefWidth(-1))
+            buttonBar.setMinWidth(buttonBar.prefWidth(-1))
+            val requiredWidth = buttonBar.prefWidth(-1) + dialogPane.snappedLeftInset() + dialogPane.snappedRightInset()
+            dialogPane.setMinWidth(math.max(dialogPane.getMinWidth, requiredWidth))
+            dialogPane.requestLayout()
+            Option(dialogPane.getScene)
+              .flatMap(scene => Option(scene.getWindow))
+              .foreach(_.sizeToScene())
+          case _ => ()
+        }
+      )
 
     def resizeDialogToContent(): Unit =
       Platform.runLater(() =>
@@ -155,6 +195,7 @@ final class WelcomeDialog @Inject() (
     rebuildGrid()
     dialog.dialogPane().content = contentPane
     refreshOkButton()
+    installDoNotShowCheckBox()
 
     dialog.showAndWait()
   def isContestGoing: Boolean =
