@@ -20,7 +20,9 @@ package fdswarm.fx
 
 import cats.effect.unsafe.implicits.global
 import fdswarm.StartupInfo
+import fdswarm.contestStart.ContestStartManager
 import fdswarm.fx.FdLogUi.{isJdwpEnabled, isMac}
+import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.discovery.ContestDiscovery
 import fdswarm.fx.qso.ContestEntry
 import fdswarm.fx.utils.UiStyles
@@ -29,13 +31,15 @@ import fdswarm.replication.{NodeStatusDispatcher, StatusBroadcastService}
 import fdswarm.util.NodeIdentityManager
 import jakarta.inject.{Inject, Singleton}
 import javafx.embed.swing.SwingFXUtils
+import javafx.scene.control.ButtonType as JfxButtonType
 import scalafx.application.Platform
+import scalafx.scene.control.Alert
 import scalafx.scene.image.Image
 import scalafx.scene.layout.{BorderPane, StackPane}
 import scalafx.scene.paint.Color
 import scalafx.scene.shape.SVGPath
 import scalafx.scene.{Node, Scene, SnapshotParameters}
-import scalafx.stage.Stage
+import scalafx.stage.{Modality, Stage}
 
 @Singleton
 final class FdLogUi @Inject() (
@@ -46,12 +50,13 @@ final class FdLogUi @Inject() (
                                 qsoStore: fdswarm.store.QsoStore,
                                 apiServer: fdswarm.api.ApiServer,
                                 startupInfo: StartupInfo,
+                                contestConfigManager: ContestConfigManager,
+                                contestStartManager: ContestStartManager,
                                 contestDiscovery:ContestDiscovery,
                                 welcomeDialog: WelcomeDialog
 ) extends LazyStructuredLogging():
 
   def start(): Unit =
-    contestDiscovery.start()
     val stage = FdLogUi.primaryStage
     val qsoNode: Node = contestEntry.node
     val centerPane = new StackPane:
@@ -113,12 +118,57 @@ final class FdLogUi @Inject() (
       () => menus.showBandModeManager()
     )
 
-    contestEntry.buildUi()
-    Platform.runLater {
+    def showWelcome(): Unit =
       menus.withMenuItemsDisabled {
         welcomeDialog.showAndWait(stage)
       }
-    }
+
+    val shouldRunDiscovery =
+      !contestConfigManager.contestConfigProperty.value.isDefined ||
+        !contestStartManager.contestStart.value.isStarted
+
+    if shouldRunDiscovery then
+      val discoveryAlert = new Alert(Alert.AlertType.Information):
+        title = "Contest Discovery"
+        headerText = Option.empty[String]
+        contentText = "Looking for other nodes."
+        initOwner(stage)
+        initModality(Modality.WINDOW_MODAL)
+      val discoveryAlertPane = discoveryAlert.dialogPane()
+      discoveryAlertPane.getButtonTypes.setAll(JfxButtonType.CANCEL)
+      Option(discoveryAlertPane.lookupButton(JfxButtonType.CANCEL)).foreach { closeButton =>
+        closeButton.setManaged(false)
+        closeButton.setVisible(false)
+      }
+      discoveryAlert.show()
+
+      val discoveryThread = new Thread(
+        () =>
+          try contestDiscovery.start()
+          catch
+            case e: Exception =>
+              logger.warn(
+                s"Contest discovery failed: ${e.getMessage}"
+              )
+          finally
+            Platform.runLater {
+              discoveryAlert.delegate.setResult(JfxButtonType.CANCEL)
+              discoveryAlert.delegate.close()
+              Option(discoveryAlert.delegate.getDialogPane.getScene)
+                .flatMap(scene => Option(scene.getWindow))
+                .foreach(_.hide())
+              contestEntry.buildUi()
+              showWelcome()
+            },
+        "contest-discovery"
+      )
+      discoveryThread.setDaemon(true)
+      discoveryThread.start()
+    else
+      contestEntry.buildUi()
+      Platform.runLater {
+        showWelcome()
+      }
 
   private def setAppIcon(): Unit =
     val stage = FdLogUi.primaryStage

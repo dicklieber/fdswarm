@@ -21,9 +21,9 @@ package fdswarm.fx
 import com.organization.BuildInfo.version
 import fdswarm.StationConfigManager
 import fdswarm.contestStart.ContestStartManager
-import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
 import fdswarm.fx.contest.ContestType.NONE
-import fdswarm.fx.discovery.{ContestConfigDialog, ContestDiscovery}
+import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
+import fdswarm.fx.discovery.ContestConfigDialog
 import fdswarm.fx.station.StationEditor
 import fdswarm.fx.utils.StyledDialog
 import jakarta.inject.{Inject, Singleton}
@@ -32,7 +32,7 @@ import javafx.stage.Modality
 import scalafx.Includes.*
 import scalafx.geometry.Insets
 import scalafx.scene.Node
-import scalafx.scene.control.{Button, ButtonType, Label, OverrunStyle, Tooltip}
+import scalafx.scene.control.*
 import scalafx.scene.layout.{BorderPane, GridPane, Region, StackPane}
 import scalafx.stage.Window
 
@@ -40,7 +40,6 @@ import scalafx.stage.Window
 final class WelcomeDialog @Inject() (
     contestConfigManager: ContestConfigManager,
     contestStartManager: ContestStartManager,
-    contestDiscovery: ContestDiscovery,
     contestConfigDialog: ContestConfigDialog,
     stationConfigManager: StationConfigManager,
     stationEditor: StationEditor

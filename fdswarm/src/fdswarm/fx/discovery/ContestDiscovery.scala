@@ -19,11 +19,13 @@
 package fdswarm.fx.discovery
 
 import com.google.inject.name.Named
-import fdswarm.fx.contest.{ContestConfigManager, ContestType}
+import fdswarm.contestStart.{ContestStart, ContestStartManager}
+import fdswarm.fx.contest.{ContestConfig, ContestConfigManager, ContestType}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.replication.status.SwarmData
 import fdswarm.replication.{Service, Transport}
 import jakarta.inject.Inject
+import javafx.application.Platform
 
 import java.nio.charset.StandardCharsets
 import java.time.Duration
@@ -54,6 +56,7 @@ import java.util.concurrent.TimeUnit
 class ContestDiscovery @Inject() (
     val transport: Transport,
     contestConfigManager: ContestConfigManager,
+    contestStartManager: ContestStartManager,
     swarmData: SwarmData,
     @Named("fdswarm.contestDiscoveryTimeout") val timeout: Duration)
     extends LazyStructuredLogging:
@@ -77,9 +80,10 @@ class ContestDiscovery @Inject() (
       contestConfigManager.clearContestConfig()
 
     val currentConfig = contestConfigManager.contestConfigProperty.value
-    if currentConfig.contestType != ContestType.NONE then
+    val currentStart = contestStartManager.contestStart.value
+    if currentConfig.contestType != ContestType.NONE && currentStart.isStarted then
       logger.debug(
-        s"Skipping contest discovery because contest config is already set to ${currentConfig.contestType}"
+        s"Skipping contest discovery because contest config is already set to ${currentConfig.contestType} and contest is started"
       )
       return
 
@@ -113,14 +117,20 @@ class ContestDiscovery @Inject() (
     selectedStatus.foreach(nodeStatus =>
       logger.debug(s"Selected status: $nodeStatus")
       val selectedConfig = nodeStatus.statusMessage.contestConfig
-      contestConfigManager.setConfig(
-        selectedConfig
-      )
+      val selectedStart = ContestStart(start = nodeStatus.statusMessage.contestStart)
+      updateContestFromStatus(selectedConfig = selectedConfig, selectedStart = selectedStart)
       logger.info(
-        s"Contest discovery selected config ${selectedConfig.contestType} from ${nodeStatus.nodeIdentity}"
+        s"Contest discovery selected config ${selectedConfig.contestType} and start ${selectedStart.start} from ${nodeStatus.nodeIdentity}"
       )
     )
     if selectedStatus.isEmpty then
       logger.info(
         "Contest discovery did not find a non-NONE contest config in swarm data."
       )
+
+  private def updateContestFromStatus(selectedConfig: ContestConfig, selectedStart: ContestStart): Unit =
+    def update(): Unit =
+      contestConfigManager.setConfig(selectedConfig)
+      contestStartManager.update(nextContestStart = selectedStart)
+    if Platform.isFxApplicationThread then update()
+    else Platform.runLater(() => update())
