@@ -4,6 +4,7 @@ import io.circe.Codec
 
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
   * Qsos with stamp older than this will be ignored
@@ -12,8 +13,11 @@ import java.time.ZoneId
 case class ContestStart(start: Instant = Instant.EPOCH) derives Codec.AsObject:
   override def toString: String =
     if isStarted then
-      s"Contest started at ${start.atZone(ZoneId.systemDefault()).toLocalDateTime}"
+      ContestStart.DateTimeFormat.format(start.atZone(ZoneId.systemDefault()))
     else
       "Contest not started"
 
   def isStarted: Boolean = start.isAfter(Instant.EPOCH)
+
+object ContestStart:
+  private val DateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

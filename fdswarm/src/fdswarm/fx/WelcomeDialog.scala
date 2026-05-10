@@ -19,12 +19,16 @@
 package fdswarm.fx
 
 import com.organization.BuildInfo.version
+import fdswarm.StationConfigManager
 import fdswarm.contestStart.ContestStartManager
 import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
 import fdswarm.fx.contest.ContestType.NONE
 import fdswarm.fx.discovery.{ContestConfigDialog, ContestDiscovery}
+import fdswarm.fx.station.StationEditor
 import fdswarm.fx.utils.StyledDialog
 import jakarta.inject.{Inject, Singleton}
+import javafx.application.Platform
+import javafx.stage.Modality
 import scalafx.Includes.*
 import scalafx.geometry.Insets
 import scalafx.scene.Node
@@ -37,16 +41,24 @@ final class WelcomeDialog @Inject() (
     contestConfigManager: ContestConfigManager,
     contestStartManager: ContestStartManager,
     contestDiscovery: ContestDiscovery,
-    contestConfigDialog: ContestConfigDialog
+    contestConfigDialog: ContestConfigDialog,
+    stationConfigManager: StationConfigManager,
+    stationEditor: StationEditor
 ):
 
   def show(
+      ownerWindow: Window
+  ): Unit =
+    showAndWait(ownerWindow)
+
+  def showAndWait(
       ownerWindow: Window
   ): Unit =
     val dialog = new StyledDialog[ButtonType]:
       title = "Welcome"
       headerText = "Welcome to FdSwarm"
       initOwner(ownerWindow)
+      initModality(Modality.APPLICATION_MODAL)
     val contentPane = new BorderPane:
       padding = Insets(10)
 
@@ -56,7 +68,7 @@ final class WelcomeDialog @Inject() (
         textOverrun = OverrunStyle.Clip
 
     def gridCell(node: Node, row: Int, column: Int, rowSpan: Int = 1, columnSpan: Int = 1): StackPane =
-      val totalRows = 4
+      val totalRows = 5
       val totalColumns = 3
       val right = if column + columnSpan == totalColumns then 1 else 0
       val bottom = if row + rowSpan == totalRows then 1 else 0
@@ -66,6 +78,26 @@ final class WelcomeDialog @Inject() (
         style = s"-fx-border-color: #666; -fx-border-width: 1 $right $bottom 1;"
         children = Seq(node)
 
+    def canDismissWelcome: Boolean =
+      contestConfigManager.contestConfigProperty.value.isDefined &&
+        contestStartManager.contestStart.value.isStarted
+
+    def refreshOkButton(): Unit =
+      Option(dialog.dialogPane().lookupButton(ButtonType.OK)).foreach(_.setDisable(!canDismissWelcome))
+
+    def resizeDialogToContent(): Unit =
+      Platform.runLater(() =>
+        val dialogPane = dialog.dialogPane()
+        dialogPane.requestLayout()
+        Option(dialogPane.delegate.getScene)
+          .flatMap(scene => Option(scene.getWindow))
+          .foreach(_.sizeToScene())
+      )
+
+    def rebuildGrid(): Unit =
+      contentPane.center = rebuildGridPane()
+      resizeDialogToContent()
+
     def rebuildGridPane(): GridPane =
       val contestConfig = contestConfigManager.contestConfigProperty.value
       val contestType =
@@ -74,12 +106,29 @@ final class WelcomeDialog @Inject() (
       val contestStarted = contestStartManager.contestStart.value.toString
       val contestLabel = label(contestType)
       contestLabel.tooltip = Tooltip(contestTooltipText(contestConfig))
+      val stationConfig = stationConfigManager.stationConfig
+      val stationButton = new Button("Station"):
+        minWidth = Region.USE_PREF_SIZE
+        textOverrun = OverrunStyle.Clip
+        onAction = _ =>
+          stationEditor.show(ownerWindow)
+          rebuildGrid()
+          refreshOkButton()
       val setupContestButton = new Button("Setup"):
         minWidth = Region.USE_PREF_SIZE
         textOverrun = OverrunStyle.Clip
         onAction = _ =>
           contestConfigDialog.showAndWait()
-          contentPane.center = rebuildGridPane()
+          rebuildGrid()
+          refreshOkButton()
+      val startContestButton = new Button("Start"):
+        minWidth = Region.USE_PREF_SIZE
+        textOverrun = OverrunStyle.Clip
+        disable = !contestConfig.isDefined
+        onAction = _ =>
+          contestStartManager.startContest()
+          rebuildGrid()
+          refreshOkButton()
 
       new GridPane:
         hgap = 0
@@ -95,17 +144,22 @@ final class WelcomeDialog @Inject() (
 
         add(gridCell(contestLabel, 2, 1), 1, 2)
 
-        add(gridCell(label("contestStarted"), 3, 0), 0, 3)
+        add(gridCell(label("Started"), 3, 0), 0, 3)
         add(gridCell(label(contestStarted), 3, 1), 1, 3)
-        add(gridCell(label(""), 3, 2), 2, 3)
+        add(gridCell(startContestButton, 3, 2), 2, 3)
+
+        add(gridCell(label("Station"), 4, 0), 0, 4)
+        add(gridCell(label(stationConfig.operator.value), 4, 1), 1, 4)
+        add(gridCell(stationButton, 4, 2), 2, 4)
 
     dialog.dialogPane().buttonTypes = Seq(ButtonType.OK)
-    contentPane.center = rebuildGridPane()
+    rebuildGrid()
     dialog.dialogPane().content = contentPane
+    refreshOkButton()
 
     dialog.showAndWait()
   def isContestGoing: Boolean =
-    contestConfigManager.contestType != NONE || contestStartManager.contestStart.value.isStarted
+    contestConfigManager.contestType != NONE && contestStartManager.contestStart.value.isStarted
 
   private def contestTooltipText(contestConfig: ContestConfig): String =
     Seq(

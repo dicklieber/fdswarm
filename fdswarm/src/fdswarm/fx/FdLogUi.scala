@@ -115,7 +115,9 @@ final class FdLogUi @Inject() (
 
     contestEntry.buildUi()
     Platform.runLater {
-      welcomeDialog.show(stage)
+      menus.withMenuItemsDisabled {
+        welcomeDialog.showAndWait(stage)
+      }
     }
 
   private def setAppIcon(): Unit =

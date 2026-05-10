@@ -81,6 +81,7 @@ case class ContestConfig(
 
   val display: String =
     exchange
+  lazy val isDefined:Boolean = contestType != ContestType.NONE
 
 object ContestConfig:
   private lazy val config = ConfigFactory.load()

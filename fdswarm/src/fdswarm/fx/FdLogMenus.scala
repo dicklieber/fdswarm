@@ -33,6 +33,7 @@ import io.circe.parser.decode
 import io.circe.syntax.*
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
+import javafx.scene.control.{Menu as JfxMenu, MenuItem as JfxMenuItem}
 import netscape.javascript.JSObject
 import scalafx.application.Platform
 import scalafx.beans.binding.Bindings
@@ -232,6 +233,26 @@ final class FdLogMenus @Inject() (
         devMenu,
         helpMenu
       )
+
+  def withMenuItemsDisabled[A](body: => A): A =
+    val items = allMenuItems
+    val disabledStates = items.map(item => item -> item.isDisable)
+    items.foreach(_.setDisable(true))
+    try body
+    finally disabledStates.foreach { case (item, wasDisabled) => item.setDisable(wasDisabled) }
+
+  private def allMenuItems: Seq[JfxMenuItem] =
+    menuBar.delegate.getMenus.toArray.toSeq.collect {
+      case item: JfxMenuItem => item
+    }.flatMap(menuAndChildren)
+
+  private def menuAndChildren(item: JfxMenuItem): Seq[JfxMenuItem] =
+    item match
+      case menu: JfxMenu =>
+        item +: menu.getItems.toArray.toSeq.collect {
+          case child: JfxMenuItem => child
+        }.flatMap(menuAndChildren)
+      case _ => Seq(item)
 
   private def loadArrlRegionMap(): Map[String, String] =
     if os.exists(arrlRegionMapPath) then
