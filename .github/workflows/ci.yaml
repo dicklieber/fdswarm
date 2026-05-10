@@ -188,6 +188,10 @@ jobs:
       - name: Make mill executable
         run: chmod +x ./mill
 
+      - name: Configure GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+
       - name: Build docs site
         run: ./mill --no-daemon docs.site
 
