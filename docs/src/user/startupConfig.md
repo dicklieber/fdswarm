@@ -12,9 +12,9 @@ Next will be the Welcome dialog.
 
 ![Welcome dialog](../images/welcome-noconfig.png)
 
-If no configuration was discovered or it's not already setup. Use the Setuop button to configure node.
+If no configuration was discovered, or it's not yet set up; use the Setup button to configure contest.
 
-<img src="../images/ContestConfig.png" alt="Contest Configuration dialog" width="640">
+![Contest Configuration dialog](../images/ContestConfig.png)
 
 This lets you set the five pieces of information needed:
 
