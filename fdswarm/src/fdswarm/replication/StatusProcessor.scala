@@ -98,5 +98,6 @@ class StatusProcessor @Inject() (
           qsoStore.addReplicated(
             remoteAllQsos.qsos
           )
+          nodeBandOpPane.refreshIfDue()
         finally allQsosContext.stop()
     finally processTimerContext.stop()

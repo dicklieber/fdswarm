@@ -18,7 +18,10 @@
 
 package fdswarm.store
 
-import fdswarm.model.{BandMode, Callsign}
+import fdswarm.fx.contest.ContestType
+import fdswarm.fx.station.StationConfig
+import fdswarm.model.{BandMode, Callsign, Exchange, FdClass, Qso, QsoMetadata}
+import fdswarm.util.NodeIdentity
 import munit.FunSuite
 
 class QsoStoreTest extends FunSuite:
@@ -42,3 +45,32 @@ class QsoStoreTest extends FunSuite:
     val callsigns = Seq(Callsign("WA9ZZZ"), Callsign("wa9zzz"))
     val result = QsoStore.potentialDupCallsigns(callsigns, "WA9")
     assertEquals(result.map(_.value), Seq("WA9ZZZ"))
+
+  test("isLocalNodeQso matches exact node identity"):
+    val localNode = NodeIdentity("127.0.0.1", 8080, "host-a", "local-id")
+    val qso = qsoForNode(localNode)
+    assert(QsoStore.isLocalNodeQso(qso, localNode))
+
+  test("isLocalNodeQso matches same host and port for older journal entries"):
+    val localNode = NodeIdentity("127.0.0.1", 8080, "host-a", "local-id")
+    val olderJournalNode = NodeIdentity("192.168.1.10", 8080, "host-a", "old-id")
+    val qso = qsoForNode(olderJournalNode)
+    assert(QsoStore.isLocalNodeQso(qso, localNode))
+
+  test("isLocalNodeQso rejects different host or port"):
+    val localNode = NodeIdentity("127.0.0.1", 8080, "host-a", "local-id")
+    val otherNode = NodeIdentity("127.0.0.2", 8081, "host-b", "other-id")
+    val qso = qsoForNode(otherNode)
+    assert(!QsoStore.isLocalNodeQso(qso, localNode))
+
+  private def qsoForNode(node: NodeIdentity): Qso =
+    Qso(
+      callsign = Callsign("WA9ABC"),
+      exchange = Exchange(FdClass("1A"), "IL"),
+      bandMode = BandMode("20m SSB"),
+      qsoMetadata = QsoMetadata(
+        station = StationConfig(),
+        node = node,
+        contest = ContestType.WFD
+      )
+    )

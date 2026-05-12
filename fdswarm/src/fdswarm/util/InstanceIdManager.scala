@@ -40,8 +40,9 @@ class InstanceIdManager @Inject()(fileHelper: FileHelper,
 
   private def loadOrCreate(): Id = {
     val instanceConfig = InstanceConfig(Ids.generateInstanceId())
-    fileHelper.loadOrDefault(file)(instanceConfig)
-    instanceConfig.instanceId
+    val loadedConfig = fileHelper.loadOrDefault(file)(instanceConfig)
+    fileHelper.save(file, loadedConfig)
+    loadedConfig.instanceId
   }
 
 

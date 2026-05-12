@@ -26,7 +26,7 @@ import fdswarm.model.*
 import fdswarm.replication.*
 import fdswarm.scoring.ContestScoringService
 import fdswarm.util.Ids.Id
-import fdswarm.util.{NodeIdentityManager, StatsSource}
+import fdswarm.util.{NodeIdentity, NodeIdentityManager, StatsSource}
 import io.circe.generic.auto.deriveDecoder
 import io.circe.parser.decode
 import jakarta.inject.*
@@ -150,10 +150,11 @@ class QsoStore @Inject() (
 
   private def calculateStats(): Unit =
     refreshScores()
+    val localNodeIdentity = NodeIdentityManager.nodeIdentity
     val (qsoIds, ourQsoCount) = map.valuesIterator.foldLeft((List.empty[Id], 0)) {
       case ((ids, count), qso) =>
         val nextCount =
-          if qso.qsoMetadata.node == NodeIdentityManager.nodeIdentity then count + 1
+          if QsoStore.isLocalNodeQso(qso = qso, localNodeIdentity = localNodeIdentity) then count + 1
           else count
         (qso.uuid :: ids, nextCount)
     }
@@ -248,6 +249,12 @@ class QsoStore @Inject() (
       )
 
 object QsoStore:
+  private[store] def isLocalNodeQso(qso: Qso, localNodeIdentity: NodeIdentity): Boolean =
+    val qsoNode = qso.qsoMetadata.node
+    qsoNode == localNodeIdentity ||
+      qsoNode.hostName == localNodeIdentity.hostName &&
+        qsoNode.port == localNodeIdentity.port
+
   private[store] def sameBandMode(left: BandMode, right: BandMode): Boolean =
     left.band == right.band && left.mode == right.mode
 

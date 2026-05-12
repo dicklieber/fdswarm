@@ -42,6 +42,13 @@ enum NodeDataField(val label: String, val colorDeffCells: Boolean = false):
   case ContestStart extends NodeDataField("contestStart", colorDeffCells = true)
 
 object NodeDataField:
+  val bandOpFields: Seq[NodeDataField] = Seq(
+    NodeDataField.OurQsoCount,
+    NodeDataField.HostName,
+    NodeDataField.Operator,
+    NodeDataField.BandMode
+  )
+
   val staticFields: Seq[NodeDataField] = Seq(
     NodeDataField.HostIp,
     NodeDataField.Port,
