@@ -157,7 +157,8 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'pull_request' ||
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' ||
+      github.ref_type == 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -195,11 +196,16 @@ jobs:
       - name: Build docs site
         run: ./mill --no-daemon docs.site
 
+      - name: Package docs site
+        run: |
+          cd out/docs/site.dest/site
+          zip -r ../docs-site.zip .
+
       - name: Upload docs artifact
         uses: actions/upload-artifact@v6
         with:
           name: Documentation-Site
-          path: out/docs/site.dest/site/
+          path: out/docs/site.dest/docs-site.zip
           if-no-files-found: error
           retention-days: 3
 
@@ -469,7 +475,7 @@ jobs:
     name: Create GitHub Release
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    needs: [package-windows, package-windows-arm64, package-macos]
+    needs: [docs-site, package-windows, package-windows-arm64, package-macos]
     permissions:
       contents: write
 
@@ -498,10 +504,17 @@ jobs:
           name: FdSwarm-macOS-PKG
           path: release-artifacts/macos
 
+      - name: Download docs site artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: Documentation-Site
+          path: release-artifacts/docs
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
+            release-artifacts/**/*.zip
             release-artifacts/**/*.jar
             release-artifacts/**/*.msi
             release-artifacts/**/*.pkg
