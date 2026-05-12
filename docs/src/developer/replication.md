@@ -3,8 +3,20 @@
 In order for all nodes to have a complete and up-to-date view of the QSO journal, a replication mechanism is required. This mechanism ensures that when a new node joins the swarm, it can catch up with the latest QSOs and synchronize its QsoStore with the rest of the nodes.
 
 ## StatusMessage Broadcast
-Every 10 seconds, each node broadcasts a UDP StatusMessage
-Every node receives the StatusMessage and uses it to determine if QsoStore is consistent with other nodes. The StatusMessage has a field called `storeStats` which contains the hash of the QsoStore, and the number of QSOs in the QsoStore.
+Every 10 seconds, each node broadcasts a UDP StatusMessage.
+```aiignore
+case class StatusMessage(
+    storeStats: StoreStats,
+    bandNodeOperator: BandModeOperator,
+    contestConfig: ContestConfig,
+    contestStart: Instant,
+    metrics: Seq[MetricStat]
+)
+```
+
+The StoreStats field storeStats is used to determine if the QsoStore needs updating. Other fields don't affect replication.
+Every node receives the broadcast StatusMessage
+
 ```
 case class StoreStats(
     hash: String = "",

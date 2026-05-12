@@ -11,9 +11,10 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import net.sourceforge.plantuml.{FileFormat, FileFormatOption, SourceFileReader}
 import laika.api.Transformer
+import laika.config.MessageFilters
 import laika.api.format.TagFormatter
 import laika.ast.Path.Root
-import laika.ast.{ExternalTarget, InternalTarget, SpanLink, Target}
+import laika.ast.{ExternalTarget, InternalTarget, Path, SpanLink, Target}
 import laika.helium.config.{HeliumIcon, IconLink}
 import laika.format.{HTML, Markdown}
 import laika.helium.Helium
@@ -138,6 +139,10 @@ object fdswarm
   )
 
   override def moduleDeps = Seq(common)
+
+  override def docSources = Task {
+    super.docSources() ++ Seq(common.compile().classes)
+  }
 
   def mainClass = Some("fdswarm.FdLogApp")
 
@@ -611,16 +616,48 @@ object manager extends CommonSettings:
 //      "--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED"
 //    )
 
-object docs extends Module:
-  def sources = Task.Source(moduleDir / "src")
+object docs extends ScalaModule:
+  def scalaVersion = common.scalaVersion
+  override def moduleDeps = Seq(common, monitor, manager)
+
+  override def docSources = Task {
+    super.docSources() ++
+      common.docSources() ++
+      monitor.docSources() ++
+      manager.docSources()
+  }
+
+  override def docResources = Task {
+    super.docResources() ++
+      common.docResources() ++
+      monitor.docResources() ++
+      manager.docResources()
+  }
+
+  override def compileClasspath = Task {
+    super.compileClasspath() ++
+      common.compileClasspath() ++
+      monitor.compileClasspath() ++
+      manager.compileClasspath() ++
+      fdswarm.compileClasspath()
+  }
+
+  override def sources = Task.Sources(moduleDir / "src")
 
   def site() = Task.Command {
-    val source = sources().path
+    val source = sources().head.path
     val diagramSource = source / "diagrams"
     val diagramDest = moduleDir / "generated" / "diagrams"
     val dest = Task.dest / "site"
     os.makeDir.all(dest)
     renderPlantUmlDiagrams(diagramSource, diagramDest)
+
+    // Generate Scaladoc from docs module (which aggregates others)
+    val scaladocJar = docJar().path
+    // Unpack the docJar to the site's api directory
+    val apiDest = dest / "api"
+    os.makeDir.all(apiDest)
+    os.proc("jar", "xf", scaladocJar.toString).call(cwd = apiDest)
 
     val theme = Helium.defaults
       .all
@@ -644,7 +681,8 @@ object docs extends Module:
             fmt.pathTranslator.translate(target) match
               case external: ExternalTarget => external.url
               case internal: InternalTarget =>
-                internal.relativeTo(fmt.path).relativePath.toString
+                val relPath = internal.relativeTo(fmt.path).relativePath
+                relPath.toString
 
           val attributes = fmt.optAttributes(
             "href" -> Some(renderTarget(link.target)),
@@ -652,6 +690,7 @@ object docs extends Module:
           )
           fmt.element("a", link, attributes *)
       }
+      .withMessageFilters(MessageFilters.forVisualDebugging)
       .parallel[IO]
       .withTheme(theme)
       .build

@@ -28,9 +28,9 @@ import io.circe.Codec
 /**
  * Stuff about a QSO. i.e. not entered as a part of a QSO itself
  *
- * @param station can be edited by user.
+ * @param station can be edited by the user.
  * @param node    what node, in the cluster this came from.
- *                // * @param contestId so old data can't accident be missed with current.
+ *                // * @param contestId so old data can't by accident be mixed with current.
  * @param v       FdSwarm Version that built this so we can detect mismatched versions.
  */
 

@@ -39,7 +39,7 @@ import java.time.Instant
   * @param uuid
   *   id unique QSO id in time & space.
   * @param qsoMetadata
-  *   info about ur station.
+  *   info about your station.
   */
 case class Qso(
     callsign: Callsign,
