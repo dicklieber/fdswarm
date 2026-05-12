@@ -26,7 +26,7 @@ import io.circe.generic.auto.deriveEncoder
 
 import java.time.Instant
 
-/** This is what's in the store and journal.log.
+/** This is what's in the QsoStore, broadcast to other nodes and qsoJournal.log.
   *
   * @param callsign
   *   of the worked station.
