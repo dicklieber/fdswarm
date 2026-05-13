@@ -40,7 +40,10 @@ The report will be available at: `out/fdswarm/scoverage/htmlReport.dest/index.ht
 
 To create a new release with downloadable artifacts (JAR, Windows MSI, macOS PKG):
 1. Push a tag to the repository matching the pattern `v*` (e.g., `v1.0.0`).
-2. The GitHub Action will automatically build the project, run tests, and create a GitHub Release with the artifacts.
+2. Use three numeric version components in release tags, such as `v1.0.0`.
+3. The GitHub Action will automatically build the project, run tests, and create a GitHub Release with the artifacts.
+
+Release tags provide the public app version (`X.Y.Z`). GitHub Actions provides the build number from the workflow run number. Installer metadata uses a three-part installer-safe version for MSI/PKG compatibility, while artifact filenames include the build number, for example `FdSwarm-1.0.0-build123-windows-x64.msi`.
 
 Artifacts are also available as GitHub Action run artifacts for every build on the `main` branch.
 

@@ -17,6 +17,9 @@ concurrency:
   group: build-and-package-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FDSWARM_BUILD: ${{ github.run_number }}
+
 jobs:
   package-assembly:
     name: Build Assembly JAR
@@ -143,12 +146,24 @@ jobs:
         if: success()
         run: ./mill --no-daemon fdswarm.assembly
 
+      - name: Name release JAR
+        if: success()
+        shell: bash
+        run: |
+          jar_version="${FDSWARM_VERSION:-0.0.0-dev}"
+          if [[ -n "${FDSWARM_BUILD}" ]]; then
+            jar_version="${jar_version}-build${FDSWARM_BUILD}"
+          fi
+          cp out/fdswarm/assembly.dest/fdswarm-all.jar "out/fdswarm/assembly.dest/FdSwarm-${jar_version}-all.jar"
+
       - name: Upload JAR artifact
         if: success()
         uses: actions/upload-artifact@v6
         with:
           name: FdSwarm-Assembly-JAR
-          path: out/fdswarm/assembly.dest/fdswarm-all.jar
+          path: |
+            out/fdswarm/assembly.dest/fdswarm-all.jar
+            out/fdswarm/assembly.dest/FdSwarm-*-all.jar
           if-no-files-found: error
           retention-days: 3
 
@@ -515,7 +530,7 @@ jobs:
         with:
           files: |
             release-artifacts/**/*.zip
-            release-artifacts/**/*.jar
+            release-artifacts/jar/FdSwarm-*-all.jar
             release-artifacts/**/*.msi
             release-artifacts/**/*.pkg
           draft: false

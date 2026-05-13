@@ -18,6 +18,8 @@ object common extends CommonSettings with BuildInfo:
   def buildInfoMembers = Seq(
     BuildInfo.Value("name", name),
     BuildInfo.Value("version", version),
+    BuildInfo.Value("buildNumber", buildNumber),
+    BuildInfo.Value("displayVersion", displayVersion),
     BuildInfo.Value("majorVersion", majorVersion),
     BuildInfo.Value("scalaVersion", scalaVersion()),
     BuildInfo.Value("dataVersion", majorVersion)
@@ -64,6 +66,7 @@ object fdswarm
       .add(
         "Implementation-Title" -> "FdSwarm",
         "Implementation-Version" -> version,
+        "Implementation-Build" -> buildNumber,
         "Bundle-Name" -> "FdSwarm",
         "Bundle-SymbolicName" -> "fdswarm",
         "Bundle-Version" -> version

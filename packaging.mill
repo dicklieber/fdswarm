@@ -243,6 +243,15 @@ trait FdSwarmPackaging extends JpackageModule:
     if exit != 0 then
       throw new RuntimeException(s"jpackage failed with exit code $exit")
 
+    val produced =
+      os.list(dest).filter(_.ext == "pkg").sortBy(_.last).lastOption
+
+    produced.foreach { pkg =>
+      val renamed = dest / s"${jpackageName()}-${artifactVersion}-macos.pkg"
+      os.move(pkg, renamed, replaceExisting = true)
+      println(s"PKG: $renamed")
+    }
+
     PathRef(dest)
   }
 
@@ -315,7 +324,7 @@ trait FdSwarmPackaging extends JpackageModule:
       os.list(dest).filter(_.ext == "msi").sortBy(_.last).lastOption
 
     produced.foreach { msi =>
-      val renamed = dest / s"${jpackageName()}-${installerVersion}-windows-$arch.msi"
+      val renamed = dest / s"${jpackageName()}-${artifactVersion}-windows-$arch.msi"
       os.move(msi, renamed, replaceExisting = true)
       println(s"MSI: $renamed")
     }

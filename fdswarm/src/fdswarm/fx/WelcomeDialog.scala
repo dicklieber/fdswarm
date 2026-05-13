@@ -18,7 +18,7 @@
 
 package fdswarm.fx
 
-import com.organization.BuildInfo.version
+import com.organization.BuildInfo.displayVersion
 import fdswarm.StationConfigManager
 import fdswarm.contestStart.ContestStartManager
 import fdswarm.fx.contest.ContestType.NONE
@@ -174,7 +174,7 @@ final class WelcomeDialog @Inject() (
         vgap = 0
 
         add(gridCell(label("FdSwarm"), 0, 0), 0, 0)
-        add(gridCell(label(version), 0, 1), 1, 0)
+        add(gridCell(label(displayVersion), 0, 1), 1, 0)
         add(gridCell(label(""), 0, 2), 2, 0)
 
         add(gridCell(label("Contest"), 1, 0, rowSpan = 2), 0, 1, 1, 2)

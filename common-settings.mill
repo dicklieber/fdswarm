@@ -7,8 +7,18 @@ trait CommonSettings extends ScalaModule:
   private val releaseVersion =
     sys.env.get("FDSWARM_VERSION").map(_.trim.stripPrefix("v")).filter(_.nonEmpty)
   private val releaseVersionPattern = raw"\d+\.\d+\.\d+"
+  private val buildNumberPattern = raw"\d+"
+  private val buildNumberFromEnv =
+    sys.env.get("FDSWARM_BUILD").map(_.trim).filter(_.nonEmpty)
 
   val version = releaseVersion.getOrElse("0.0.0-dev")
+  val buildNumber = buildNumberFromEnv match
+    case Some(v) if v.matches(buildNumberPattern) => v
+    case Some(v) =>
+      throw new RuntimeException(
+        s"FDSWARM_BUILD must be a numeric build number, got: $v"
+      )
+    case None => "0"
   val installerVersion = releaseVersion match
     case Some(v) if v.matches(releaseVersionPattern) => v
     case Some(v) =>
@@ -16,6 +26,10 @@ trait CommonSettings extends ScalaModule:
         s"FDSWARM_VERSION must be a numeric major.minor.patch version for installers, got: $v"
       )
     case None => "0.0.0"
+  val displayVersion =
+    if buildNumber == "0" then version else s"$version build $buildNumber"
+  val artifactVersion =
+    if buildNumber == "0" then installerVersion else s"$installerVersion-build$buildNumber"
   val majorVersion = installerVersion.takeWhile(_ != '.')
   val name = "fdswarm"
 

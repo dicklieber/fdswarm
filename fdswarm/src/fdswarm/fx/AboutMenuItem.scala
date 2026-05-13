@@ -84,7 +84,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
         new VBox {
           children = Seq(
             new Label("FdSwarm") { style = "-fx-font-size: 24px; -fx-font-weight: bold;" },
-            new Label(s"v$version")
+            new Label(s"v$displayVersion")
           )
         }
       )
@@ -146,14 +146,16 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
     grid.add(new Label(name), 1, 0)
     grid.add(new Label("Version:"), 0, 1)
     grid.add(new Label(version), 1, 1)
-    grid.add(new Label("Major Version:"), 0, 2)
-    grid.add(new Label(majorVersion), 1, 2)
-    grid.add(new Label("Scala Version:"), 0, 3)
-    grid.add(new Label(scalaVersion), 1, 3)
-    grid.add(new Label("Data Version:"), 0, 4)
-    grid.add(new Label(dataVersion), 1, 4)
-    grid.add(new Label("Data Directory:"), 0, 5)
-    grid.add(new Label(dataPath.toString), 1, 5)
+    grid.add(new Label("Build Number:"), 0, 2)
+    grid.add(new Label(buildNumber), 1, 2)
+    grid.add(new Label("Major Version:"), 0, 3)
+    grid.add(new Label(majorVersion), 1, 3)
+    grid.add(new Label("Scala Version:"), 0, 4)
+    grid.add(new Label(scalaVersion), 1, 4)
+    grid.add(new Label("Data Version:"), 0, 5)
+    grid.add(new Label(dataVersion), 1, 5)
+    grid.add(new Label("Data Directory:"), 0, 6)
+    grid.add(new Label(dataPath.toString), 1, 6)
     val logFilePath = dataPath / "fdswarm.log"
     val logFileLink = new Hyperlink(logFilePath.toString):
       onAction = _ =>
@@ -161,14 +163,14 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
           java.awt.Desktop.getDesktop.open(logFilePath.toIO)
         catch
           case _: Throwable => ()
-    grid.add(new Label("Log File:"), 0, 6)
-    grid.add(logFileLink, 1, 6)
-    grid.add(new Label("Data Files:"), 0, 7)
-    grid.add(dataFilesNode, 1, 7)
-    grid.add(new Label("Node:"), 0, 8)
-    grid.add(new Label(NodeIdentityManager.nodeIdentity.toString), 1, 8)
-    grid.add(new Label("Transport:"), 0, 9)
-    grid.add(new Label(transport.mode), 1, 9)
+    grid.add(new Label("Log File:"), 0, 7)
+    grid.add(logFileLink, 1, 7)
+    grid.add(new Label("Data Files:"), 0, 8)
+    grid.add(dataFilesNode, 1, 8)
+    grid.add(new Label("Node:"), 0, 9)
+    grid.add(new Label(NodeIdentityManager.nodeIdentity.toString), 1, 9)
+    grid.add(new Label("Transport:"), 0, 10)
+    grid.add(new Label(transport.mode), 1, 10)
 
     val docsUrl = s"http://${NodeIdentityManager.nodeIdentity.hostPort}/docs"
     val docsLink = new Hyperlink(docsUrl):
@@ -178,13 +180,13 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
         catch
           case _: Throwable => ()
 
-    grid.add(new Label("API Docs:"), 0, 10)
-    grid.add(docsLink, 1, 10)
+    grid.add(new Label("API Docs:"), 0, 11)
+    grid.add(docsLink, 1, 11)
 
-    grid.add(new Label("Java Version:"), 0, 11)
-    grid.add(new Label(sys.props("java.version")), 1, 11)
-    grid.add(new Label("Java Home:"), 0, 12)
-    grid.add(new Label(sys.props("java.home")), 1, 12)
+    grid.add(new Label("Java Version:"), 0, 12)
+    grid.add(new Label(sys.props("java.version")), 1, 12)
+    grid.add(new Label("Java Home:"), 0, 13)
+    grid.add(new Label(sys.props("java.home")), 1, 13)
 
     val javaDetailsButton = new Hyperlink("More Java Details"):
       onAction = _ =>
@@ -390,6 +392,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
         val sb = new StringBuilder
         sb.append(s"Name: $name\n")
         sb.append(s"Version: $version\n")
+        sb.append(s"Build Number: $buildNumber\n")
         sb.append(s"Major Version: $majorVersion\n")
         sb.append(s"Scala Version: $scalaVersion\n")
         sb.append(s"Data Version: $dataVersion\n")
