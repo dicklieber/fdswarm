@@ -77,8 +77,9 @@ object CabrilloExporter:
 
   private def mapContest(contest: ContestType): String =
     contest match
-      case ContestType.WFD => "WFD"
+      case ContestType.WFD => "WFDA-CONTEST"
       case ContestType.ARRL => "ARRL-FIELD-DAY"
+      case _ => throw new IllegalArgumentException(s"Unknown contest type: $contest")
 
   private def toCabrilloRecord(qso: Qso, header: CabrilloHeader): String =
     val freq = fdswarm.model.BandMode.bandToFreq(qso.bandMode.band)

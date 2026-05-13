@@ -133,7 +133,7 @@ final class FdLogUi @Inject() (
         headerText = Option.empty[String]
         contentText = "Looking for other nodes."
         initOwner(stage)
-        initModality(Modality.WINDOW_MODAL)
+        initModality(Modality.WindowModal)
       val discoveryAlertPane = discoveryAlert.dialogPane()
       discoveryAlertPane.getButtonTypes.setAll(JfxButtonType.CANCEL)
       Option(discoveryAlertPane.lookupButton(JfxButtonType.CANCEL)).foreach { closeButton =>
