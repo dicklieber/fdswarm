@@ -29,7 +29,7 @@ import scalafx.geometry.Insets
 object GridColumns:
 
   /**
-   * Create a GridPane from a sequence of [[Node]]s arranged by columns first, then rows.
+   * Create a GridPane from a sequence of `Node`s arranged by columns first, then rows.
    *
    * Layout strategy:
    * - Items are filled left-to-right (column-wise) with a fixed number of columns `nCols`.

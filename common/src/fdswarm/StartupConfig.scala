@@ -27,7 +27,7 @@ import fdswarm.util.Ids.Id
  *
  * @param enable true to enable starting this instance.
  * @param operator who is the operator?
- * @param clearQsos delete qso journal file before loading [[QsoStore]].
+ * @param clearQsos delete qso journal file before loading the QSO store.
  * @param debugMode start with java debugger attached?
  * @param id of this instance. Also used to be the instanceId in the started instance.
  */

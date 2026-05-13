@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.IndexedSeqView
 import scala.jdk.OptionConverters.*
 
-/** create a JSON file of [[StartupConfig]] Starts an instance of the FDSwarm
+/** create a JSON file of [[fdswarm.StartupConfig]] Starts an instance of the FDSwarm
   * application. pass reference to that file on the command line.
   *
   * @param directoryProvider where manager puts it's files.
