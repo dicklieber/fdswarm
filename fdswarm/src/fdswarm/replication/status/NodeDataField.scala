@@ -22,6 +22,7 @@ enum NodeDataField(val label: String, val colorDeffCells: Boolean = false):
   case HostIp extends NodeDataField("hostIp")
   case Port extends NodeDataField("port")
   case HostName extends NodeDataField("hostName")
+  case Host extends NodeDataField("host")
   case InstanceId extends NodeDataField("instanceId")
   case Received extends NodeDataField("received")
   case IsLocal extends NodeDataField("isLocal")
@@ -44,7 +45,7 @@ enum NodeDataField(val label: String, val colorDeffCells: Boolean = false):
 object NodeDataField:
   val bandOpFields: Seq[NodeDataField] = Seq(
     NodeDataField.OurQsoCount,
-    NodeDataField.HostName,
+    NodeDataField.Host,
     NodeDataField.Operator,
     NodeDataField.BandMode
   )

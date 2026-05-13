@@ -63,6 +63,7 @@ final class FdLogMenus @Inject() (
                                    contestScoringConfigDialog: ContestScoringConfigDialog,
                                    contestConfigManager: ContestConfigManager,
                                    metricsDialog: MetricsDialog,
+                                   portsDialog: PortsDialog,
                                    statsManager: StatsManager,
                                    contestScoreResultsDialog: ContestScoreResultsDialog,
                                    startContestDialog: StartContestDialog,
@@ -140,6 +141,12 @@ final class FdLogMenus @Inject() (
         new MenuItem("Metrics"):
           onAction = _ =>
             metricsDialog.show(
+              FdLogUi.primaryStage
+            )
+        ,
+        new MenuItem("Ports"):
+          onAction = _ =>
+            portsDialog.show(
               FdLogUi.primaryStage
             )
         ,

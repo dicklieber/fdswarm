@@ -17,25 +17,23 @@
 
 package fdswarm.util
 
+import fdswarm.Ports
 import fdswarm.util.Ids.Id
 import io.circe.*
 import sttp.tapir.Schema
 
 import java.net.InetAddress
 
-/** Represents the identity of a network node, encapsulating details such as hostip, hostName, port,
+/**
+  * Represents the identity of a network node, encapsulating details such as hostip, hostName, port,
   * and an instance ID.
   *
-  * @param hostIp
-  *   The hostname or IP address of the node. This will default to "local". When received host will
-  *   be replaced with the source of the UDP message.
+  * @param hostIp The hostname or IP address of the node. This will default to "local". When
+  *   received host will be replaced with the source of the UDP message.
   *
-  * @param port
-  *   The port number on which the node is reachable.
-  * @param hostName
-  *   The hostname of the node.
-  * @param instanceId
-  *   A unique identifier for the instance of the node.
+  * @param port The port number on which the node is reachable.
+  * @param hostName The hostname of the node.
+  * @param instanceId A unique identifier for the instance of the node.
   *
   * Extends the `Ordered` trait to allow comparison of `NodeIdentity` instances based on host and
   * port.
@@ -48,18 +46,28 @@ import java.net.InetAddress
   *   - `toURI`: Converts the node's information into a URI instance using the scheme "http".
   *   - `compare`: Compares two `NodeIdentity` instances first by host, then by port.
   */
-case class NodeIdentity(hostIp: String, port: Int, hostName: String, instanceId: Id)
+case class NodeIdentity( hostIp: String, port: Int, hostName: String, instanceId: Id)
     extends Ordered[NodeIdentity] derives Codec.AsObject, Schema:
-  /** String representation. This is the complement to the [[NodeIdentity.apply(s:String)]] method.
-    */
-  override val toString: String =
-    f"${hostIp}_${port}_${hostName}_$instanceId"
 
-  /** UDP header piece is used to identify the node. */
-  val udpHeaderPiece: String =
-    toString
-  val external: String = s"$hostName:$instanceId"
   lazy val shortHost: String = s"$hostName:$port"
+    /**
+      * String representation. This is the complement to the [[NodeIdentity.apply(s:String)]]
+      * method.
+      */
+  val udpHeaderPiece: String = f"${hostIp}_${port}_${hostName}_$instanceId"
+
+//  /** UDP header piece is used to identify the node. */
+//  val udpHeaderPiece: String =
+//    toString
+//  val external: String = s"$hostName:$instanceId"
+
+  override def toString: String =
+    val sPort = if Ports.hasMultiplePorts then
+      s":$port"
+    else
+      ""
+    s"$hostName$sPort"
+
   override def compare(that: NodeIdentity): Int =
     this.hostName.compareTo(that.hostName)
 
@@ -79,10 +87,9 @@ object NodeIdentity:
     instanceId = "=id"
   )
 
-  /** @param address
-    *   from packet.getAddress as received from UDP.
-    * @param udpPiece
-    *   for header.
+  /**
+    * @param address from packet.getAddress as received from UDP.
+    * @param udpPiece for header.
     */
   def fromUdpHeader(
       address: InetAddress,
@@ -95,8 +102,8 @@ object NodeIdentity:
         hostIp = address.getHostAddress
       )
 
-  /** @param s
-    *   from [[toString]]
+  /**
+    * @param s from [[toString]]
     * @return
     */
   def apply(s: String): NodeIdentity =

@@ -18,6 +18,7 @@
 
 package fdswarm.replication.status
 
+import fdswarm.Ports
 import fdswarm.fx.station.StationEditor
 import fdswarm.fx.{FdLogUi, GridBuilder}
 import fdswarm.logging.LazyStructuredLogging
@@ -92,7 +93,7 @@ class SwarmData @Inject() (
     () => nodeStatusListeners.remove(id)
 
   ageCellStyleRefresher.setPurgeCallback(nodeIdentity =>
-    logger.info("Purging", "Node" -> nodeIdentity.toString)
+    logger.debug("Purging", "Node" -> nodeIdentity.toString)
     remove(nodeIdentity)
   )
   nodeStatusDispatcher.addListener(
@@ -212,7 +213,7 @@ class SwarmData @Inject() (
       localNodeIdentity = NodeIdentityManager.nodeIdentity
     )
     val nodeIdentity = normalizedNodeStatus.nodeIdentity
-    nodeMap.put(nodeIdentity, normalizedNodeStatus)
+    if nodeMap.put(nodeIdentity, normalizedNodeStatus).isEmpty then Ports.port(nodeIdentity)
     ageCellStyleRefresher.track(nodeStatus = normalizedNodeStatus)
 
     updateOnFxThread {
@@ -464,6 +465,7 @@ class SwarmData @Inject() (
       NodeDataField.ContestClass -> contest.ourClass,
       NodeDataField.ContestSection -> contest.ourSection,
       NodeDataField.Exchange -> contest.exchange,
+      NodeDataField.Host -> nodeStatus.nodeIdentity.toString,
       NodeDataField.ContestStart -> stampFormatter.format(
         nodeStatus.statusMessage.contestStart
       )

@@ -96,7 +96,7 @@ class QsoTablePane @Inject()(qsoStore: QsoStore, userConfig: UserConfig):
   private val theirCallCol = col[String]("Their Call", _.callsign.value)
   private val rcvdCol   = col[String]("Rcvd", q => q.exchange.toString)
   private val opCol = col[String]("Op", _.qsoMetadata.station.operator.value)
-  private val nodeCol = col[String]("Node", _.qsoMetadata.node.shortHost)
+  private val nodeCol = col[String]("Node", _.qsoMetadata.node.toString)
 
   table.columns ++= Seq(
     timeCol, theirCallCol, bandCol, modeCol, rcvdCol, opCol, nodeCol

@@ -18,7 +18,7 @@
 
 package fdswarm.store
 
-import fdswarm.StartupInfo
+import fdswarm.{Ports, StartupInfo}
 import fdswarm.contestStart.ContestStartManager
 import fdswarm.io.FileHelper
 import fdswarm.logging.{LazyStructuredLogging, Locus}
@@ -190,6 +190,7 @@ class QsoStore @Inject() (
     os.read.lines(path).iterator.map(_.trim).filter(_.nonEmpty).foreach { line =>
       decode[Qso](line) match
         case Right(qso) =>
+          Ports.port(qso.qsoMetadata.node)
           if qso.stamp.isBefore(cutoff) then ignoredOlderThanContestStart += 1
           else if map.putIfAbsent(qso.uuid, qso).isEmpty then
             loaded += 1
