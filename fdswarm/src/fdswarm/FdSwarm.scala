@@ -27,7 +27,7 @@ import scalafx.application.JFXApp3
   *   - delegates all UI construction to [[FdLogUi]]
   */
 
-object FdLogApp extends JFXApp3:
+object FdSwarm extends JFXApp3:
   private lazy val injector: Injector = Guice.createInjector(
     new fdswarm.fx.ConfigModule(
       rawArgs

@@ -24,6 +24,8 @@ import fdswarm.model.{BandMode, Callsign, Exchange, FdClass, Qso, QsoMetadata}
 import fdswarm.util.NodeIdentity
 import munit.FunSuite
 
+import java.time.Instant
+
 class QsoStoreTest extends FunSuite:
 
   test("sameBandMode matches band and mode case-insensitively"):
@@ -45,6 +47,13 @@ class QsoStoreTest extends FunSuite:
     val callsigns = Seq(Callsign("WA9ZZZ"), Callsign("wa9zzz"))
     val result = QsoStore.potentialDupCallsigns(callsigns, "WA9")
     assertEquals(result.map(_.value), Seq("WA9ZZZ"))
+
+  test("isBeforeContestStart rejects only QSOs stamped before contest start"):
+    val contestStart = Instant.parse("2026-01-24T19:00:00Z")
+
+    assert(QsoStore.isBeforeContestStart(qsoForStamp("2026-01-24T18:59:59Z"), contestStart))
+    assert(!QsoStore.isBeforeContestStart(qsoForStamp("2026-01-24T19:00:00Z"), contestStart))
+    assert(!QsoStore.isBeforeContestStart(qsoForStamp("2026-01-24T19:00:01Z"), contestStart))
 
   test("isLocalNodeQso matches exact node identity"):
     val localNode = NodeIdentity("127.0.0.1", 8080, "host-a", "local-id")
@@ -74,3 +83,7 @@ class QsoStoreTest extends FunSuite:
         contest = ContestType.WFD
       )
     )
+
+  private def qsoForStamp(stamp: String): Qso =
+    qsoForNode(NodeIdentity("127.0.0.1", 8080, "host-a", "local-id"))
+      .copy(stamp = Instant.parse(stamp))

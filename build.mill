@@ -58,7 +58,7 @@ object fdswarm
     super.docSources() ++ Seq(common.compile().classes)
   }
 
-  def mainClass = Some("fdswarm.FdLogApp")
+  def mainClass = Some("fdswarm.FdSwarm")
 
   override def manifest = Task {
     super

@@ -190,11 +190,12 @@ class QsoStore @Inject() (
     os.read.lines(path).iterator.map(_.trim).filter(_.nonEmpty).foreach { line =>
       decode[Qso](line) match
         case Right(qso) =>
-          Ports.port(qso.qsoMetadata.node)
-          if qso.stamp.isBefore(cutoff) then ignoredOlderThanContestStart += 1
-          else if map.putIfAbsent(qso.uuid, qso).isEmpty then
-            loaded += 1
-            mutateQsoCollection(qsoCollection.prepend(qso))
+          if QsoStore.isBeforeContestStart(qso, cutoff) then ignoredOlderThanContestStart += 1
+          else
+            Ports.port(qso.qsoMetadata.node)
+            if map.putIfAbsent(qso.uuid, qso).isEmpty then
+              loaded += 1
+              mutateQsoCollection(qsoCollection.prepend(qso))
         case Left(error) => logger.error(s"Failed to decode Qso from line: $line", error)
     }
     logger.info("qso-journal-load",
@@ -250,6 +251,9 @@ class QsoStore @Inject() (
       )
 
 object QsoStore:
+  private[store] def isBeforeContestStart(qso: Qso, contestStart: Instant): Boolean =
+    qso.stamp.isBefore(contestStart)
+
   private[store] def isLocalNodeQso(qso: Qso, localNodeIdentity: NodeIdentity): Boolean =
     val qsoNode = qso.qsoMetadata.node
     qsoNode == localNodeIdentity ||
