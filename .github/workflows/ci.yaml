@@ -154,7 +154,7 @@ jobs:
           if [[ -n "${FDSWARM_BUILD}" ]]; then
             jar_version="${jar_version}-build${FDSWARM_BUILD}"
           fi
-          cp out/fdswarm/assembly.dest/fdswarm-all.jar "out/fdswarm/assembly.dest/FdSwarm-${jar_version}-all.jar"
+          cp out/fdswarm/assembly.dest/fdswarm.jar "out/fdswarm/assembly.dest/FdSwarm-${jar_version}-assembly.jar"
 
       - name: Upload JAR artifact
         if: success()
@@ -162,8 +162,8 @@ jobs:
         with:
           name: FdSwarm-Assembly-JAR
           path: |
-            out/fdswarm/assembly.dest/fdswarm-all.jar
-            out/fdswarm/assembly.dest/FdSwarm-*-all.jar
+            out/fdswarm/assembly.dest/fdswarm.jar
+            out/fdswarm/assembly.dest/FdSwarm-*-assembly.jar
           if-no-files-found: error
           retention-days: 3
 
@@ -308,7 +308,7 @@ jobs:
       - name: Build winMsi
         run: .\mill.bat --no-daemon fdswarm.winMsi
         env:
-          FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm-all.jar
+          FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm.jar
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v6
@@ -402,7 +402,7 @@ jobs:
         shell: pwsh
         run: .\mill.bat --no-daemon fdswarm.winMsi
         env:
-          FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm-all.jar
+          FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm.jar
 
       - name: Upload ARM64 MSI artifact
         uses: actions/upload-artifact@v6
@@ -476,7 +476,7 @@ jobs:
       - name: Build macPkg
         run: ./mill --no-daemon fdswarm.macPkg
         env:
-          FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm-all.jar
+          FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm.jar
 
       - name: Upload PKG artifact
         uses: actions/upload-artifact@v6
@@ -530,7 +530,7 @@ jobs:
         with:
           files: |
             release-artifacts/**/*.zip
-            release-artifacts/jar/FdSwarm-*-all.jar
+            release-artifacts/jar/FdSwarm-*-assembly.jar
             release-artifacts/**/*.msi
             release-artifacts/**/*.pkg
           draft: false
