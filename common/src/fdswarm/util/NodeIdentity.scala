@@ -103,7 +103,7 @@ object NodeIdentity:
       )
 
   /**
-    * @param s from [[toString]]
+    * @param s from [[NodeIdentity.udpHeaderPiece]]
     * @return
     */
   def apply(s: String): NodeIdentity =

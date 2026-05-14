@@ -25,9 +25,10 @@ import fdswarm.StartupConfig
 
 class AppInstance(debugConfigJsonPath: String,
                   startupConfig: StartupConfig,
-                  port: Int) extends LazyStructuredLogging:
+                  port: Int,
+                  logBaseDir: os.Path = os.home / "fdswarm") extends LazyStructuredLogging:
   private val debugOpt: Option[String] = startupConfig.debugMode.javaOpt
-  private val logDir = os.home / "fdswarm" / port.toString
+  private val logDir = logBaseDir / port.toString
   private val stdoutLog = logDir / "stdout.log"
   private val stderrLog = logDir / "stderr.log"
   os.makeDir.all(logDir)
@@ -50,7 +51,8 @@ class AppInstance(debugConfigJsonPath: String,
   val subProcess: SubProcess = proc.spawn(
     env = Map("PORT" -> port.toString),
     stdout = os.PathRedirect(stdoutLog),
-    stderr = os.PathRedirect(stderrLog)
+    stderr = os.PathRedirect(stderrLog),
+    destroyOnExit = false
   )
   private val processHandle = subProcess.wrapped.toHandle
 
@@ -58,10 +60,13 @@ class AppInstance(debugConfigJsonPath: String,
     if processHandle.isAlive then
       logger.info(s"Stopping instance ${startupConfig.id} pid=${processHandle.pid()}")
 
-      // Kill descendants first to avoid orphan helper processes.
-      processHandle.descendants().forEach { child =>
-        if child.isAlive then child.destroyForcibly()
-      }
+      try
+        // Kill descendants first to avoid orphan helper processes.
+        processHandle.descendants().forEach { child =>
+          if child.isAlive then child.destroyForcibly()
+        }
+      catch case _: RuntimeException =>
+        logger.warn(s"Could not inspect descendants for instance ${startupConfig.id}")
       processHandle.destroyForcibly()
 object AppInstance:
   val jarPath: String = "out/fdswarm/assembly.dest/fdswarm.jar"

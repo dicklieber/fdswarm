@@ -39,7 +39,8 @@ class AppInstanceTest extends FunSuite:
     // However, the original issue was "No such file or directory" because of how os.proc was called.
     // With the fix, it should at least try to run "java".
 
-    val app = new AppInstance(tempFile.toString, startupConfig, 8080)
+    val logBaseDir = os.temp.dir(prefix = "app-instance-test", deleteOnExit = true)
+    val app = new AppInstance(tempFile.toString, startupConfig, 8080, logBaseDir)
     // Note: without real JAR, subprocess exits immediately after spawn due to "Unable to access jarfile" error (expected in test env)
 
     app.stop()

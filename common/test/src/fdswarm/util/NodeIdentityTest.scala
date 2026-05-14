@@ -26,10 +26,10 @@ import java.net.InetAddress
 
 class NodeIdentityTest extends FunSuite:
 
-  test("string round trip"):
+  test("udp header piece direct round trip"):
     val nodeIdentity = NodeIdentity.mockNodeIdentity
-    val string = nodeIdentity.toString
-    val backAgain = NodeIdentity(string)
+    val udpPiece = nodeIdentity.udpHeaderPiece
+    val backAgain = NodeIdentity(udpPiece)
     assertEquals(backAgain, nodeIdentity)
 
   test("udpPiece round trip"):
