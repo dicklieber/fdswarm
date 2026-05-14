@@ -77,7 +77,7 @@ case class NodeIdentity( hostIp: String, port: Int, hostName: String, instanceId
 
   override def hashCode: Int = instanceId.hashCode
 
-  def hostPort: String = s"${hostIp}:$port"
+  def hostPort: String = s"$hostIp:$port"
 
 object NodeIdentity:
   val mockNodeIdentity = NodeIdentity(

@@ -33,7 +33,7 @@ class AppInstance(debugConfigJsonPath: String,
   private val stderrLog = logDir / "stderr.log"
   os.makeDir.all(logDir)
 
-  val args =
+  val args: Seq[String] =
     Seq("java") ++
       debugOpt.toSeq ++
       Seq(
