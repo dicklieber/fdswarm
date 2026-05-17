@@ -44,3 +44,16 @@ class GzipTest extends FunSuite:
         invalid
       )
     )
+
+  test("decompress should reject output larger than maxBytes"):
+    val input = "Field Day logging data: N0CALL 20m CW".getBytes(StandardCharsets.UTF_8)
+    val compressed = Gzip.compress(
+      input
+    )
+
+    intercept[IllegalArgumentException](
+      Gzip.decompress(
+        compressed,
+        input.length - 1
+      )
+    )

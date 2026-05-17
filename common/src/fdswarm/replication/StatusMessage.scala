@@ -56,8 +56,13 @@ case class StatusMessage(
     Gzip.compress(jsonBytes)
 
 object StatusMessage:
+  val MaxPacketJsonBytes: Int = 1024 * 1024
+
   def apply(gzipped: Array[Byte]): StatusMessage =
-    val jsonBytes = Gzip.decompress(gzipped)
+    val jsonBytes = Gzip.decompress(
+      gzipped,
+      MaxPacketJsonBytes
+    )
     val json = new String(jsonBytes, StandardCharsets.UTF_8)
     decode[StatusMessage](json) match
       case Right(streamMessage) => streamMessage

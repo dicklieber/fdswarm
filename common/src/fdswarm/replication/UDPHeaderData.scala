@@ -22,7 +22,7 @@ import fdswarm.util.{Gzip, NodeIdentity}
 import io.circe.Decoder
 
 import java.nio.charset.StandardCharsets
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 case class UDPHeaderData(
   service: Service[?],
@@ -57,12 +57,17 @@ case class UDPHeaderData(
   ): Array[Byte] =
     if isGzip(input) then
       Try(
-        Gzip.decompress(input)
-      ).getOrElse(
-        throw new RuntimeException(
-          "Failed to decompress GZIP payload"
+        Gzip.decompress(
+          input,
+          UDPHeaderData.MaxDecompressedPayloadBytes
         )
-      )
+      ) match
+        case Success(bytes) => bytes
+        case Failure(error) =>
+          throw new RuntimeException(
+            "Failed to decompress GZIP payload",
+            error
+          )
     else
       input
 
@@ -72,3 +77,6 @@ case class UDPHeaderData(
     input.length >= 2 &&
       input(0) == 0x1f.toByte &&
       input(1) == 0x8b.toByte
+
+object UDPHeaderData:
+  val MaxDecompressedPayloadBytes: Int = 1024 * 1024

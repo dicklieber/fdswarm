@@ -109,6 +109,7 @@ final class ReplEndpoints @Inject()(
 
 object ReplEndpoints:
   val printer: Printer = Printer.spaces2
+  val MaxAllQsosJsonBytes: Int = 64 * 1024 * 1024
 
   private val allQsosBody =
     header[String]("Content-Type")
@@ -166,9 +167,17 @@ object ReplEndpoints:
   ): AllQsos =
     val jsonBytes =
       if contentEncoding.exists(_.equalsIgnoreCase("gzip")) then
-        Gzip.decompress(bytes)
+        Gzip.decompress(
+          bytes,
+          MaxAllQsosJsonBytes
+        )
       else
-        bytes
+        if bytes.length > MaxAllQsosJsonBytes then
+          throw new IllegalArgumentException(
+            s"AllQsos payload exceeds maximum size of $MaxAllQsosJsonBytes bytes"
+          )
+        else
+          bytes
 
     decode[AllQsos](
       new String(jsonBytes, StandardCharsets.UTF_8)
