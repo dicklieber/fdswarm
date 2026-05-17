@@ -16,21 +16,22 @@
  *
  */
 
-package fdswarm.fx
+package fdswarm
 
 import fdswarm.contestStart.StartContestDialog
-import fdswarm.fx.FdLogUi.isMac
+import FdSwarmUi.isMac
 import fdswarm.fx.bandmodes.BandsAndModesPane
 import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.discovery.ContestConfigDialog
 import fdswarm.fx.station.StationEditor
 import fdswarm.fx.tools.*
+import fdswarm.fx.{AboutMenuItem, UserConfig, UserConfigEditor}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.metric.StatsManager
 import fdswarm.replication.status.ContestConfigMismatchUi
 import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
-import io.circe.parser.decode
-import io.circe.syntax.*
+import _root_.io.circe.parser.decode
+import _root_.io.circe.syntax.EncoderOps
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
 import javafx.scene.control.{Menu as JfxMenu, MenuItem as JfxMenuItem}
@@ -45,7 +46,7 @@ import scalafx.scene.web.WebView
 import scalafx.stage.{Stage, Window}
 
 import scala.io.Source
-final class FdLogMenus @Inject() (
+final class FdSwarmMenus @Inject()(
                                    bandModeManagerPane: BandsAndModesPane,
                                    stationEditor: StationEditor,
                                    howManyDialogService: HowManyDialogService,
@@ -81,14 +82,14 @@ final class FdLogMenus @Inject() (
         new MenuItem("Station"):
           onAction = _ =>
             stationEditor.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new SeparatorMenuItem(),
         new MenuItem("ARRL Sections Map"):
           onAction = _ =>
             showArrlSectionsMap(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         labelArrlRegionsMenuItem,
@@ -96,7 +97,7 @@ final class FdLogMenus @Inject() (
         new MenuItem("User Config"):
           onAction = _ =>
             userConfigEditor.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Contest"):
@@ -122,38 +123,38 @@ final class FdLogMenus @Inject() (
         new MenuItem("Generate QSOs"):
           onAction = _ =>
             howManyDialogService.showAndGenerate(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
 
         new MenuItem("Logging"):
           onAction = _ =>
             loggingDialog.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Contest Time"):
           onAction = _ =>
             contestTimeDialog.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Metrics"):
           onAction = _ =>
             metricsDialog.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Ports"):
           onAction = _ =>
             portsDialog.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Swarm Stats"):
           onAction = _ =>
             statsManager.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Clear Contest"):
@@ -169,13 +170,13 @@ final class FdLogMenus @Inject() (
         new MenuItem("Swarm Status"):
           onAction = _ =>
             swarmStatusAdmin.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
         ,
         new MenuItem("Start Contest"):
           onAction = _ =>
             startContestDialog.showStartContestDialog(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
       )
   private val reportsMenu: Menu =
@@ -187,7 +188,7 @@ final class FdLogMenus @Inject() (
         new MenuItem("Summary"):
           onAction = _ =>
             summaryDialog.show(
-              FdLogUi.primaryStage
+              FdSwarmUi.primaryStage
             )
 
       )
@@ -195,12 +196,12 @@ final class FdLogMenus @Inject() (
 
   def showAboutDialog(): Unit =
     aboutMenuItem.showAboutDialog(
-      FdLogUi.primaryStage
+      FdSwarmUi.primaryStage
     )
 
   def showBandModeManager(): Unit =
     bandModeManagerPane.show(
-      FdLogUi.primaryStage
+      FdSwarmUi.primaryStage
     )
 
   private def fileMenu: Menu =
@@ -208,7 +209,7 @@ final class FdLogMenus @Inject() (
       private val exportItem = new MenuItem("Export"):
         onAction = _ =>
           exportDialog.show(
-            FdLogUi.primaryStage
+            FdSwarmUi.primaryStage
           )
       private val exitItem = new MenuItem("Exit"):
         onAction = _ => Platform.exit()

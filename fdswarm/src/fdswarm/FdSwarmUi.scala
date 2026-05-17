@@ -16,16 +16,17 @@
  *
  */
 
-package fdswarm.fx
+package fdswarm
 
 import cats.effect.unsafe.implicits.global
 import fdswarm.StartupInfo
 import fdswarm.contestStart.ContestStartManager
-import fdswarm.fx.FdLogUi.{isJdwpEnabled, isMac}
+import FdSwarmUi.{isJdwpEnabled, isMac}
 import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.discovery.ContestDiscovery
 import fdswarm.fx.qso.ContestEntry
 import fdswarm.fx.utils.UiStyles
+import fdswarm.fx.WelcomeDialog
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.replication.{NodeStatusDispatcher, StatusBroadcastService}
 import fdswarm.util.NodeIdentityManager
@@ -42,9 +43,9 @@ import scalafx.scene.{Node, Scene, SnapshotParameters}
 import scalafx.stage.{Modality, Stage}
 
 @Singleton
-final class FdLogUi @Inject() (
+final class FdSwarmUi @Inject()(
                                 contestEntry: ContestEntry,
-                                menus: FdLogMenus,
+                                menus: FdSwarmMenus,
                                 repl: NodeStatusDispatcher,
                                 statusBroadcastService: StatusBroadcastService,
                                 qsoStore: fdswarm.store.QsoStore,
@@ -57,7 +58,7 @@ final class FdLogUi @Inject() (
 ) extends LazyStructuredLogging():
 
   def start(): Unit =
-    val stage = FdLogUi.primaryStage
+    val stage = FdSwarmUi.primaryStage
     val qsoNode: Node = contestEntry.node
     val centerPane = new StackPane:
       children = List(qsoNode)
@@ -171,7 +172,7 @@ final class FdLogUi @Inject() (
       }
 
   private def setAppIcon(): Unit =
-    val stage = FdLogUi.primaryStage
+    val stage = FdSwarmUi.primaryStage
     try
       val resource = getClass.getResource("/icons/fdswarm.svg")
       if resource != null then
@@ -237,7 +238,7 @@ final class FdLogUi @Inject() (
   def stopApp(): Unit =
     statusBroadcastService.stop()
 
-object FdLogUi:
+object FdSwarmUi:
   private var stageOpt: Option[Stage] = None
 
   lazy val isMac: Boolean =

@@ -18,9 +18,9 @@
 
 package fdswarm.replication.status
 
-import fdswarm.Ports
+import fdswarm.{FdSwarmUi, Ports}
 import fdswarm.fx.station.StationEditor
-import fdswarm.fx.{FdLogUi, GridBuilder}
+import fdswarm.fx.{GridBuilder}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.replication.{NodeStatus, NodeStatusDispatcher, Service}
 import fdswarm.util.{NodeIdentity, NodeIdentityManager}
@@ -385,7 +385,7 @@ class SwarmData @Inject() (
       node.delegate.setOnMouseClicked(
         new EventHandler[MouseEvent]:
           override def handle(event: MouseEvent): Unit =
-            stationEditor.show(FdLogUi.primaryStage)
+            stationEditor.show(FdSwarmUi.primaryStage)
       )
     else node.delegate.setOnMouseClicked(null)
 

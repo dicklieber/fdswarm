@@ -1,6 +1,6 @@
 package fdswarm.scoring
 
-import fdswarm.fx.FdLogUi
+import fdswarm.FdSwarmUi
 import fdswarm.fx.contest.ContestConfigManager
 import jakarta.inject.*
 import scalafx.Includes.*
@@ -21,7 +21,7 @@ class ContestScoringConfigDialog @Inject() (
       headerText = s"Scoring settings for ${contestConfigManager.contestConfigProperty.value.contestType}"
       dialogPane().buttonTypes = Seq(ButtonType.Cancel, saveButtonType)
       dialogPane().content = scoringPane.pane
-      if FdLogUi.primaryStage != null then initOwner(FdLogUi.primaryStage)
+      if FdSwarmUi.primaryStage != null then initOwner(FdSwarmUi.primaryStage)
       resultConverter = (buttonType: ButtonType) => buttonType
 
     val saveButton = dialog.dialogPane().lookupButton(saveButtonType)

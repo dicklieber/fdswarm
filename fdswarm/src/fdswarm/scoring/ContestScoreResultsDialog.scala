@@ -1,6 +1,6 @@
 package fdswarm.scoring
 
-import fdswarm.fx.FdLogUi
+import fdswarm.FdSwarmUi
 import jakarta.inject.*
 import scalafx.Includes.jfxDialogPane2sfx
 import scalafx.scene.control.{ButtonType, Dialog}
@@ -18,6 +18,6 @@ class ContestScoreResultsDialog @Inject() (
       headerText = "Live scoring values"
       dialogPane().buttonTypes = Seq(ButtonType.Close)
       dialogPane().content = resultsPane.pane
-      initOwner(FdLogUi.primaryStage)
+      initOwner(FdSwarmUi.primaryStage)
 
     dialog.showAndWait()

@@ -32,7 +32,7 @@ import scala.util.Try
 @Singleton
 final class StationEditor @Inject() (stationStore: StationStore) {
 
-  /** Called by FdLogUi */
+  /** Called by FdSwarmUi */
   def show(ownerWindow: Window): Unit = {
     val initial = stationStore.station.value
 

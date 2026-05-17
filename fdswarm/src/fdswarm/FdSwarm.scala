@@ -19,12 +19,11 @@
 package fdswarm
 
 import com.google.inject.{Guice, Injector}
-import fdswarm.fx.FdLogUi
 import scalafx.application.JFXApp3
 
 /** Minimal app bootstrap:
   *   - applies process startup settings
-  *   - delegates all UI construction to [[FdLogUi]]
+  *   - delegates all UI construction to [[FdSwarmUi]]
   */
 
 object FdSwarm extends JFXApp3:
@@ -49,7 +48,7 @@ object FdSwarm extends JFXApp3:
       "apple.laf.useScreenMenuBar",
       "true"
     )
-    if FdLogUi.isMac then
+    if FdSwarmUi.isMac then
       System.setProperty(
         "apple.awt.application.name",
         "FdSwarm"
@@ -72,11 +71,11 @@ object FdSwarm extends JFXApp3:
 
   override def start(): Unit =
     stage = new JFXApp3.PrimaryStage
-    FdLogUi.setPrimaryStage(
+    FdSwarmUi.setPrimaryStage(
       stage
     )
     injector.getInstance(
-      classOf[FdLogUi]
+      classOf[FdSwarmUi]
     ).start()
 
   override def stopApp(): Unit =
@@ -84,5 +83,5 @@ object FdSwarm extends JFXApp3:
       "stopApp"
     )
     injector.getInstance(
-      classOf[FdLogUi]
+      classOf[FdSwarmUi]
     ).stopApp()
