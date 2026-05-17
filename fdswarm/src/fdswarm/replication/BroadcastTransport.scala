@@ -60,19 +60,26 @@ class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager)
   thread.start()
 
   override def run(): Unit =
-    while !Thread.currentThread().isInterrupted do
-      val packet: DatagramPacket = new DatagramPacket(buffer, buffer.length)
-      logger.trace(s"Waiting for a UDP packet")
-      socket.receive(packet)
-      reciveCounter.inc()
-      receiveSize.update(packet.getLength)
+    while !Thread.currentThread().isInterrupted && socket != null && !socket.isClosed do
+      try
+        val packet: DatagramPacket = new DatagramPacket(buffer, buffer.length)
+        logger.trace(s"Waiting for a UDP packet")
+        socket.receive(packet)
+        reciveCounter.inc()
+        receiveSize.update(packet.getLength)
 
-      val senderAddr = packet.getAddress
-      val senderPort = packet.getPort
-      logger.trace(s"Received a UDP packet")
-      val udpHeaderData = UDPHeader.parse(packet)
+        val senderAddr = packet.getAddress
+        val senderPort = packet.getPort
+        logger.trace(s"Received a UDP packet from $senderAddr:$senderPort")
+        val udpHeaderData = UDPHeader.parse(packet)
 
-      incomingQueue.offer(udpHeaderData)
+        incomingQueue.offer(udpHeaderData)
+      catch
+        case e: java.net.SocketException if socket == null || socket.isClosed =>
+          logger.debug(s"BroadcastTransport receive loop stopped: ${e.getMessage}")
+
+        case e: Exception =>
+          logger.error(s"Error in BroadcastTransport receive loop ${e.getMessage}", e)
 
   def send(data: Array[Byte]): Unit =
     send(Service.QSO, data)
