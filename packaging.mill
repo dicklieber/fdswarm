@@ -150,7 +150,7 @@ trait FdSwarmPackaging extends JpackageModule:
       assemblyJar: PathRef
     ): (os.Path, String) =
 
-    val jarFromEnv = sys.env.get("FDSWARM_ASSEMBLY_JAR").map(os.Path(_, os.pwd))
+    val jarFromEnv = sys.env.get("FDSWARM_ASSEMBLY_JAR").map(envPath)
     val inputDir = dest / "jpackage-input"
     os.makeDir.all(inputDir)
 
@@ -370,3 +370,10 @@ trait FdSwarmPackaging extends JpackageModule:
       rel: String
     ): os.Path =
     os.Path(rel, os.pwd)
+
+  private def envPath(
+      raw: String
+    ): os.Path =
+    val path = raw.trim
+    if java.nio.file.Paths.get(path).isAbsolute then os.Path(path)
+    else os.Path(path, moduleDir / os.up)
