@@ -78,6 +78,44 @@ For lightweight GitHub Actions checks, install `act` and run:
 
 `act` is useful for Linux workflow checks and YAML wiring. Native macOS and Windows installer packaging still needs the matching operating system because `jpackage` produces platform-specific installers.
 
+## Local Package Builds
+
+Build the assembly JAR first. This also builds and embeds the documentation site:
+
+```bash
+./mill --no-daemon fdswarm.assembly
+./scripts/ci/verify-docs-in-jar.sh out/fdswarm/assembly.dest/fdswarm.jar
+```
+
+On macOS, build the PKG installer:
+
+```bash
+FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
+```
+
+The PKG is written to:
+
+```text
+out/fdswarm/macPkg.dest/jpackage/
+```
+
+On Windows, build the MSI installer from PowerShell:
+
+```powershell
+.\mill.bat --no-daemon fdswarm.assembly
+bash .\scripts\ci\verify-docs-in-jar.sh out/fdswarm/assembly.dest/fdswarm.jar
+$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
+.\scripts\ci\package-windows.ps1
+```
+
+The MSI is written to:
+
+```text
+out/fdswarm/winMsi.dest/
+```
+
+Windows ARM64 packaging requires WiX 3.14.1 on the PATH. The GitHub Actions workflow installs it with `scripts/ci/install-wix.ps1`.
+
 ## Using the manager
 A manager is available to manage a bunch of instances of fdswarm, on a single host.
 ```
