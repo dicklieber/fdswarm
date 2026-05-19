@@ -129,18 +129,15 @@ remote_main_sha="$(remote_branch_sha)"
 if [[ "$local_branch_sha" != "$remote_main_sha" ]]; then
   echo "Updating local $BRANCH from GitHub..."
   if ! gh repo sync --branch "$BRANCH"; then
-    die "could not update local $BRANCH from GitHub. The branch likely has diverging local commits; resolve that before releasing."
+    echo "Warning: could not update local $BRANCH from GitHub. The branch likely has diverging local commits."
+    echo "Warning: release will use the current GitHub $BRANCH commit; your local checkout will not be changed."
+  else
+    echo "Rechecking for a clean worktree after update..."
+    require_clean_worktree
+
+    local_branch_sha="$(git rev-parse HEAD)"
+    remote_main_sha="$(remote_branch_sha)"
   fi
-
-  echo "Rechecking for a clean worktree after update..."
-  require_clean_worktree
-
-  local_branch_sha="$(git rev-parse HEAD)"
-  remote_main_sha="$(remote_branch_sha)"
-fi
-
-if [[ "$local_branch_sha" != "$remote_main_sha" ]]; then
-  die "local $BRANCH differs from GitHub $BRANCH. Resolve the divergence before releasing. Local: $local_branch_sha GitHub: $remote_main_sha"
 fi
 
 latest_tag="$(latest_release_tag_or_empty)"
@@ -158,7 +155,12 @@ validate_tag "$release_tag"
 
 echo
 echo "Release tag: $release_tag"
-echo "This will create $release_tag on GitHub at the current $BRANCH commit."
+echo "This will create $release_tag on GitHub at the current GitHub $BRANCH commit."
+if [[ "$local_branch_sha" != "$remote_main_sha" ]]; then
+  echo "Local $BRANCH differs from GitHub $BRANCH."
+  echo "Local:  $local_branch_sha"
+  echo "GitHub: $remote_main_sha"
+fi
 read -r -p "Continue? [y/N] " answer
 [[ "$answer" =~ ^[Yy]$ ]] || die "aborted"
 
