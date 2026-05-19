@@ -48,11 +48,11 @@ trait DocsModule(
 
   override def sources = Task.Sources(moduleDir / "src")
 
-  def site() = Task.Command {
+  def site = Task {
     val source = sources().head.path
     val stagedSource = Task.dest / "src-with-scaladoc-links"
     val diagramSource = source / "diagrams"
-    val diagramDest = moduleDir / "generated" / "diagrams"
+    val diagramDest = Task.dest / "generated-diagrams"
     val dest = Task.dest / "site"
     os.makeDir.all(dest)
     os.copy.over(source, stagedSource, createFolders = true)

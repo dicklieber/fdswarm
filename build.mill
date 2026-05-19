@@ -54,8 +54,8 @@ object fdswarm
 
   override def moduleDeps = Seq(common)
 
-  def generatedDocsSite = Task.Input {
-    PathRef(moduleDir / os.up / "out" / "docs" / "site.dest" / "site")
+  def generatedDocsSite = Task {
+    docs.site()
   }
 
   override def resources = Task {
