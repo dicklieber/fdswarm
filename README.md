@@ -38,7 +38,7 @@ The report will be available at: `out/fdswarm/scoverage/htmlReport.dest/index.ht
 
 ## Releases and Artifacts
 
-To create a new release with downloadable artifacts (JAR, Windows MSI, macOS PKG):
+To create a new release with downloadable artifacts (JAR, Windows MSI, macOS PKG, zip distributions):
 1. Make sure the GitHub CLI is installed and authenticated with `gh auth login`.
 2. Run `./scripts/release.sh`.
 3. Accept the suggested release tag or enter another tag with three numeric version components, such as `v1.0.0`.
@@ -50,7 +50,7 @@ To skip the prompt for the version number, pass the tag explicitly:
 ./scripts/release.sh v1.0.0
 ```
 
-Release tags provide the public app version (`X.Y.Z`). GitHub Actions provides the build number from the workflow run number. Installer metadata uses a three-part installer-safe version for MSI/PKG compatibility, while artifact filenames include the build number, for example `FdSwarm-1.0.0-build123-windows-x64.msi`.
+Release tags provide the public app version (`X.Y.Z`). GitHub Actions provides the build number from the workflow run number. Installer metadata uses a three-part installer-safe version for MSI/PKG compatibility, while installer artifact filenames include the build number, for example `FdSwarm-1.0.0-build123-windows-x64.msi`. Zip distribution filenames use the public app version, for example `FdSwarm-1.0.0-linux-x64.zip`.
 
 Artifacts are also available as GitHub Action run artifacts for every build on the `main` branch.
 
@@ -115,6 +115,78 @@ out/fdswarm/winMsi.dest/
 ```
 
 Windows ARM64 packaging requires WiX 3.14.1 on the PATH. The GitHub Actions workflow installs it with `scripts/ci/install-wix.ps1`.
+
+## Zip Distribution Builds
+
+Zip distributions are plain file-copy bundles. They do not use `jpackage`, MSI, DMG, PKG, WiX, or app-image.
+
+Each zip contains:
+
+```text
+FdSwarm/
+  bin/
+    fdswarm
+    fdswarm.bat
+  lib/
+    fdswarm-all.jar
+  runtime/
+    <bundled platform JDK>
+  conf/
+    application.conf if present
+```
+
+Use BellSoft Liberica JDK 21 Full archives from https://bell-sw.com/pages/downloads/#jdk-21-lts. Use the Full JDK because FdSwarm is a JavaFX app and the Full bundle includes LibericaFX.
+
+### Local Zip Builds
+
+Download and unpack these Liberica JDK 21 Full archives:
+
+- Windows x64 ZIP
+- macOS ARM64 TAR.GZ
+- Linux x64 TAR.GZ
+
+Then point the distribution tasks at the unpacked JDK directories:
+
+```bash
+export FDSWARM_RUNTIME_WINDOWS_X64=/path/to/unpacked/windows-jdk-full
+export FDSWARM_RUNTIME_MACOS_AARCH64=/path/to/unpacked/macos-jdk-full.jdk/Contents/Home
+export FDSWARM_RUNTIME_LINUX_X64=/path/to/unpacked/linux-jdk-full
+```
+
+Build all zip distributions:
+
+```bash
+./mill --no-daemon fdswarm.distAll
+```
+
+Or build one platform zip:
+
+```bash
+./mill --no-daemon fdswarm.distWindowsX64
+./mill --no-daemon fdswarm.distMacosAarch64
+./mill --no-daemon fdswarm.distLinuxX64
+```
+
+The zip files are written to:
+
+```text
+out/fdswarm/distWindowsX64.dest/FdSwarm-<version>-windows-x64.zip
+out/fdswarm/distMacosAarch64.dest/FdSwarm-<version>-macos-aarch64.zip
+out/fdswarm/distLinuxX64.dest/FdSwarm-<version>-linux-x64.zip
+```
+
+### GitHub Zip Builds
+
+The `Zip Distributions` workflow runs on `workflow_dispatch` and tags matching `v*`. It builds `fdswarm.assembly` once, downloads the current BellSoft Liberica JDK 21 Full archives with the BellSoft discovery API, builds all three zip distributions, and uploads them as the `FdSwarm-Zip-Distributions` artifact.
+
+To run it manually:
+
+1. Open GitHub Actions.
+2. Select `Zip Distributions`.
+3. Choose `Run workflow`.
+4. Optionally provide `release_version`, such as `1.0.0` or `v1.0.0`.
+
+For tagged releases, push a `v*` tag. The workflow derives the app version from the tag through `scripts/ci/set-package-version.sh`.
 
 ## Using the manager
 A manager is available to manage a bunch of instances of fdswarm, on a single host.

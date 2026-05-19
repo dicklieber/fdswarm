@@ -340,6 +340,125 @@ trait FdSwarmPackaging extends JpackageModule:
     PathRef(dest)
   }
 
+  def distWindowsX64 = Task {
+    val runtime = requiredRuntime("FDSWARM_RUNTIME_WINDOWS_X64")
+    buildZipDist(
+      platform = "windows-x64",
+      runtime = runtime,
+      dest = Task.dest,
+      jar = assembly().path
+    )
+  }
+
+  def distMacosAarch64 = Task {
+    val runtime = requiredRuntime("FDSWARM_RUNTIME_MACOS_AARCH64")
+    buildZipDist(
+      platform = "macos-aarch64",
+      runtime = runtime,
+      dest = Task.dest,
+      jar = assembly().path
+    )
+  }
+
+  def distLinuxX64 = Task {
+    val runtime = requiredRuntime("FDSWARM_RUNTIME_LINUX_X64")
+    buildZipDist(
+      platform = "linux-x64",
+      runtime = runtime,
+      dest = Task.dest,
+      jar = assembly().path
+    )
+  }
+
+  def distAll = Task {
+    Seq(distWindowsX64(), distMacosAarch64(), distLinuxX64())
+  }
+
+  private def buildZipDist(
+      platform: String,
+      runtime: os.Path,
+      dest: os.Path,
+      jar: os.Path
+    ): PathRef =
+
+    val distName = "FdSwarm"
+    val stageRoot = dest / s"stage-$platform"
+    val stage = stageRoot / distName
+    val zipPath = dest / s"FdSwarm-$version-$platform.zip"
+
+    os.remove.all(stageRoot)
+    os.remove.all(zipPath)
+    os.makeDir.all(stage / "bin")
+    os.makeDir.all(stage / "lib")
+    os.makeDir.all(stage / "runtime")
+
+    os.copy.over(jar, stage / "lib" / "fdswarm-all.jar", createFolders = true)
+    os.copy(runtime, stage / "runtime", createFolders = true, mergeFolders = true)
+    stageApplicationConf(stage)
+    writeLaunchers(stage)
+    zipDirectory(stageRoot, distName, zipPath)
+
+    println(s"ZIP: $zipPath")
+    PathRef(zipPath)
+
+  private def requiredRuntime(
+      envVar: String
+    ): os.Path =
+    sys.env.get(envVar).map(_.trim).filter(_.nonEmpty) match
+      case Some(raw) =>
+        val runtime = envPath(raw)
+        if os.isDir(runtime) then runtime
+        else throw new RuntimeException(s"$envVar must point to a directory, got: $runtime")
+      case None =>
+        throw new RuntimeException(
+          s"$envVar is required and must point to a bundled JDK directory."
+        )
+
+  private def stageApplicationConf(
+      stage: os.Path
+    ): Unit =
+    val candidates = Seq(
+      repoPath("application.conf"),
+      repoPath("fdswarm/resources/application.conf")
+    )
+    candidates.find(os.exists) match
+      case Some(conf) =>
+        os.copy.over(conf, stage / "conf" / "application.conf", createFolders = true)
+      case None => ()
+
+  private def writeLaunchers(
+      stage: os.Path
+    ): Unit =
+    os.write.over(
+      stage / "bin" / "fdswarm.bat",
+      """@echo off
+        |set APP_HOME=%~dp0..
+        |"%APP_HOME%\runtime\bin\java.exe" -jar "%APP_HOME%\lib\fdswarm-all.jar" %*
+        |""".stripMargin
+    )
+
+    val launcher = stage / "bin" / "fdswarm"
+    os.write.over(
+      launcher,
+      """#!/usr/bin/env sh
+        |APP_HOME="$(cd "$(dirname "$0")/.." && pwd)"
+        |exec "$APP_HOME/runtime/bin/java" -jar "$APP_HOME/lib/fdswarm-all.jar" "$@"
+        |""".stripMargin
+    )
+    os.perms.set(launcher, "rwxr-xr-x")
+
+  private def zipDirectory(
+      cwd: os.Path,
+      dirName: String,
+      zipPath: os.Path
+    ): Unit =
+    val exit =
+      os.proc("zip", "-qr", zipPath.toString, dirName)
+        .call(cwd = cwd, stdout = os.Inherit, stderr = os.Inherit)
+        .exitCode
+    if exit != 0 then
+      throw new RuntimeException(s"zip failed with exit code $exit")
+
   def copyFatJarToParallels = Task {
     val jar = assembly()
     val destDir = parallelsShareDir

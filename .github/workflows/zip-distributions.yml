@@ -1,0 +1,108 @@
+name: Zip Distributions
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Optional package version, for example 1.2.3 or v1.2.3. Tag builds use the tag name.'
+        required: false
+        type: string
+
+env:
+  FDSWARM_BUILD: ${{ github.run_number }}
+
+jobs:
+  build-zips:
+    name: Build Zip Distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set package version
+        shell: bash
+        env:
+          DISPATCH_VERSION: ${{ inputs.release_version }}
+        run: ./scripts/ci/set-package-version.sh
+
+      - name: Set up JDK 21 (Full)
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'liberica'
+          java-package: 'jdk+fx'
+
+      - name: Cache Mill / Coursier
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/coursier
+            ~/.mill
+          key: ${{ runner.os }}-mill-${{ hashFiles('*.mill', '.mill-version', '.mill-jvm-version') }}
+          restore-keys: |
+            ${{ runner.os }}-mill-
+
+      - name: Make mill executable
+        run: chmod +x ./mill
+
+      - name: Build assembly once
+        run: ./mill --no-daemon fdswarm.assembly
+
+      - name: Download bundled Liberica JDK runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$RUNNER_TEMP/fdswarm-runtimes"
+
+          find_java_home() {
+            local root="$1"
+            local exe="$2"
+            local java_bin
+            java_bin="$(find "$root" -type f -path "*/bin/$exe" -print -quit)"
+            test -n "$java_bin"
+            dirname "$(dirname "$java_bin")"
+          }
+
+          liberica_url() {
+            local os="$1"
+            local arch="$2"
+            local package_type="$3"
+            curl -fsSL "https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&version-feature=21&bitness=64&os=$os&arch=$arch&package-type=$package_type&bundle-type=jdk-full&output=text&fields=downloadUrl" | head -n 1
+          }
+
+          curl -fsSL -o "$RUNNER_TEMP/fdswarm-runtimes/windows-x64.zip" \
+            "$(liberica_url windows x86 zip)"
+          unzip -q "$RUNNER_TEMP/fdswarm-runtimes/windows-x64.zip" -d "$RUNNER_TEMP/fdswarm-runtimes/windows-x64"
+          echo "FDSWARM_RUNTIME_WINDOWS_X64=$(find_java_home "$RUNNER_TEMP/fdswarm-runtimes/windows-x64" java.exe)" >> "$GITHUB_ENV"
+
+          curl -fsSL -o "$RUNNER_TEMP/fdswarm-runtimes/macos-aarch64.tar.gz" \
+            "$(liberica_url macos arm tar.gz)"
+          mkdir -p "$RUNNER_TEMP/fdswarm-runtimes/macos-aarch64"
+          tar -xzf "$RUNNER_TEMP/fdswarm-runtimes/macos-aarch64.tar.gz" -C "$RUNNER_TEMP/fdswarm-runtimes/macos-aarch64"
+          echo "FDSWARM_RUNTIME_MACOS_AARCH64=$(find_java_home "$RUNNER_TEMP/fdswarm-runtimes/macos-aarch64" java)" >> "$GITHUB_ENV"
+
+          curl -fsSL -o "$RUNNER_TEMP/fdswarm-runtimes/linux-x64.tar.gz" \
+            "$(liberica_url linux x86 tar.gz)"
+          mkdir -p "$RUNNER_TEMP/fdswarm-runtimes/linux-x64"
+          tar -xzf "$RUNNER_TEMP/fdswarm-runtimes/linux-x64.tar.gz" -C "$RUNNER_TEMP/fdswarm-runtimes/linux-x64"
+          echo "FDSWARM_RUNTIME_LINUX_X64=$(find_java_home "$RUNNER_TEMP/fdswarm-runtimes/linux-x64" java)" >> "$GITHUB_ENV"
+
+      - name: Build zip distributions
+        run: ./mill --no-daemon fdswarm.distAll
+
+      - name: Upload zip distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: FdSwarm-Zip-Distributions
+          path: out/fdswarm/dist*.dest/*.zip
+          if-no-files-found: error
+          retention-days: 3
