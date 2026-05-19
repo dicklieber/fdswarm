@@ -158,6 +158,7 @@ trait FdSwarmPackaging extends JpackageModule:
 
     jarFromEnv match
       case Some(jarPath) if os.exists(jarPath) =>
+        requireDocsInJar(jarPath)
         os.copy.over(jarPath, inputDir / jarPath.last, createFolders = true)
         (inputDir, jarPath.last)
       case _ =>
@@ -200,6 +201,15 @@ trait FdSwarmPackaging extends JpackageModule:
       val jar = new java.util.jar.JarFile(jarPath.toIO)
       try jar.getEntry(entryName) != null
       finally jar.close()
+
+  private def requireDocsInJar(
+      jarPath: os.Path
+    ): Unit =
+    val docsIndex = "FDSwarmDocs/index.html"
+    if !jarContainsEntry(jarPath, docsIndex) then
+      throw new RuntimeException(
+        s"$jarPath does not contain $docsIndex. Build docs.site before fdswarm.assembly so installer builds include the embedded documentation."
+      )
 
   def macPkg = Task {
     if !isMac then

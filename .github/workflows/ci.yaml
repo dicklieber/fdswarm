@@ -142,6 +142,10 @@ jobs:
           git add README.md
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update coverage badge [skip ci]" --trailer "Co-authored-by: Junie <junie@jetbrains.com>" && git push)
 
+      - name: Build docs site
+        if: success()
+        run: ./mill --no-daemon docs.site
+
       - name: Build assembly
         if: success()
         run: ./mill --no-daemon fdswarm.assembly
