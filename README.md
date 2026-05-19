@@ -1,9 +1,7 @@
 # FdSwarm
 
-![Build](https://github.com/dicklieber/fdswarm/actions/workflows/ci.yaml/badge.svg)
 ![Tests](https://img.shields.io/badge/tests-passed-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-11.7%25-red)
-![Release](https://img.shields.io/github/v/release/dicklieber/fdlog_full)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 
 This project uses [Mill](https://mill-build.com/) as the build tool.
@@ -38,45 +36,25 @@ The report will be available at: `out/fdswarm/scoverage/htmlReport.dest/index.ht
 
 ## Releases and Artifacts
 
-To create a new release with downloadable artifacts (JAR, Windows MSI, macOS PKG, zip distributions):
-1. Make sure the GitHub CLI is installed and authenticated with `gh auth login`.
-2. Run `./scripts/release.sh`.
-3. Accept the suggested release tag or enter another tag with three numeric version components, such as `v1.0.0`.
-4. The script updates `main` from GitHub, including the latest `README.md` badge changes, creates the tag on GitHub, and starts the tag-based release workflow.
-5. The GitHub Action will automatically build the project, run tests, and create a GitHub Release with the artifacts.
+Build release artifacts locally with the package commands below. Set
+`FDSWARM_VERSION` to a three-part version such as `1.0.0` before building
+installers or zip distributions when producing a named release.
 
-To skip the prompt for the version number, pass the tag explicitly:
-```bash
-./scripts/release.sh v1.0.0
-```
+## Local Package Helpers
 
-Release tags provide the public app version (`X.Y.Z`). GitHub Actions provides the build number from the workflow run number. Installer metadata uses a three-part installer-safe version for MSI/PKG compatibility, while installer artifact filenames include the build number, for example `FdSwarm-1.0.0-build123-windows-x64.msi`. Zip distribution filenames use the public app version, for example `FdSwarm-1.0.0-linux-x64.zip`.
-
-Artifacts are also available as GitHub Action run artifacts for every build on the `main` branch.
-
-## Local CI Checks
-
-The GitHub Actions workflow calls scripts under `scripts/ci` for the repeated release steps. Run those scripts locally when debugging packaging issues:
+Scripts under `scripts/ci` contain repeated package steps that are useful when
+debugging local packaging issues:
 
 ```bash
-./scripts/ci/set-package-version.sh
 ./scripts/ci/name-release-jar.sh
 FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
 ```
 
 On Windows, run:
 ```powershell
-.\scripts\ci\set-package-version.ps1
 $env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
 .\scripts\ci\package-windows.ps1
 ```
-
-For lightweight GitHub Actions checks, install `act` and run:
-```bash
-./scripts/act-ci.sh package-assembly
-```
-
-`act` is useful for Linux workflow checks and YAML wiring. Native macOS and Windows installer packaging still needs the matching operating system because `jpackage` produces platform-specific installers.
 
 ## Local Package Builds
 
@@ -114,7 +92,7 @@ The MSI is written to:
 out/fdswarm/winMsi.dest/
 ```
 
-Windows ARM64 packaging requires WiX 3.14.1 on the PATH. The GitHub Actions workflow installs it with `scripts/ci/install-wix.ps1`.
+Windows ARM64 packaging requires WiX 3.14.1 on the PATH.
 
 ## Zip Distribution Builds
 
@@ -153,6 +131,7 @@ source .fdswarm-runtimes/env.sh
 The script downloads and unpacks these archives under `.fdswarm-runtimes/`:
 
 - Windows x64 ZIP
+- Windows ARM64 ZIP
 - macOS ARM64 TAR.GZ
 - Linux x64 TAR.GZ
 
@@ -160,6 +139,7 @@ Or set the variables manually if you downloaded and unpacked the JDKs yourself:
 
 ```bash
 export FDSWARM_RUNTIME_WINDOWS_X64=/path/to/unpacked/windows-jdk-full
+export FDSWARM_RUNTIME_WINDOWS_ARM64=/path/to/unpacked/windows-arm64-jdk-full
 export FDSWARM_RUNTIME_MACOS_AARCH64=/path/to/unpacked/macos-jdk-full.jdk/Contents/Home
 export FDSWARM_RUNTIME_LINUX_X64=/path/to/unpacked/linux-jdk-full
 ```
@@ -174,6 +154,7 @@ Or build one platform zip:
 
 ```bash
 ./mill --no-daemon fdswarm.distWindowsX64
+./mill --no-daemon fdswarm.distWindowsArm64
 ./mill --no-daemon fdswarm.distMacosAarch64
 ./mill --no-daemon fdswarm.distLinuxX64
 ```
@@ -182,22 +163,10 @@ The zip files are written to:
 
 ```text
 out/fdswarm/distWindowsX64.dest/FdSwarm-<version>-windows-x64.zip
+out/fdswarm/distWindowsArm64.dest/FdSwarm-<version>-windows-arm64.zip
 out/fdswarm/distMacosAarch64.dest/FdSwarm-<version>-macos-aarch64.zip
 out/fdswarm/distLinuxX64.dest/FdSwarm-<version>-linux-x64.zip
 ```
-
-### GitHub Zip Builds
-
-The `Zip Distributions` workflow runs on `workflow_dispatch` and tags matching `v*`. It builds `fdswarm.assembly` once, runs `scripts/fetch-liberica-runtimes.sh` to download the current BellSoft Liberica JDK 21 Full archives with the BellSoft discovery API, builds all three zip distributions, and uploads them as the `FdSwarm-Zip-Distributions` artifact.
-
-To run it manually:
-
-1. Open GitHub Actions.
-2. Select `Zip Distributions`.
-3. Choose `Run workflow`.
-4. Optionally provide `release_version`, such as `1.0.0` or `v1.0.0`.
-
-For tagged releases, push a `v*` tag. The workflow derives the app version from the tag through `scripts/ci/set-package-version.sh`.
 
 ## Using the manager
 A manager is available to manage a bunch of instances of fdswarm, on a single host.

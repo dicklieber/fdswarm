@@ -3,16 +3,16 @@
 set -euo pipefail
 
 dest=".fdswarm-runtimes"
-github_env=""
 env_file=""
 
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/fetch-liberica-runtimes.sh [--dest DIR] [--env-file FILE] [--github-env FILE]
+  scripts/fetch-liberica-runtimes.sh [--dest DIR] [--env-file FILE]
 
 Downloads and unpacks BellSoft Liberica JDK 21 Full runtimes for:
   - Windows x64
+  - Windows ARM64
   - macOS aarch64
   - Linux x64
 
@@ -22,7 +22,6 @@ commands are printed for local builds.
 Options:
   --dest DIR        Directory for downloaded archives and unpacked runtimes.
   --env-file FILE   Write shell export commands to FILE.
-  --github-env FILE Append FDSWARM_RUNTIME_* entries to a GitHub Actions env file.
   -h, --help        Show this help.
 EOF
 }
@@ -35,10 +34,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --env-file)
       env_file="$2"
-      shift 2
-      ;;
-    --github-env)
-      github_env="$2"
       shift 2
       ;;
     -h|--help)
@@ -138,10 +133,6 @@ write_env() {
   local name="$1"
   local value="$2"
 
-  if [[ -n "$github_env" ]]; then
-    echo "$name=$value" >> "$github_env"
-  fi
-
   local export_line
   export_line="$(printf 'export %s=%q' "$name" "$value")"
   if [[ -n "$env_file" ]]; then
@@ -156,6 +147,13 @@ windows_dir="$dest/windows-x64"
 download "Liberica JDK 21 Full for Windows x64" "$windows_url" "$windows_archive"
 extract_zip "$windows_archive" "$windows_dir"
 windows_home="$(find_java_home "$windows_dir" java.exe)"
+
+windows_arm64_url="$(liberica_url windows arm zip)"
+windows_arm64_archive="$dest/cache/windows-arm64.zip"
+windows_arm64_dir="$dest/windows-arm64"
+download "Liberica JDK 21 Full for Windows ARM64" "$windows_arm64_url" "$windows_arm64_archive"
+extract_zip "$windows_arm64_archive" "$windows_arm64_dir"
+windows_arm64_home="$(find_java_home "$windows_arm64_dir" java.exe)"
 
 macos_url="$(liberica_url macos arm tar.gz)"
 macos_archive="$dest/cache/macos-aarch64.tar.gz"
@@ -174,5 +172,6 @@ linux_home="$(find_java_home "$linux_dir" java)"
 echo
 echo "Runtime environment:"
 write_env FDSWARM_RUNTIME_WINDOWS_X64 "$windows_home"
+write_env FDSWARM_RUNTIME_WINDOWS_ARM64 "$windows_arm64_home"
 write_env FDSWARM_RUNTIME_MACOS_AARCH64 "$macos_home"
 write_env FDSWARM_RUNTIME_LINUX_X64 "$linux_home"

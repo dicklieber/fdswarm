@@ -349,6 +349,15 @@ trait FdSwarmPackaging extends JpackageModule:
     )
   }
 
+  def distWindowsArm64 = Task {
+    buildZipDist(
+      platform = "windows-arm64",
+      runtime = runtimeWindowsArm64().path,
+      dest = Task.dest,
+      jar = assembly().path
+    )
+  }
+
   def distMacosAarch64 = Task {
     buildZipDist(
       platform = "macos-aarch64",
@@ -368,7 +377,7 @@ trait FdSwarmPackaging extends JpackageModule:
   }
 
   def distAll = Task {
-    Seq(distWindowsX64(), distMacosAarch64(), distLinuxX64())
+    Seq(distWindowsX64(), distWindowsArm64(), distMacosAarch64(), distLinuxX64())
   }
 
   private def buildZipDist(
@@ -484,6 +493,10 @@ trait FdSwarmPackaging extends JpackageModule:
 
   private def runtimeWindowsX64 = Task.Input {
     PathRef(requiredRuntime("FDSWARM_RUNTIME_WINDOWS_X64"))
+  }
+
+  private def runtimeWindowsArm64 = Task.Input {
+    PathRef(requiredRuntime("FDSWARM_RUNTIME_WINDOWS_ARM64"))
   }
 
   private def runtimeMacosAarch64 = Task.Input {
