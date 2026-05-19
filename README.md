@@ -54,6 +54,30 @@ Release tags provide the public app version (`X.Y.Z`). GitHub Actions provides t
 
 Artifacts are also available as GitHub Action run artifacts for every build on the `main` branch.
 
+## Local CI Checks
+
+The GitHub Actions workflow calls scripts under `scripts/ci` for the repeated release steps. Run those scripts locally when debugging packaging issues:
+
+```bash
+./scripts/ci/set-package-version.sh
+./scripts/ci/name-release-jar.sh
+FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
+```
+
+On Windows, run:
+```powershell
+.\scripts\ci\set-package-version.ps1
+$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
+.\scripts\ci\package-windows.ps1
+```
+
+For lightweight GitHub Actions checks, install `act` and run:
+```bash
+./scripts/act-ci.sh package-assembly
+```
+
+`act` is useful for Linux workflow checks and YAML wiring. Native macOS and Windows installer packaging still needs the matching operating system because `jpackage` produces platform-specific installers.
+
 ## Using the manager
 A manager is available to manage a bunch of instances of fdswarm, on a single host.
 ```

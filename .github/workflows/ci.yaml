@@ -44,22 +44,7 @@ jobs:
         shell: bash
         env:
           DISPATCH_VERSION: ${{ inputs.release_version }}
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          elif [[ -n "${DISPATCH_VERSION}" ]]; then
-            version="${DISPATCH_VERSION#v}"
-          else
-            version=""
-          fi
-
-          if [[ -n "${version}" ]]; then
-            if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Release version must be numeric major.minor.patch, got: ${version}" >&2
-              exit 1
-            fi
-            echo "FDSWARM_VERSION=${version}" >> "$GITHUB_ENV"
-          fi
+        run: ./scripts/ci/set-package-version.sh
 
       - name: Set up JDK 21 (Full)
         uses: actions/setup-java@v5
@@ -153,12 +138,7 @@ jobs:
       - name: Name release JAR
         if: success()
         shell: bash
-        run: |
-          jar_version="${FDSWARM_VERSION:-0.0.0-dev}"
-          if [[ -n "${FDSWARM_BUILD}" ]]; then
-            jar_version="${jar_version}-build${FDSWARM_BUILD}"
-          fi
-          cp out/fdswarm/assembly.dest/fdswarm.jar "out/fdswarm/assembly.dest/FdSwarm-${jar_version}-assembly.jar"
+        run: ./scripts/ci/name-release-jar.sh
 
       - name: Upload JAR artifact
         if: success()
@@ -269,22 +249,7 @@ jobs:
         shell: pwsh
         env:
           DISPATCH_VERSION: ${{ inputs.release_version }}
-        run: |
-          if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            $version = $env:GITHUB_REF_NAME -replace '^v',''
-          } elseif ($env:DISPATCH_VERSION) {
-            $version = $env:DISPATCH_VERSION -replace '^v',''
-          } else {
-            $version = ''
-          }
-
-          if ($version) {
-            if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
-              Write-Error "Release version must be numeric major.minor.patch, got: $version"
-              exit 1
-            }
-            "FDSWARM_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
+        run: ./scripts/ci/set-package-version.ps1
 
       - name: Set up JDK 21 (Full)
         uses: actions/setup-java@v5
@@ -310,7 +275,8 @@ jobs:
           path: out/fdswarm/assembly.dest
 
       - name: Build winMsi
-        run: .\mill.bat --no-daemon fdswarm.winMsi
+        shell: pwsh
+        run: ./scripts/ci/package-windows.ps1
         env:
           FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm.jar
 
@@ -340,22 +306,7 @@ jobs:
         shell: pwsh
         env:
           DISPATCH_VERSION: ${{ inputs.release_version }}
-        run: |
-          if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            $version = $env:GITHUB_REF_NAME -replace '^v',''
-          } elseif ($env:DISPATCH_VERSION) {
-            $version = $env:DISPATCH_VERSION -replace '^v',''
-          } else {
-            $version = ''
-          }
-
-          if ($version) {
-            if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
-              Write-Error "Release version must be numeric major.minor.patch, got: $version"
-              exit 1
-            }
-            "FDSWARM_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
+        run: ./scripts/ci/set-package-version.ps1
 
       - name: Set up JDK 21 ARM64 (Full)
         uses: actions/setup-java@v5
@@ -377,24 +328,7 @@ jobs:
 
       - name: Install WiX 3.14.1 binaries
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $wixVersion = '3.14.1'
-          $wixDir = "$env:RUNNER_TEMP\wix-$wixVersion"
-          $wixZip = "$env:RUNNER_TEMP\wix314-binaries.zip"
-
-          Invoke-WebRequest `
-            -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip' `
-            -OutFile $wixZip
-
-          New-Item -ItemType Directory -Force -Path $wixDir | Out-Null
-          Expand-Archive -Path $wixZip -DestinationPath $wixDir -Force
-
-          echo $wixDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-          & "$wixDir\candle.exe" -?
-          & "$wixDir\light.exe" -?
+        run: ./scripts/ci/install-wix.ps1
 
       - name: Download JAR artifact
         uses: actions/download-artifact@v6
@@ -404,7 +338,7 @@ jobs:
 
       - name: Build winMsi ARM64
         shell: pwsh
-        run: .\mill.bat --no-daemon fdswarm.winMsi
+        run: ./scripts/ci/package-windows.ps1
         env:
           FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm.jar
 
@@ -434,22 +368,7 @@ jobs:
         shell: bash
         env:
           DISPATCH_VERSION: ${{ inputs.release_version }}
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          elif [[ -n "${DISPATCH_VERSION}" ]]; then
-            version="${DISPATCH_VERSION#v}"
-          else
-            version=""
-          fi
-
-          if [[ -n "${version}" ]]; then
-            if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Release version must be numeric major.minor.patch, got: ${version}" >&2
-              exit 1
-            fi
-            echo "FDSWARM_VERSION=${version}" >> "$GITHUB_ENV"
-          fi
+        run: ./scripts/ci/set-package-version.sh
 
       - name: Set up JDK 21 (Full)
         uses: actions/setup-java@v5
@@ -478,7 +397,7 @@ jobs:
         run: chmod +x ./mill
 
       - name: Build macPkg
-        run: ./mill --no-daemon fdswarm.macPkg
+        run: ./scripts/ci/package-macos.sh
         env:
           FDSWARM_ASSEMBLY_JAR: out/fdswarm/assembly.dest/fdswarm.jar
 
