@@ -51,7 +51,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, jpackageMainClass())(jpackageRunClasspath())
+      getJpackageInput(Task.dest, assembly())
 
     val baseArgs = Seq(
       "jpackage",
@@ -96,7 +96,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, jpackageMainClass())(jpackageRunClasspath())
+      getJpackageInput(Task.dest, assembly())
 
     val baseArgs = Seq(
       "jpackage",
@@ -147,9 +147,7 @@ trait FdSwarmPackaging extends JpackageModule:
 
   private def getJpackageInput(
       dest: os.Path,
-      mainClassName: String
-    )(
-      cp: => Seq[PathRef]
+      assemblyJar: PathRef
     ): (os.Path, String) =
 
     val jarFromEnv = sys.env.get("FDSWARM_ASSEMBLY_JAR").map(os.Path(_, os.pwd))
@@ -158,39 +156,19 @@ trait FdSwarmPackaging extends JpackageModule:
 
     jarFromEnv match
       case Some(jarPath) if os.exists(jarPath) =>
-        requireDocsInJar(jarPath)
-        os.copy.over(jarPath, inputDir / jarPath.last, createFolders = true)
-        (inputDir, jarPath.last)
+        stageInstallerJar(inputDir, jarPath)
+      case Some(jarPath) =>
+        throw new RuntimeException(s"FDSWARM_ASSEMBLY_JAR does not exist: $jarPath")
       case _ =>
-        val mainJarName =
-          stageJpackageInput(inputDir, cp, mainClassName)
-        (inputDir, mainJarName)
+        stageInstallerJar(inputDir, assemblyJar.path)
 
-  private def stageJpackageInput(
+  private def stageInstallerJar(
       inputDir: os.Path,
-      cp: Seq[PathRef],
-      mainClassName: String
-    ): String =
-
-    if cp.isEmpty then
-      throw new RuntimeException("jpackageRunClasspath was empty")
-
-    val mainClassEntry = mainClassName.replace('.', '/') + ".class"
-    val staged = cp.zipWithIndex.map { (p, index) =>
-      val src = os.Path(p.path.toString)
-      val stagedName = f"$index%04d-${src.last}"
-      os.copy.over(src, inputDir / stagedName, createFolders = true)
-      (src, stagedName)
-    }
-
-    staged
-      .find { (src, _) => jarContainsEntry(src, mainClassEntry) }
-      .map((_, stagedName) => stagedName)
-      .getOrElse {
-        throw new RuntimeException(
-          s"Could not find $mainClassEntry in jpackageRunClasspath"
-        )
-      }
+      jarPath: os.Path
+    ): (os.Path, String) =
+    requireDocsInJar(jarPath)
+    os.copy.over(jarPath, inputDir / jarPath.last, createFolders = true)
+    (inputDir, jarPath.last)
 
   private def jarContainsEntry(
       jarPath: os.Path,
@@ -221,7 +199,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, jpackageMainClass())(jpackageRunClasspath())
+      getJpackageInput(Task.dest, assembly())
 
     val baseArgs = Seq(
       "jpackage",
@@ -282,7 +260,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, jpackageMainClass())(jpackageRunClasspath())
+      getJpackageInput(Task.dest, assembly())
 
     val consoleLauncher = Task.dest / "FdSwarmConsole.properties"
     os.write.over(

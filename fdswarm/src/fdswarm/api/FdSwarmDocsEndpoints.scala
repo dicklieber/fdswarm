@@ -106,9 +106,7 @@ private object FdSwarmDocsEndpoints:
   private def readResource(
       path: String
   ): Option[DocsOutput] =
-    Option(
-      Thread.currentThread().getContextClassLoader.getResourceAsStream(path)
-    ).flatMap(stream =>
+    resourceStream(path).flatMap(stream =>
       Using.resource(stream)(input =>
         Some(
           (
@@ -119,6 +117,17 @@ private object FdSwarmDocsEndpoints:
         )
       )
     )
+
+  private def resourceStream(
+      path: String
+    ): Option[java.io.InputStream] =
+    val classLoader = getClass.getClassLoader
+    val contextClassLoader = Thread.currentThread().getContextClassLoader
+
+    Option(classLoader.getResourceAsStream(path))
+      .orElse(Option(contextClassLoader).flatMap(loader =>
+        Option(loader.getResourceAsStream(path))
+      ))
 
   private def contentType(
       path: String
