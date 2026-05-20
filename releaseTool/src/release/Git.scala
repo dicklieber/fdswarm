@@ -24,40 +24,4 @@ object Git {
       .text()
       .trim()
 
-  def commitAll(
-      message: String
-  ): Unit = {
-
-    Process.run(
-      Seq(
-        "git",
-        "add",
-        "version.txt",
-        "buildnumber.txt"
-      )
-    )
-
-    Process.run(
-      Seq(
-        "git",
-        "commit",
-        "-m",
-        message
-      )
-    )
-  }
-
-  def createTag(
-      tag: String
-  ): Unit = {
-
-    Process.run(
-      Seq(
-        "git",
-        "tag",
-        tag
-      )
-    )
-  }
-
 }

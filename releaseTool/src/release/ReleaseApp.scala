@@ -5,8 +5,29 @@ object ReleaseApp {
   def main(args: Array[String]): Unit = {
 
     args.toList match
-      case "gh-release" :: Nil =>
-        ghRelease()
+      case "fetch-jdks" :: Nil =>
+        Jdks.fetchJdks()
+
+      case "check-jdks" :: Nil =>
+        Jdks.checkJdks()
+
+      case "build-zips" :: Nil =>
+        Packaging.buildZips()
+
+      case "prepare-release" :: Nil =>
+        prepareRelease()
+
+      case "abort-release" :: Nil =>
+        Versioning.abortRelease()
+
+      case "finish-release" :: Nil =>
+        Versioning.finishRelease(None)
+
+      case "finish-release" :: nextSnapshot :: Nil =>
+        Versioning.finishRelease(Some(nextSnapshot))
+
+      case "publish-release" :: Nil =>
+        Github.publishRelease()
 
       case _ =>
         usage()
@@ -18,45 +39,51 @@ object ReleaseApp {
       """
         |usage:
         |
-        |  ./mill releaseTool.run gh-release
+        |  ./mill releaseTool.run fetch-jdks
+        |  ./mill releaseTool.run check-jdks
+        |  ./mill releaseTool.run build-zips
+        |  ./mill releaseTool.run prepare-release
+        |  ./mill releaseTool.run abort-release
+        |  ./mill releaseTool.run finish-release
+        |  ./mill releaseTool.run finish-release 0.0.1-SNAPSHOT
+        |  ./mill releaseTool.run publish-release
         |
-        |gh-release:
-        |  - verifies clean git
-        |  - commits release version
-        |  - creates git tag
-        |  - pushes git + tags
-        |  - creates GitHub release
-        |  - uploads release artifacts
+        |normal manual release:
+        |
+        |  ./mill releaseTool.run prepare-release
+        |  ./mill fdswarm.assembly
+        |  ./mill releaseTool.run build-zips
+        |  git add version.txt buildnumber.txt
+        |  git commit -m 'Release <version>'
+        |  git tag v<version>
+        |  git push
+        |  git push --tags
+        |  ./mill releaseTool.run publish-release
+        |  ./mill releaseTool.run finish-release
         |""".stripMargin
     )
   }
 
-  private def ghRelease(): Unit = {
+  private def prepareRelease(): Unit = {
 
     Git.ensureClean()
-    Github.ensureGh()
 
-    val version =
-      Versioning.currentVersion()
+    val rv =
+      Versioning.prepareReleaseVersion()
 
-    if version.endsWith("-SNAPSHOT") then
-      sys.error(
-        s"version.txt is still snapshot: $version"
-      )
-
-    val tag =
-      s"v$version"
-
-    Git.commitAll(
-      s"Release $version"
-    )
-
-    Git.createTag(tag)
-
-    Github.publishRelease()
+    Versioning.writePreparedRelease(rv)
 
     println()
-    println("[ok] release completed")
+    println("Next commands:")
+    println("  ./mill fdswarm.assembly")
+    println("  ./mill releaseTool.run build-zips")
+    println("  git add version.txt buildnumber.txt")
+    println(s"""  git commit -m 'Release ${rv.releaseVersion}'""")
+    println(s"  git tag ${rv.tagName}")
+    println("  git push")
+    println("  git push --tags")
+    println("  ./mill releaseTool.run publish-release")
+    println("  ./mill releaseTool.run finish-release")
   }
 
 }

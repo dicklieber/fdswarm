@@ -16,7 +16,7 @@ object Packaging {
 
   def buildZips(): Unit = {
 
-    ReleaseApp.checkJdks()
+    Jdks.checkJdks()
 
     os.remove.all(stagingDir)
     os.makeDir.all(stagingDir)
@@ -129,10 +129,7 @@ object Packaging {
       val launcher =
         binDir / "fdswarm"
 
-      os.write.over(
-        launcher,
-        unixLauncher
-      )
+      os.write.over(launcher, unixLauncher)
 
       Process.run(Seq("chmod", "+x", launcher.toString))
     }

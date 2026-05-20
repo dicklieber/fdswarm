@@ -12,10 +12,7 @@ object Process {
     println(s"[run] ${cmd.mkString(" ")}")
 
     val rc =
-      scala.sys.process.Process(
-        cmd,
-        cwd.toIO
-      ).!
+      scala.sys.process.Process(cmd, cwd.toIO).!
 
     if rc != 0 then
       sys.error(s"command failed: ${cmd.mkString(" ")}")

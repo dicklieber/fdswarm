@@ -8,9 +8,6 @@ case class Platform(
   def isWindows: Boolean =
     id.startsWith("windows")
 
-  def scriptName: String =
-    if isWindows then "fdswarm.bat" else "fdswarm"
-
 }
 
 object Platforms {

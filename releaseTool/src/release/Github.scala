@@ -5,15 +5,10 @@ object Github {
   private val artifactsDir =
     os.pwd / "release" / "artifacts"
 
-  def ensureGh(): Unit = {
+  def publishRelease(): Unit = {
 
     ensureGhInstalled()
     ensureGhAuthenticated()
-  }
-
-  def publishRelease(): Unit = {
-
-    ensureGh()
 
     val version =
       Versioning.currentVersion()
@@ -35,8 +30,6 @@ object Github {
 
     println(s"[tag] $tag")
 
-    pushGit()
-
     createReleaseIfMissing(tag)
 
     artifacts.foreach(uploadArtifact(tag, _))
@@ -46,43 +39,24 @@ object Github {
   }
 
   private def ensureGhInstalled(): Unit = {
-
-    try
-      Process.run(Seq("gh", "--version"))
+    try Process.run(Seq("gh", "--version"))
     catch
       case _: Throwable =>
         sys.error("GitHub CLI (gh) not installed or not on PATH")
   }
 
   private def ensureGhAuthenticated(): Unit = {
-
-    try
-      Process.run(Seq("gh", "auth", "status"))
+    try Process.run(Seq("gh", "auth", "status"))
     catch
       case _: Throwable =>
         sys.error("GitHub CLI is not authenticated. Run: gh auth login")
   }
 
-  private def pushGit(): Unit = {
-
-    Process.run(Seq("git", "push"))
-    Process.run(Seq("git", "push", "--tags"))
-  }
-
-  private def createReleaseIfMissing(
-      tag: String
-  ): Unit = {
+  private def createReleaseIfMissing(tag: String): Unit = {
 
     val exists =
       try {
-        Process.run(
-          Seq(
-            "gh",
-            "release",
-            "view",
-            tag
-          )
-        )
+        Process.run(Seq("gh", "release", "view", tag))
         true
       } catch {
         case _: Throwable =>
