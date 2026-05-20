@@ -62,7 +62,7 @@ object ReleaseApp {
     println("  ./mill fdswarm.assembly")
     println("  ./mill releaseTool.run build-zips")
     println(s"  git add version.txt buildnumber.txt")
-    println(s"""  git commit -m "Release ${rv.releaseVersion}"""")
+    println(s"""  git commit -m 'Release ${rv.releaseVersion}'""")
     println(s"  git tag ${rv.tagName}")
   }
 
