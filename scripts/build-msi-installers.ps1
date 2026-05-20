@@ -5,6 +5,7 @@ $RepoDir = (Resolve-Path (Join-Path $ScriptDir '..')).Path
 
 $AppName = 'FdSwarm'
 $MainClass = 'fdswarm.FdSwarm'
+$Vendor = 'FdSwarm'
 $AssemblyJar = if ($env:FDSWARM_ASSEMBLY_JAR) {
   $env:FDSWARM_ASSEMBLY_JAR
 } else {
@@ -16,15 +17,71 @@ $Jpackage = if ($env:JPACKAGE) { $env:JPACKAGE } else { 'jpackage' }
 $WorkDir = Join-Path $RepoDir 'out/fdswarm/msi.dest'
 $ArtifactsDir = Join-Path $RepoDir 'release/artifacts'
 $WinUpgradeUuid = '8F095DE2-D316-43A7-94C3-7702217CAE1D'
+$WindowsRuntimesDir = Join-Path $RepoDir 'runtimes/windows'
+
+function Add-WixToPath {
+  if ((Get-Command 'candle.exe' -ErrorAction SilentlyContinue) -and
+      (Get-Command 'light.exe' -ErrorAction SilentlyContinue)) {
+    return
+  }
+
+  $CandidateWixBins = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs/WiX Toolset v3.14/bin'),
+    (Join-Path ${env:ProgramFiles(x86)} 'WiX Toolset v3.14/bin'),
+    (Join-Path ${env:ProgramFiles(x86)} 'WiX Toolset v3.11/bin'),
+    (Join-Path $env:ProgramFiles 'WiX Toolset v3.14/bin'),
+    (Join-Path $env:ProgramFiles 'WiX Toolset v3.11/bin')
+  ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
+
+  foreach ($CandidateWixBin in $CandidateWixBins) {
+    $Candle = Join-Path $CandidateWixBin 'candle.exe'
+    $Light = Join-Path $CandidateWixBin 'light.exe'
+    if ((Test-Path -LiteralPath $Candle -PathType Leaf) -and
+        (Test-Path -LiteralPath $Light -PathType Leaf)) {
+      $env:Path = "$CandidateWixBin;$env:Path"
+      Write-Host "WiX: $CandidateWixBin"
+      return
+    }
+  }
+}
+
+function Resolve-WindowsRuntimeImage {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$RuntimeId
+  )
+
+  $RuntimeDir = Join-Path $WindowsRuntimesDir $RuntimeId
+  if (-not (Test-Path -LiteralPath $RuntimeDir -PathType Container)) {
+    throw "Runtime directory not found: $RuntimeDir"
+  }
+
+  $CandidateRuntimeImages = @(Get-ChildItem -LiteralPath $RuntimeDir -Directory |
+    Where-Object {
+      (Test-Path -LiteralPath (Join-Path $_.FullName 'bin/java.exe') -PathType Leaf) -and
+      (Test-Path -LiteralPath (Join-Path $_.FullName 'release') -PathType Leaf)
+    })
+
+  if ($CandidateRuntimeImages.Count -eq 0) {
+    throw "No runtime image found in $RuntimeDir"
+  }
+
+  if ($CandidateRuntimeImages.Count -gt 1) {
+    $RuntimeImageNames = ($CandidateRuntimeImages | Select-Object -ExpandProperty Name) -join ', '
+    throw "Expected one runtime image in $RuntimeDir, found: $RuntimeImageNames"
+  }
+
+  return $CandidateRuntimeImages[0].FullName
+}
 
 $RuntimeImages = @(
   @{
     Id = 'windows-x64'
-    Path = (Join-Path $RepoDir 'release/jdks/windows-x64/runtime')
+    Path = (Resolve-WindowsRuntimeImage 'windows-x64')
   },
   @{
     Id = 'windows-arm64'
-    Path = (Join-Path $RepoDir 'release/jdks/windows-arm64/runtime')
+    Path = (Resolve-WindowsRuntimeImage 'windows-arm64')
   }
 )
 
@@ -40,9 +97,16 @@ if (-not (Test-Path -LiteralPath $AssemblyJar -PathType Leaf)) {
   throw "Assembly JAR not found: $AssemblyJar"
 }
 
+$MainClassEntry = "$($MainClass.Replace('.', '/')).class"
+if (-not (& jar tf $AssemblyJar | Where-Object { $_ -eq $MainClassEntry })) {
+  throw "Assembly JAR does not contain main class $MainClass ($MainClassEntry): $AssemblyJar"
+}
+
 if (-not (Get-Command $Jpackage -ErrorAction SilentlyContinue)) {
   throw "jpackage not found: $Jpackage"
 }
+
+Add-WixToPath
 
 $ArtifactVersion = $InstallerVersion
 if ($BuildNumber -ne '0') {
@@ -83,6 +147,7 @@ foreach ($RuntimeImage in $RuntimeImages) {
   $JpackageArgs = @(
     '--type', 'msi',
     '--name', $AppName,
+    '--vendor', $Vendor,
     '--app-version', $InstallerVersion,
     '--dest', $DestDir,
     '--input', $InputDir,
@@ -90,7 +155,9 @@ foreach ($RuntimeImage in $RuntimeImages) {
     '--main-class', $MainClass,
     '--runtime-image', $RuntimePath,
     '--add-launcher', "$($AppName)Console=$ConsoleLauncher",
+    '--verbose',
     '--win-menu',
+    '--win-menu-group', $AppName,
     '--win-shortcut',
     '--win-upgrade-uuid', $WinUpgradeUuid
   )
