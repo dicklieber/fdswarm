@@ -255,8 +255,8 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
             )
         alert.showAndWait()
 
-    grid.add(new Label("Java Details:"), 0, 13)
-    grid.add(javaDetailsButton, 1, 13)
+    grid.add(new Label("Java Details:"), 0, 14)
+    grid.add(javaDetailsButton, 1, 14)
 
     val configDetailsButton = new Hyperlink("Show application.conf"):
       onAction = _ =>
@@ -283,8 +283,8 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
             )
         alert.showAndWait()
 
-    grid.add(new Label("Application Config:"), 0, 14)
-    grid.add(configDetailsButton, 1, 14)
+    grid.add(new Label("Application Config:"), 0, 15)
+    grid.add(configDetailsButton, 1, 15)
 
     val environmentVariablesButton = new Hyperlink("Show environment variables"):
       onAction = _ =>
@@ -333,15 +333,15 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
             )
         alert.showAndWait()
 
-    grid.add(new Label("Environment:"), 0, 15)
-    grid.add(environmentVariablesButton, 1, 15)
+    grid.add(new Label("Environment:"), 0, 16)
+    grid.add(environmentVariablesButton, 1, 16)
 
     val groupAddr = if (config.hasPath("fdswarm.UDP.groupAddr")) config.getString("fdswarm.UDP.groupAddr") else "Not configured"
-    grid.add(new Label("UDP Group Addr:"), 0, 16)
-    grid.add(new Label(groupAddr), 1, 16)
+    grid.add(new Label("UDP Group Addr:"), 0, 17)
+    grid.add(new Label(groupAddr), 1, 17)
 
-    grid.add(new Label("UDP Instance ID:"), 0, 17)
-    grid.add(new Label(NodeIdentityManager.nodeIdentity.instanceId), 1, 17)
+    grid.add(new Label("UDP Instance ID:"), 0, 18)
+    grid.add(new Label(NodeIdentityManager.nodeIdentity.instanceId), 1, 18)
 
     val startupInfoNode = startupInfo.info match {
       case None =>
@@ -381,8 +381,8 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
         }
         button
     }
-    grid.add(new Label("StartupInfo:"), 0, 18)
-    grid.add(startupInfoNode, 1, 18)
+    grid.add(new Label("StartupInfo:"), 0, 19)
+    grid.add(startupInfoNode, 1, 19)
 
     val labels = grid.children.collect { case l: javafx.scene.control.Label => l }
     labels.foreach(_.getStyleClass.add("fixed-width"))
