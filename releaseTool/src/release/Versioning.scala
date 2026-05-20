@@ -76,4 +76,66 @@ object Versioning {
     println(s"[tag] ${rv.tagName}")
   }
 
+  def abortRelease(): Unit = {
+
+    val version =
+      currentVersion()
+
+    if version.endsWith("-SNAPSHOT") then {
+      println(s"[ok] already snapshot: $version")
+      return
+    }
+
+    val snapshot =
+      version.replaceFirst("-[0-9]+$", "-SNAPSHOT")
+
+    if snapshot == version then
+      sys.error(s"cannot infer snapshot version from: $version")
+
+    os.write.over(versionFile, s"$snapshot\n")
+
+    println(s"[version] $version -> $snapshot")
+    println("[note] buildnumber.txt was not decremented")
+  }
+
+  def finishRelease(nextSnapshot: Option[String]): Unit = {
+
+    val version =
+      currentVersion()
+
+    if version.endsWith("-SNAPSHOT") then
+      sys.error(s"version.txt is already a snapshot: $version")
+
+    val next =
+      nextSnapshot.getOrElse(defaultNextSnapshot(version))
+
+    if !next.endsWith("-SNAPSHOT") then
+      sys.error(s"next snapshot must end with -SNAPSHOT, found: $next")
+
+    os.write.over(versionFile, s"$next\n")
+
+    println(s"[version] $version -> $next")
+  }
+
+  private def defaultNextSnapshot(releaseVersion: String): String = {
+
+    val base =
+      releaseVersion.replaceFirst("-[0-9]+$", "")
+
+    val parts =
+      base.split("\\.").toList
+
+    parts match
+      case major :: minor :: patch :: Nil =>
+        val nextPatch =
+          patch.toIntOption.getOrElse(
+            sys.error(s"cannot parse patch version from: $base")
+          ) + 1
+
+        s"$major.$minor.$nextPatch-SNAPSHOT"
+
+      case _ =>
+        sys.error(s"cannot infer next snapshot from: $releaseVersion")
+  }
+
 }

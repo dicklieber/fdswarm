@@ -23,6 +23,18 @@ object ReleaseApp {
       case "prepare-release" :: Nil =>
         prepareRelease()
 
+      case "abort-release" :: Nil =>
+        Versioning.abortRelease()
+
+      case "finish-release" :: Nil =>
+        Versioning.finishRelease(None)
+
+      case "finish-release" :: nextSnapshot :: Nil =>
+        Versioning.finishRelease(Some(nextSnapshot))
+
+      case "publish-release" :: Nil =>
+        Github.publishRelease()
+
       case _ =>
         usage()
   }
@@ -37,6 +49,10 @@ object ReleaseApp {
         |  ./mill releaseTool.run check-jdks
         |  ./mill releaseTool.run build-zips
         |  ./mill releaseTool.run prepare-release
+        |  ./mill releaseTool.run abort-release
+        |  ./mill releaseTool.run finish-release
+        |  ./mill releaseTool.run finish-release 0.0.1-SNAPSHOT
+        |  ./mill releaseTool.run publish-release
         |
         |prepare-release:
         |  - requires clean git
@@ -44,6 +60,19 @@ object ReleaseApp {
         |  - increments buildnumber.txt
         |  - writes release version to version.txt
         |  - does not commit or tag yet
+        |
+        |abort-release:
+        |  - changes 0.0.0-1 back to 0.0.0-SNAPSHOT
+        |  - does not decrement buildnumber.txt
+        |
+        |finish-release:
+        |  - changes 0.0.0-1 to 0.0.1-SNAPSHOT by default
+        |  - or uses the supplied next snapshot version
+        |
+        |publish-release:
+        |  - requires gh CLI
+        |  - creates GitHub release if missing
+        |  - uploads release/artifacts/*.zip
         |""".stripMargin
     )
   }
@@ -61,9 +90,11 @@ object ReleaseApp {
     println("Next commands:")
     println("  ./mill fdswarm.assembly")
     println("  ./mill releaseTool.run build-zips")
-    println(s"  git add version.txt buildnumber.txt")
+    println("  git add version.txt buildnumber.txt")
     println(s"""  git commit -m 'Release ${rv.releaseVersion}'""")
     println(s"  git tag ${rv.tagName}")
+    println("  ./mill releaseTool.run publish-release")
+    println("  ./mill releaseTool.run finish-release")
   }
 
   private def fetchJdks(): Unit = {
@@ -81,9 +112,10 @@ object ReleaseApp {
     val runtimeDir =
       platformDir / "runtime"
 
-    if os.exists(runtimeDir) then
+    if os.exists(runtimeDir) then {
       println(s"[exists] ${platform.id}")
       return
+    }
 
     os.remove.all(platformDir)
     os.makeDir.all(platformDir)

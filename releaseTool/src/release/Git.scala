@@ -5,11 +5,7 @@ object Git {
   def ensureClean(): Unit = {
 
     val result =
-      os.proc("git", "status", "--porcelain")
-        .call()
-        .out
-        .text()
-        .trim()
+      statusPorcelain()
 
     if result.nonEmpty then
       sys.error(
@@ -20,5 +16,12 @@ object Git {
            |""".stripMargin
       )
   }
+
+  def statusPorcelain(): String =
+    os.proc("git", "status", "--porcelain")
+      .call()
+      .out
+      .text()
+      .trim()
 
 }
