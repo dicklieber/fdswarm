@@ -94,6 +94,23 @@ out/fdswarm/winMsi.dest/
 
 Windows ARM64 packaging requires WiX 3.14.1 on the PATH.
 
+To build self-contained Windows Launch4j ZIP packages from an existing assembly
+JAR and bundled Windows runtimes, run:
+
+```powershell
+$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
+```
+
+The script uses `LAUNCH4J` or `LAUNCH4J_HOME` when set. Otherwise, it downloads
+a local Launch4j copy under `out/fdswarm/launch4j.dest/tools`.
+
+The Launch4j ZIP files are written to:
+
+```text
+release/artifacts/FdSwarm-<version>-windows-x64-launch4j.zip
+release/artifacts/FdSwarm-<version>-windows-arm64-launch4j.zip
+```
+
 ## Zip Distribution Builds
 
 Zip distributions are plain file-copy bundles. They do not use `jpackage`, MSI, DMG, PKG, WiX, or app-image.
