@@ -70,6 +70,33 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
     }
   }
 
+  private def fileBrowserLinkText: String =
+    val osName = System.getProperty("os.name", "").toLowerCase
+    if osName.contains("mac") then "Open in Finder"
+    else if osName.contains("win") then "Open in Explorer"
+    else "Open in File Manager"
+
+  private def openInFileBrowser(path: os.Path): Unit =
+    def fallbackOpen(): Unit =
+      if java.awt.Desktop.isDesktopSupported then
+        val desktop = java.awt.Desktop.getDesktop
+        if desktop.isSupported(java.awt.Desktop.Action.OPEN) then
+          desktop.open(path.toIO)
+
+    val osName = System.getProperty("os.name", "").toLowerCase
+    try
+      if osName.contains("mac") then
+        new ProcessBuilder("open", path.toString).start()
+      else if osName.contains("win") then
+        new ProcessBuilder("explorer.exe", path.toIO.getAbsolutePath).start()
+      else
+        new ProcessBuilder("xdg-open", path.toString).start()
+    catch
+      case _: Throwable =>
+        try fallbackOpen()
+        catch
+          case _: Throwable => ()
+
   def showAboutDialog(window: Window): Unit =
     val grid = new GridPane:
       hgap = 10
@@ -155,7 +182,15 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
     grid.add(new Label("Data Version:"), 0, 5)
     grid.add(new Label(dataVersion), 1, 5)
     grid.add(new Label("Data Directory:"), 0, 6)
-    grid.add(new Label(dataPath.toString), 1, 6)
+    val dataDirectoryLink = new Hyperlink(fileBrowserLinkText):
+      onAction = _ => openInFileBrowser(dataPath)
+    val dataDirectoryLabel = new Label(dataPath.toString):
+      wrapText = true
+      maxWidth = 700
+    val dataDirectoryBox = new VBox:
+      spacing = 4
+      children = Seq(dataDirectoryLabel, dataDirectoryLink)
+    grid.add(dataDirectoryBox, 1, 6)
     val logFilePath = dataPath / s"$productName.log"
     val logFileLink = new Hyperlink(logFilePath.toString):
       onAction = _ =>
