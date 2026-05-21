@@ -99,6 +99,7 @@ JAR and bundled Windows runtimes, run:
 
 ```powershell
 $env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
+.\scripts\build-launch4j-installers.ps1
 ```
 
 The script uses `LAUNCH4J` or `LAUNCH4J_HOME` when set. Otherwise, it downloads
