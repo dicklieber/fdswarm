@@ -1,5 +1,6 @@
 package fdswarm.util
 
+import com.organization.BuildInfo
 import fdswarm.io.FileHelper
 import fdswarm.logging.StructuredLogger
 import org.apache.logging.log4j.Level
@@ -12,7 +13,7 @@ object LoggingConfigurator:
 
     os.makeDir.all(fileHelper.directory)
 
-    val logFile = fileHelper.directory / "fdswarm.log"
+    val logFile = fileHelper.directory / s"${BuildInfo.productName}.log"
     val accessLogFile = fileHelper.directory / "access.log"
     os.write.append(logFile, "", createFolders = true)
     os.write.append(accessLogFile, "", createFolders = true)
@@ -25,7 +26,7 @@ object LoggingConfigurator:
 
     val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
     builder.setStatusLevel(Level.WARN)
-    builder.setConfigurationName("FdSwarmLogging")
+    builder.setConfigurationName(s"${BuildInfo.appName}Logging")
 
     val consoleLayout =
       builder

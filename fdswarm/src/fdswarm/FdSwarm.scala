@@ -19,6 +19,7 @@
 package fdswarm
 
 import com.google.inject.{Guice, Injector}
+import com.organization.BuildInfo
 import scalafx.application.JFXApp3
 
 /** Minimal app bootstrap:
@@ -40,7 +41,7 @@ object FdSwarm extends JFXApp3:
     ): Unit =
     rawArgs = args
     println(
-      s"Starting FdSwarm with args: ${args.mkString(
+      s"Starting ${BuildInfo.appName} with args: ${args.mkString(
           " "
         )}"
     )
@@ -51,11 +52,11 @@ object FdSwarm extends JFXApp3:
     if FdSwarmUi.isMac then
       System.setProperty(
         "apple.awt.application.name",
-        "FdSwarm"
+        BuildInfo.appName
       )
       System.setProperty(
         "com.apple.mrj.application.apple.menu.about.name",
-        "FdSwarm"
+        BuildInfo.appName
       )
       System.setProperty(
         "apple.awt.application.appearance",

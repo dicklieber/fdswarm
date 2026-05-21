@@ -20,6 +20,7 @@
 package fdswarm.api
 
 import cats.effect.IO
+import com.organization.BuildInfo
 import com.comcast.ip4s.*
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.util.NodeIdentityManager
@@ -45,7 +46,12 @@ class ApiServer @Inject()(
       ae.endpoints
     }
 
-    val swaggerEndpoints = SwaggerInterpreter().fromServerEndpoints[IO](allEndpoints, "FdSwarm API", "1.0.0")
+    val swaggerEndpoints =
+      SwaggerInterpreter().fromServerEndpoints[IO](
+        allEndpoints,
+        s"${BuildInfo.appName} API",
+        BuildInfo.version
+      )
 
     val tapirRoutes = Http4sServerInterpreter[IO]().toRoutes(allEndpoints ++ swaggerEndpoints)
     

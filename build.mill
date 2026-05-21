@@ -16,7 +16,8 @@ object common extends CommonSettings with BuildInfo:
   def buildInfoPackageName = "com.organization"
 
   def buildInfoMembers = Seq(
-    BuildInfo.Value("name", name),
+    BuildInfo.Value("appName", appName),
+    BuildInfo.Value("productName", productName),
     BuildInfo.Value("version", version),
     BuildInfo.Value("buildNumber", buildNumber),
     BuildInfo.Value("displayVersion", displayVersion),
@@ -81,11 +82,11 @@ object fdswarm
     super
       .manifest()
       .add(
-        "Implementation-Title" -> "FdSwarm",
+        "Implementation-Title" -> appName,
         "Implementation-Version" -> version,
         "Implementation-Build" -> buildNumber,
-        "Bundle-Name" -> "FdSwarm",
-        "Bundle-SymbolicName" -> "fdswarm",
+        "Bundle-Name" -> appName,
+        "Bundle-SymbolicName" -> productName,
         "Bundle-Version" -> version
       )
   }

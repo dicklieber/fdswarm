@@ -31,7 +31,10 @@ trait CommonSettings extends ScalaModule:
   val artifactVersion =
     if buildNumber == "0" then installerVersion else s"$installerVersion-build$buildNumber"
   val majorVersion = installerVersion.takeWhile(_ != '.')
-  val name = "fdswarm"
+  // User-facing display name for windows, menus, native packaging, and app data directories.
+  val appName = "FdSwarm"
+  // Machine-facing token for file names, launchers, metrics, logs, and artifact identifiers.
+  val productName = appName.toLowerCase(java.util.Locale.ROOT)
 
   val log4jV = Versions.log4j
   val scalaV = Versions.scala

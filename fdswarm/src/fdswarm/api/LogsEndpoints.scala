@@ -19,6 +19,7 @@
 package fdswarm.api
 
 import cats.effect.IO
+import com.organization.BuildInfo
 import fdswarm.io.FileHelper
 import jakarta.inject.{Inject, Singleton}
 import sttp.model.StatusCode
@@ -88,7 +89,7 @@ final class LogsEndpoints @Inject() (fileHelper: FileHelper) extends ApiEndpoint
 
   private lazy val logFetchService: LogFetchService =
     FileLogFetchService(
-      (fileHelper.directory / "fdswarm.log").toNIO
+      (fileHelper.directory / s"${BuildInfo.productName}.log").toNIO
     )
 
 private object LogsEndpoints:
@@ -120,7 +121,7 @@ private object LogsEndpoints:
       .in(query[Option[Long]]("fromByte"))
       .errorOut(statusCode.and(metadataHeaders))
       .out(logBody)
-      .description("Fetch complete NDJSON log records from the current fdswarm.log file")
+      .description(s"Fetch complete NDJSON log records from the current ${BuildInfo.productName}.log file")
 
   private def output(
       statusCode: StatusCode,

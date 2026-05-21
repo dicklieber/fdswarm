@@ -83,7 +83,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
       children = iconNode.toSeq ++ Seq(
         new VBox {
           children = Seq(
-            new Label("FdSwarm") { style = "-fx-font-size: 24px; -fx-font-weight: bold;" },
+            new Label(appName) { style = "-fx-font-size: 24px; -fx-font-weight: bold;" },
             new Label(s"v$displayVersion")
           )
         }
@@ -143,7 +143,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
       new Label("Directory does not exist")
 
     grid.add(new Label("Name:"), 0, 0)
-    grid.add(new Label(name), 1, 0)
+    grid.add(new Label(productName), 1, 0)
     grid.add(new Label("Version:"), 0, 1)
     grid.add(new Label(version), 1, 1)
     grid.add(new Label("Build Number:"), 0, 2)
@@ -156,7 +156,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
     grid.add(new Label(dataVersion), 1, 5)
     grid.add(new Label("Data Directory:"), 0, 6)
     grid.add(new Label(dataPath.toString), 1, 6)
-    val logFilePath = dataPath / "fdswarm.log"
+    val logFilePath = dataPath / s"$productName.log"
     val logFileLink = new Hyperlink(logFilePath.toString):
       onAction = _ =>
         try
@@ -390,7 +390,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
     val copyAllButton = new Button("Copy All to Clipboard"):
       onAction = _ =>
         val sb = new StringBuilder
-        sb.append(s"Name: $name\n")
+        sb.append(s"Name: $productName\n")
         sb.append(s"Version: $version\n")
         sb.append(s"Build Number: $buildNumber\n")
         sb.append(s"Major Version: $majorVersion\n")
@@ -420,8 +420,8 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
 
     val aboutAlert = new Alert(AlertType.Information) {
       initOwner(window)
-      title = "About FdSwarm"
-      headerText = "fdswarm build information"
+      title = s"About $appName"
+      headerText = s"$productName build information"
       dialogPane().content = contentBox
     }
     aboutAlert.showAndWait()

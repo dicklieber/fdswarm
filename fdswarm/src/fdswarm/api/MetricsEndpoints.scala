@@ -19,6 +19,7 @@
 package fdswarm.api
 
 import cats.effect.IO
+import com.organization.BuildInfo
 import io.dropwizard.metrics5.*
 import jakarta.inject.Singleton
 import sttp.tapir.*
@@ -65,7 +66,7 @@ private object MetricsEndpoints:
     "text/plain; version=0.0.4; charset=utf-8"
 
 private[api] object PrometheusMetrics:
-  private val PrometheusNamePrefix = "fdswarm_"
+  private val PrometheusNamePrefix = s"${BuildInfo.productName}_"
 
   def render(
       metricRegistry: MetricRegistry

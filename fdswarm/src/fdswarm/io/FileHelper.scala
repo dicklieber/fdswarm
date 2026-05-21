@@ -18,25 +18,49 @@
 
 package fdswarm.io
 
+import com.organization.BuildInfo
 import fdswarm.logging.StructuredLogger
 import io.circe.parser.*
 import io.circe.syntax.*
 import io.circe.{Decoder, Encoder, Printer}
 
-import java.nio.file.NoSuchFileException
+import java.nio.file.{NoSuchFileException, Paths}
+
+object FileHelper:
+  private def appHome(appName: String, productName: String): os.Path =
+    val osName = System.getProperty("os.name", "").toLowerCase
+
+    if osName.contains("win") then
+      val base = sys.env
+        .get("LOCALAPPDATA")
+        .orElse(sys.env.get("APPDATA"))
+        .getOrElse((os.home / "AppData" / "Local").toString)
+      os.Path(Paths.get(base, appName))
+    else if osName.contains("mac") then
+      os.home / "Library" / "Application Support" / appName
+    else
+      os.home / s".$productName"
 
 /** A utility class for handling file-related operations, such as reading and writing JSON-encoded
   * data to files, and managing application-specific directory paths.
   */
 class FileHelper:
   private lazy val logger = StructuredLogger("fileHelper")
+
+  /** One application-owned directory tree for all FdSwarm files.
+    *
+    * Platform conventions used here:
+    *   - Windows: %LOCALAPPDATA%\FdSwarm
+    *   - macOS:   ~/Library/Application Support/FdSwarm
+    *   - Linux:   ~/.fdswarm
+    *
+    * If PORT is set, append it as a child directory so multiple local test nodes do not share files.
+    */
   val directory: os.Path =
-    val base = os.home / "fdswarm"
-    sys.env.get("PORT") match
-      case Some(port) =>
-        base / port
-      case None =>
-        base
+    val base = FileHelper.appHome(BuildInfo.appName, BuildInfo.productName)
+    sys.env.get("PORT").filter(_.nonEmpty) match
+      case Some(port) => base / port
+      case None       => base
 
   def loadOrDefault[T: Decoder](fileName: String)(default: => T): T =
 

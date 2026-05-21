@@ -18,7 +18,7 @@
 
 package fdswarm.fx
 
-import com.organization.BuildInfo.displayVersion
+import com.organization.BuildInfo.{appName, displayVersion}
 import fdswarm.StationConfigManager
 import fdswarm.contestStart.ContestStartManager
 import fdswarm.fx.contest.ContestType.NONE
@@ -66,7 +66,7 @@ final class WelcomeDialog @Inject() (
 
     val dialog = new StyledDialog[ButtonType]:
       title = "Welcome"
-      headerText = "Welcome to FdSwarm"
+      headerText = s"Welcome to $appName"
       initOwner(ownerWindow)
       initModality(Modality.APPLICATION_MODAL)
     val contentPane = new BorderPane:
@@ -173,7 +173,7 @@ final class WelcomeDialog @Inject() (
         hgap = 0
         vgap = 0
 
-        add(gridCell(label("FdSwarm"), 0, 0), 0, 0)
+        add(gridCell(label(appName), 0, 0), 0, 0)
         add(gridCell(label(displayVersion), 0, 1), 1, 0)
         add(gridCell(label(""), 0, 2), 2, 0)
 

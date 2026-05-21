@@ -8,5 +8,7 @@
 
 - This project uses Mill, not sbt.
 - Never run `sbt` commands in this repository.
-- Never run `mill` or `./mill` commands in this repository.
-- Do not run compile or test validation commands unless the user explicitly asks for a specific non-Mill command.
+- Mill commands may be run when useful for the task.
+- Run Mill with an output directory outside the repository, for example `MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server ...`.
+- Prefer `--no-server` for Mill commands to avoid stale daemon state under the default `out/` directory.
+- Do not run compile or test validation commands unless the user explicitly asks for them.

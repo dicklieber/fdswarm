@@ -13,7 +13,7 @@ trait FdSwarmPackaging extends JpackageModule:
 
   private val macJavaOptions = Seq(
     "--java-options",
-    "-Xdock:name=FdSwarm",
+    s"-Xdock:name=$appName",
     "--java-options",
     "-Dapple.laf.useScreenMenuBar=true",
     "--java-options",
@@ -31,7 +31,7 @@ trait FdSwarmPackaging extends JpackageModule:
   )
 
   def jpackageName = Task {
-    "FdSwarm"
+    appName
   }
 
   def jpackageAppVersion = Task {
@@ -262,7 +262,7 @@ trait FdSwarmPackaging extends JpackageModule:
     val (inputDir, mainJarName) =
       getJpackageInput(Task.dest, assembly())
 
-    val consoleLauncher = Task.dest / "FdSwarmConsole.properties"
+    val consoleLauncher = Task.dest / s"${appName}Console.properties"
     os.write.over(
       consoleLauncher,
       s"""main-jar=$mainJarName
@@ -334,7 +334,7 @@ trait FdSwarmPackaging extends JpackageModule:
   )
 
   override def assembly = Task {
-    val dest = Task.dest / "fdswarm.jar"
+    val dest = Task.dest / s"$productName.jar"
     val assemblyRes = super.assembly()
     os.copy.over(assemblyRes.path, dest, replaceExisting = true)
     PathRef(dest)
@@ -387,10 +387,10 @@ trait FdSwarmPackaging extends JpackageModule:
       jar: os.Path
     ): PathRef =
 
-    val distName = "FdSwarm"
+    val distName = appName
     val stageRoot = dest / s"stage-$platform"
     val stage = stageRoot / distName
-    val zipPath = dest / s"FdSwarm-$version-$platform.zip"
+    val zipPath = dest / s"$appName-$version-$platform.zip"
 
     os.remove.all(stageRoot)
     os.remove.all(zipPath)
@@ -398,7 +398,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(stage / "lib")
     os.makeDir.all(stage / "runtime")
 
-    os.copy.over(jar, stage / "lib" / "fdswarm-all.jar", createFolders = true)
+    os.copy.over(jar, stage / "lib" / s"$productName-all.jar", createFolders = true)
     os.copy(runtime, stage / "runtime", createFolders = true, mergeFolders = true)
     stageApplicationConf(stage)
     writeLaunchers(stage, platform)
@@ -437,28 +437,28 @@ trait FdSwarmPackaging extends JpackageModule:
       platform: String
     ): Unit =
     os.write.over(
-      stage / "bin" / "fdswarm.bat",
-      """@echo off
+      stage / "bin" / s"$productName.bat",
+      s"""@echo off
         |set APP_HOME=%~dp0..
-        |"%APP_HOME%\runtime\bin\java.exe" -jar "%APP_HOME%\lib\fdswarm-all.jar" %*
+        |"%APP_HOME%\\runtime\\bin\\java.exe" -jar "%APP_HOME%\\lib\\${productName}-all.jar" %*
         |""".stripMargin
     )
 
     if platform.startsWith("windows-") then
       os.write.over(
         stage / "bin" / "install-start-menu-shortcut.bat",
-        """@echo off
+        s"""@echo off
           |setlocal
           |
           |set "APP_HOME=%~dp0.."
-          |set "LAUNCHER=%~dp0fdswarm.bat"
-          |set "START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs"
-          |set "SHORTCUT=%START_MENU%\FdSwarm.lnk"
+          |set "LAUNCHER=%~dp0$productName.bat"
+          |set "START_MENU=%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs"
+          |set "SHORTCUT=%START_MENU%\\${appName}.lnk"
           |
           |if not exist "%START_MENU%" mkdir "%START_MENU%"
           |
           |powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-          |  "$shell = New-Object -ComObject WScript.Shell; $shortcut = $shell.CreateShortcut($env:SHORTCUT); $shortcut.TargetPath = $env:LAUNCHER; $shortcut.WorkingDirectory = $env:APP_HOME; $shortcut.Description = 'FdSwarm'; $shortcut.Save()"
+          |  "$$shell = New-Object -ComObject WScript.Shell; $$shortcut = $$shell.CreateShortcut($$env:SHORTCUT); $$shortcut.TargetPath = $$env:LAUNCHER; $$shortcut.WorkingDirectory = $$env:APP_HOME; $$shortcut.Description = '$appName'; $$shortcut.Save()"
           |
           |if errorlevel 1 (
           |  echo Failed to create Start Menu shortcut.
@@ -469,12 +469,12 @@ trait FdSwarmPackaging extends JpackageModule:
           |""".stripMargin
       )
 
-    val launcher = stage / "bin" / "fdswarm"
+    val launcher = stage / "bin" / productName
     os.write.over(
       launcher,
-      """#!/usr/bin/env sh
-        |APP_HOME="$(cd "$(dirname "$0")/.." && pwd)"
-        |exec "$APP_HOME/runtime/bin/java" -jar "$APP_HOME/lib/fdswarm-all.jar" "$@"
+      s"""#!/usr/bin/env sh
+        |APP_HOME="$$(cd "$$(dirname "$$0")/.." && pwd)"
+        |exec "$$APP_HOME/runtime/bin/java" -jar "$$APP_HOME/lib/$productName-all.jar" "$$@"
         |""".stripMargin
     )
     os.perms.set(launcher, "rwxr-xr-x")
@@ -511,7 +511,7 @@ trait FdSwarmPackaging extends JpackageModule:
     val jar = assembly()
     val destDir = parallelsShareDir
     os.makeDir.all(destDir)
-    val dest = destDir / "fdswarm.jar"
+    val dest = destDir / s"$productName.jar"
     os.copy.over(jar.path, dest, replaceExisting = true)
     println(s"Copied fat jar to: $dest")
     PathRef(dest)
@@ -527,7 +527,7 @@ trait FdSwarmPackaging extends JpackageModule:
     println()
     println("Windows watch command:")
     println(
-      raw"watchexec --restart --watch C:\Mac\Home\ParallelsShare --filter fdswarm.jar -- java -jar C:\Mac\Home\ParallelsShare\fdswarm.jar"
+      s"watchexec --restart --watch C:\\Mac\\Home\\ParallelsShare --filter $productName.jar -- java -jar C:\\Mac\\Home\\ParallelsShare\\$productName.jar"
     )
     println()
     dest

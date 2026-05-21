@@ -19,6 +19,7 @@
 package fdswarm
 
 import cats.effect.unsafe.implicits.global
+import com.organization.BuildInfo
 import fdswarm.StartupInfo
 import fdswarm.contestStart.ContestStartManager
 import FdSwarmUi.{isJdwpEnabled, isMac}
@@ -67,7 +68,7 @@ final class FdSwarmUi @Inject()(
       center = centerPane
 
     setAppIcon()
-    stage.title = "FdSwarm"
+    stage.title = BuildInfo.appName
     statusBroadcastService.start()
     apiServer.start().unsafeRunAndForget()
 
@@ -75,7 +76,7 @@ final class FdSwarmUi @Inject()(
       try
         System.setProperty(
           "apple.awt.application.name",
-          "FdSwarm"
+          BuildInfo.appName
         )
 
         if java.awt.Desktop.isDesktopSupported then
@@ -104,7 +105,7 @@ final class FdSwarmUi @Inject()(
         )
 
     val debuggee = if isJdwpEnabled then "JDWP" else ""
-    stage.title = s"FdSwarm@${NodeIdentityManager.nodeIdentity} $debuggee "
+    stage.title = s"${BuildInfo.appName}@${NodeIdentityManager.nodeIdentity} $debuggee "
     val scene = new Scene(
       root,
       1100,

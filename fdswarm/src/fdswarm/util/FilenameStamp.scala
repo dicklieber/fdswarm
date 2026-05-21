@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter
  * The generated filename follows the pattern:
  * `${product}-${contest}-${dataVersion}_${timestamp}`
  *
- *   - `product`: Application name from `BuildInfo.name` (e.g., "fdswarm").
+ *   - `product`: Product name from `BuildInfo.productName` (e.g., "fdswarm").
  *   - `contest`: Current contest identifier from [[ContestConfigManager]] (e.g., "WFD").
  *   - `dataVersion`: Data schema version from `BuildInfo.dataVersion`.
  *   - `timestamp`: Canonical UTC timestamp in `yyyyMMdd'T'HHmmss'Z'` format.
@@ -57,7 +57,7 @@ class FilenameStamp @Inject():
            ): String =
 //    val contestType = contestManagerProvider.get().config.contestType
     val parts =
-      List(com.organization.BuildInfo.name,
+      List(com.organization.BuildInfo.productName,
         com.organization.BuildInfo.dataVersion)
         .map(sanitize)
  
