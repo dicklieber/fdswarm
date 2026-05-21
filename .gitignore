@@ -1,6 +1,7 @@
 /.bsp/
 /.idea/
 /out*/
+/.fdswarm-runtimes/
 /fdswarm-runtimes/
 /fdlog-snapshot.json
 /fdlog-node.json
