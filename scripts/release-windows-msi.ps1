@@ -3,6 +3,7 @@ param(
   [switch]$Publish,
   [switch]$SkipVerifyDocs,
   [switch]$SkipSign,
+  [string]$JarUrl = 'https://github.com/dicklieber/fdswarm/releases/latest/download/fdswarm.jar',
   [string]$CertificateThumbprint = $env:WINDOWS_CODESIGN_CERT_THUMBPRINT,
   [string]$TimestampServer = 'http://timestamp.digicert.com'
 )
@@ -17,7 +18,6 @@ $Vendor = 'FdSwarm'
 $MainClass = 'fdswarm.FdSwarm'
 $MainJarName = 'fdswarm.jar'
 $WinUpgradeUuid = '8F095DE2-D316-43A7-94C3-7702217CAE1D'
-$JarPath = Join-Path $RepoDir 'out/fdswarm/assembly.dest/fdswarm.jar'
 $WorkDir = Join-Path $RepoDir 'out/fdswarm/msi-release.dest'
 $ArtifactsDir = Join-Path $RepoDir 'release/artifacts'
 $WindowsRuntimesDir = Join-Path $RepoDir 'fdswarm-runtimes'
@@ -177,6 +177,28 @@ function Get-ManifestValue {
   return ''
 }
 
+function Save-ReleaseJar {
+  param(
+    [string]$Url,
+    [string]$Destination
+  )
+
+  $DestinationDir = Split-Path -Parent $Destination
+  New-Item -ItemType Directory -Force -Path $DestinationDir | Out-Null
+
+  Write-Host "Downloading JAR: $Url"
+  Invoke-WebRequest -Uri $Url -OutFile $Destination -MaximumRedirection 10
+
+  if (-not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+    Fail "downloaded JAR was not created: $Destination"
+  }
+
+  $JarFile = Get-Item -LiteralPath $Destination
+  if ($JarFile.Length -le 0) {
+    Fail "downloaded JAR is empty: $Destination"
+  }
+}
+
 if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
   Fail 'MSI packaging must run on Windows'
 }
@@ -198,9 +220,10 @@ $RuntimeImages = @(
 
 $Jpackage = Resolve-Jpackage $RuntimeImages[0].Path
 
-if (-not (Test-Path -LiteralPath $JarPath -PathType Leaf)) {
-  Fail "assembly JAR not found: $JarPath"
-}
+New-Item -ItemType Directory -Force -Path $WorkDir, $ArtifactsDir | Out-Null
+
+$JarPath = Join-Path (Join-Path $WorkDir 'download') $MainJarName
+Save-ReleaseJar $JarUrl $JarPath
 
 $Jar = Open-Jar $JarPath
 try {
@@ -240,10 +263,9 @@ if (-not $Tag) {
 
 $IconPath = Join-Path $RepoDir 'fdswarm/resources/icons/icon.ico'
 
-New-Item -ItemType Directory -Force -Path $WorkDir, $ArtifactsDir | Out-Null
-
 Write-Host 'Building Windows MSI installers'
 Write-Host "JAR: $JarPath"
+Write-Host "JAR URL: $JarUrl"
 Write-Host "Version: $JarVersion"
 Write-Host "MSI version: $InstallerVersion"
 Write-Host "Runtimes: $WindowsRuntimesDir"

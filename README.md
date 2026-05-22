@@ -126,13 +126,18 @@ release/artifacts/FdSwarm-<version>-windows-arm64.msi
 
 Windows MSI packaging requires WiX 3.14.1 on the PATH.
 
-For release MSIs, build the release JAR first so it exists at
-`out/fdswarm/assembly.dest/fdswarm.jar`, and make sure the Windows x64 and
-Windows ARM64 JDK runtimes exist under `fdswarm-runtimes`. Then run from
-PowerShell on Windows:
+For release MSIs, make sure the Windows x64 and Windows ARM64 JDK runtimes
+exist under `fdswarm-runtimes`. The script downloads the latest release JAR
+from GitHub before packaging:
 
 ```powershell
 .\scripts\release-windows-msi.ps1
+```
+
+By default, the script downloads:
+
+```text
+https://github.com/dicklieber/fdswarm/releases/latest/download/fdswarm.jar
 ```
 
 The release MSIs are written to:
