@@ -95,6 +95,13 @@ On macOS, build the PKG installer:
 FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
 ```
 
+To publish the generated MSI files to the macOS web root, set
+`FDSWARM_MSI_SSH_HOST` to a macOS SSH target, for example `user@mac-host`. The
+script creates `/Library/WebServer/Documents/fdswarm` on the target and copies
+the MSI files there with `scp`. Set `FDSWARM_MSI_DIR` to publish somewhere else,
+or `FDSWARM_SKIP_MSI_PUBLISH=1` to leave the files only under
+`release/artifacts`.
+
 The PKG is written to:
 
 ```text
@@ -110,10 +117,11 @@ $env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
 .\scripts\ci\package-windows.ps1
 ```
 
-The MSI is written to:
+The MSI files are written to:
 
 ```text
-out/fdswarm/winMsi.dest/
+release/artifacts/FdSwarm-<version>-windows-x64.msi
+release/artifacts/FdSwarm-<version>-windows-arm64.msi
 ```
 
 Windows MSI packaging requires WiX 3.14.1 on the PATH.

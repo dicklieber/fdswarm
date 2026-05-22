@@ -16,6 +16,9 @@ $BuildNumber = if ($env:FDSWARM_BUILD) { $env:FDSWARM_BUILD } else { '0' }
 $Jpackage = if ($env:JPACKAGE) { $env:JPACKAGE } else { 'jpackage' }
 $WorkDir = Join-Path $RepoDir 'out/fdswarm/msi.dest'
 $ArtifactsDir = Join-Path $RepoDir 'release/artifacts'
+$PublishDir = if ($env:FDSWARM_MSI_DIR) { $env:FDSWARM_MSI_DIR } else { '/Library/WebServer/Documents/fdswarm' }
+$PublishSshHost = $env:FDSWARM_MSI_SSH_HOST
+$SkipPublish = $env:FDSWARM_SKIP_MSI_PUBLISH -eq '1'
 $WinUpgradeUuid = '8F095DE2-D316-43A7-94C3-7702217CAE1D'
 $WindowsRuntimesDir = Join-Path $RepoDir 'runtimes/windows'
 
@@ -74,6 +77,60 @@ function Resolve-WindowsRuntimeImage {
   return $CandidateRuntimeImages[0].FullName
 }
 
+function ConvertTo-SshSingleQuotedText {
+  param(
+    [AllowNull()]
+    [string]$Value
+  )
+
+  return "'$($Value.Replace("'", "'\''"))'"
+}
+
+function Publish-MsiArtifact {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Artifact
+  )
+
+  if ($SkipPublish) {
+    return
+  }
+
+  if ($PublishSshHost) {
+    if (-not (Get-Command 'ssh' -ErrorAction SilentlyContinue)) {
+      throw "FDSWARM_MSI_SSH_HOST is set but ssh was not found"
+    }
+
+    if (-not (Get-Command 'scp' -ErrorAction SilentlyContinue)) {
+      throw "FDSWARM_MSI_SSH_HOST is set but scp was not found"
+    }
+
+    $QuotedPublishDir = ConvertTo-SshSingleQuotedText $PublishDir
+    & ssh $PublishSshHost "mkdir -p -- $QuotedPublishDir"
+    if ($LASTEXITCODE -ne 0) {
+      exit $LASTEXITCODE
+    }
+
+    & scp $Artifact "${PublishSshHost}:$PublishDir/"
+    if ($LASTEXITCODE -ne 0) {
+      exit $LASTEXITCODE
+    }
+
+    Write-Host "Copied: ${PublishSshHost}:$PublishDir/$(Split-Path -Leaf $Artifact)"
+    return
+  }
+
+  if ($IsMacOS) {
+    New-Item -ItemType Directory -Force -Path $PublishDir | Out-Null
+    $PublishedArtifact = Join-Path $PublishDir (Split-Path -Leaf $Artifact)
+    Copy-Item -LiteralPath $Artifact -Destination $PublishedArtifact -Force
+    Write-Host "Copied: $PublishedArtifact"
+    return
+  }
+
+  Write-Host "MSI publish skipped; set FDSWARM_MSI_SSH_HOST for macOS SSH copy or FDSWARM_SKIP_MSI_PUBLISH=1 to hide this message."
+}
+
 $RuntimeImages = @(
   @{
     Id = 'windows-x64'
@@ -121,6 +178,15 @@ Write-Host "JAR: $AssemblyJar"
 Write-Host "Version: $InstallerVersion"
 Write-Host "Build: $BuildNumber"
 Write-Host "jpackage: $Jpackage"
+if (-not $SkipPublish) {
+  if ($PublishSshHost) {
+    Write-Host "Publish: ${PublishSshHost}:$PublishDir"
+  } elseif ($IsMacOS) {
+    Write-Host "Publish: $PublishDir"
+  } else {
+    Write-Host "Publish: skipped unless FDSWARM_MSI_SSH_HOST is set"
+  }
+}
 
 foreach ($RuntimeImage in $RuntimeImages) {
   $RuntimeId = $RuntimeImage.Id
@@ -185,4 +251,5 @@ foreach ($RuntimeImage in $RuntimeImages) {
   $Artifact = Join-Path $ArtifactsDir "$AppName-$ArtifactVersion-$RuntimeId.msi"
   Move-Item -LiteralPath $ProducedMsi.FullName -Destination $Artifact -Force
   Write-Host "MSI: $Artifact"
+  Publish-MsiArtifact -Artifact $Artifact
 }
