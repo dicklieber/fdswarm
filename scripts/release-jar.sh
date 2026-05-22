@@ -6,6 +6,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd "$script_dir/.." && pwd)"
 version_file="version.txt"
 build_number_file="build.number"
+install_doc_file="docs/src/install.md"
 mill_output_dir="${MILL_OUTPUT_DIR:-}"
 
 cd "$repo_dir"
@@ -76,6 +77,8 @@ publish_release_jar() {
 
   require_command gh
   require_command unzip
+  [[ -f "$install_doc_file" ]] ||
+    die "missing install documentation file: $install_doc_file"
 
   jar_version="$(extract_implementation_version "$jar_path")"
   [[ -n "$jar_version" ]] ||
@@ -96,7 +99,9 @@ publish_release_jar() {
   fi
 
   gh release upload "$tag" "$jar_path" --clobber
+  gh release upload "$tag" "$install_doc_file" --clobber
   echo "Published fdswarm.jar to GitHub release $tag"
+  echo "Published $install_doc_file to GitHub release $tag"
 }
 
 confirm() {
