@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_dir="$(cd "$script_dir/.." && pwd)"
 version_file="version.txt"
 build_number_file="build.number"
 mill_output_dir="${MILL_OUTPUT_DIR:-/private/tmp/fdswarm-mill-out}"
+
+cd "$repo_dir"
 
 die() {
   echo "release-jar: $*" >&2
