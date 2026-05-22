@@ -112,6 +112,14 @@ release/artifacts/FdSwarm-<version>-windows-x64-launch4j.zip
 release/artifacts/FdSwarm-<version>-windows-arm64-launch4j.zip
 ```
 
+The generated Launch4j ZIP files are also copied to:
+
+```text
+/Library/WebServer/Documents/fdswarm/launch4j
+```
+
+Set `FDSWARM_LAUNCH4J_DIR` to publish them somewhere else.
+
 ## Zip Distribution Builds
 
 Zip distributions are plain file-copy bundles. They do not use `jpackage`, MSI, DMG, PKG, WiX, or app-image.

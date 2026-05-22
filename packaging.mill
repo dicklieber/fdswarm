@@ -404,7 +404,7 @@ trait FdSwarmPackaging extends JpackageModule:
   }
 
   def distAll = Task {
-copy     val zips = Seq(
+    val zips = Seq(
       distWindowsX64(),
       distWindowsArm64(),
       distMacosAarch64(),
@@ -418,9 +418,16 @@ copy     val zips = Seq(
   private def copyZipsToWebServer(
       zips: Seq[PathRef]
     ): Unit =
-    val dest = os.Path("/Library/WebServer/Documents/zips")
+    val dest = os.Path("/Library/WebServer/Documents/fdswarm/zips")
     os.makeDir.all(dest)
+    val existing = os.list(dest)
+    println(s"Clearing ${existing.size} existing files from $dest")
+    existing.foreach { path =>
+      println(s"  removed ${path.last}")
+      os.remove.all(path)
+    }
     zips.foreach { zip =>
+      println(s"  copied ${zip.path.last}")
       os.copy.over(
         from = zip.path,
         to = dest / zip.path.last,
