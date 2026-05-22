@@ -172,7 +172,7 @@ object Packaging {
 
       os.write.over(
         launcher,
-        unixLauncher
+        unixLauncher(platform)
       )
 
       Process.run(
@@ -185,11 +185,29 @@ object Packaging {
     }
   }
 
-  private val unixLauncher =
-    """#!/usr/bin/env sh
+  private def unixLauncher(
+      platform: Platform
+  ): String =
+    s"""#!/usr/bin/env sh
       |set -eu
-      |APP_HOME="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-      |exec "$APP_HOME/runtime/bin/java" -jar "$APP_HOME/app/lib/fdswarm.jar" "$@"
+      |EXPECTED_PLATFORM="${platform.id}"
+      |APP_HOME="$$(CDPATH= cd -- "$$(dirname -- "$$0")/.." && pwd)"
+      |case "$$(uname -s)" in
+      |  Darwin) ACTUAL_OS="macos" ;;
+      |  Linux) ACTUAL_OS="linux" ;;
+      |  *) ACTUAL_OS="$$(uname -s)" ;;
+      |esac
+      |case "$$(uname -m)" in
+      |  x86_64|amd64) ACTUAL_ARCH="x64" ;;
+      |  arm64|aarch64) ACTUAL_ARCH="aarch64" ;;
+      |  *) ACTUAL_ARCH="$$(uname -m)" ;;
+      |esac
+      |ACTUAL_PLATFORM="$$ACTUAL_OS-$$ACTUAL_ARCH"
+      |if [ "$$EXPECTED_PLATFORM" != "$$ACTUAL_PLATFORM" ]; then
+      |  echo "This FdSwarm package is for $$EXPECTED_PLATFORM, but this system is $$ACTUAL_PLATFORM." >&2
+      |  exit 126
+      |fi
+      |exec "$$APP_HOME/runtime/bin/java" -jar "$$APP_HOME/app/lib/fdswarm.jar" "$$@"
       |""".stripMargin
 
   private val windowsLauncher =

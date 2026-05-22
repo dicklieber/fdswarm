@@ -7,6 +7,24 @@ import mill.scalalib.*
 trait FdSwarmPackaging extends JpackageModule:
   self: CommonSettings =>
 
+  private case class BundledRuntime(
+      platform: String,
+      envVar: String,
+      osName: String,
+      arch: String,
+      packageType: String,
+      archiveExtension: String,
+      javaExecutable: String
+  )
+
+  private val bundledRuntimes = Seq(
+    BundledRuntime("windows-x64", "FDSWARM_RUNTIME_WINDOWS_X64", "windows", "x86", "zip", "zip", "java.exe"),
+    BundledRuntime("windows-arm64", "FDSWARM_RUNTIME_WINDOWS_ARM64", "windows", "arm", "zip", "zip", "java.exe"),
+    BundledRuntime("macos-aarch64", "FDSWARM_RUNTIME_MACOS_AARCH64", "macos", "arm", "tar.gz", "tar.gz", "java"),
+    BundledRuntime("linux-x64", "FDSWARM_RUNTIME_LINUX_X64", "linux", "x86", "tar.gz", "tar.gz", "java"),
+    BundledRuntime("linux-aarch64", "FDSWARM_RUNTIME_LINUX_AARCH64", "linux", "arm", "tar.gz", "tar.gz", "java")
+  )
+
   private val macIconIcns = repoPath("fdswarm/resources/icons/icon.icns")
   private val winIconIco = repoPath("fdswarm/resources/icons/icon.ico")
   private val winUpgradeUuid = "8F095DE2-D316-43A7-94C3-7702217CAE1D"
@@ -376,8 +394,23 @@ trait FdSwarmPackaging extends JpackageModule:
     )
   }
 
+  def distLinuxAarch64 = Task {
+    buildZipDist(
+      platform = "linux-aarch64",
+      runtime = runtimeLinuxAarch64().path,
+      dest = Task.dest,
+      jar = assembly().path
+    )
+  }
+
   def distAll = Task {
-    Seq(distWindowsX64(), distWindowsArm64(), distMacosAarch64(), distLinuxX64())
+    Seq(
+      distWindowsX64(),
+      distWindowsArm64(),
+      distMacosAarch64(),
+      distLinuxX64(),
+      distLinuxAarch64()
+    )
   }
 
   private def buildZipDist(
@@ -408,17 +441,72 @@ trait FdSwarmPackaging extends JpackageModule:
     PathRef(zipPath)
 
   private def requiredRuntime(
-      envVar: String
+      runtime: BundledRuntime
     ): os.Path =
-    sys.env.get(envVar).map(_.trim).filter(_.nonEmpty) match
+    sys.env.get(runtime.envVar).map(_.trim).filter(_.nonEmpty) match
       case Some(raw) =>
-        val runtime = envPath(raw)
-        if os.isDir(runtime) then runtime
-        else throw new RuntimeException(s"$envVar must point to a directory, got: $runtime")
+        val runtimePath = envPath(raw)
+        if os.isDir(runtimePath) then runtimePath
+        else throw new RuntimeException(s"${runtime.envVar} must point to a directory, got: $runtimePath")
       case None =>
-        throw new RuntimeException(
-          s"$envVar is required and must point to a bundled JDK directory."
-        )
+        discoverRuntime(runtime).getOrElse(fetchRuntime(runtime))
+
+  private def discoverRuntime(
+      runtime: BundledRuntime
+    ): Option[os.Path] =
+    val root = repoPath(s".fdswarm-runtimes/${runtime.platform}")
+    if !os.exists(root) then None
+    else
+      os.walk(root)
+        .find(path => os.isFile(path) && path.last == runtime.javaExecutable && (path / os.up).last == "bin")
+        .map(_ / os.up / os.up)
+
+  private def fetchRuntime(
+      runtime: BundledRuntime
+    ): os.Path =
+    val root = repoPath(s".fdswarm-runtimes/${runtime.platform}")
+    val cache = repoPath(".fdswarm-runtimes/cache")
+    val archive = cache / s"${runtime.platform}.${runtime.archiveExtension}"
+
+    os.makeDir.all(cache)
+    os.remove.all(root)
+    os.makeDir.all(root)
+
+    val url = libericaDownloadUrl(runtime)
+    println(s"Fetching Liberica JDK 21 Full for ${runtime.platform}")
+    println(s"  $url")
+
+    os.proc("curl", "-fL", "--retry", "3", "--output", archive.toString, url)
+      .call(stdout = os.Inherit, stderr = os.Inherit)
+
+    if runtime.packageType == "zip" then
+      os.proc("unzip", "-q", archive.toString, "-d", root.toString)
+        .call(stdout = os.Inherit, stderr = os.Inherit)
+    else
+      os.proc("tar", "-xzf", archive.toString, "-C", root.toString)
+        .call(stdout = os.Inherit, stderr = os.Inherit)
+
+    discoverRuntime(runtime).getOrElse {
+      throw new RuntimeException(s"Downloaded ${runtime.platform}, but could not find bin/${runtime.javaExecutable} under $root")
+    }
+
+  private def libericaDownloadUrl(
+      runtime: BundledRuntime
+    ): String =
+    val url =
+      s"https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&version-feature=21&bitness=64&os=${runtime.osName}&arch=${runtime.arch}&package-type=${runtime.packageType}&bundle-type=jdk-full&output=text&fields=downloadUrl"
+    val output =
+      os.proc("curl", "-fsSL", url)
+        .call(stdout = os.Pipe, stderr = os.Inherit)
+        .out
+        .text()
+        .linesIterator
+        .map(_.trim)
+        .find(_.nonEmpty)
+        .getOrElse("")
+
+    if output.startsWith("https://") then output
+    else throw new RuntimeException(s"BellSoft API did not return a download URL for ${runtime.platform}: $output")
 
   private def stageApplicationConf(
       stage: os.Path
@@ -473,7 +561,24 @@ trait FdSwarmPackaging extends JpackageModule:
     os.write.over(
       launcher,
       s"""#!/usr/bin/env sh
+        |set -eu
         |APP_HOME="$$(cd "$$(dirname "$$0")/.." && pwd)"
+        |EXPECTED_PLATFORM="$platform"
+        |case "$$(uname -s)" in
+        |  Darwin) ACTUAL_OS="macos" ;;
+        |  Linux) ACTUAL_OS="linux" ;;
+        |  *) ACTUAL_OS="$$(uname -s)" ;;
+        |esac
+        |case "$$(uname -m)" in
+        |  x86_64|amd64) ACTUAL_ARCH="x64" ;;
+        |  arm64|aarch64) ACTUAL_ARCH="aarch64" ;;
+        |  *) ACTUAL_ARCH="$$(uname -m)" ;;
+        |esac
+        |ACTUAL_PLATFORM="$$ACTUAL_OS-$$ACTUAL_ARCH"
+        |if [ "$$EXPECTED_PLATFORM" != "$$ACTUAL_PLATFORM" ]; then
+        |  echo "This FdSwarm package is for $$EXPECTED_PLATFORM, but this system is $$ACTUAL_PLATFORM." >&2
+        |  exit 126
+        |fi
         |exec "$$APP_HOME/runtime/bin/java" -jar "$$APP_HOME/lib/$productName-all.jar" "$$@"
         |""".stripMargin
     )
@@ -492,19 +597,23 @@ trait FdSwarmPackaging extends JpackageModule:
       throw new RuntimeException(s"zip failed with exit code $exit")
 
   private def runtimeWindowsX64 = Task.Input {
-    PathRef(requiredRuntime("FDSWARM_RUNTIME_WINDOWS_X64"))
+    PathRef(requiredRuntime(bundledRuntimes.find(_.platform == "windows-x64").get))
   }
 
   private def runtimeWindowsArm64 = Task.Input {
-    PathRef(requiredRuntime("FDSWARM_RUNTIME_WINDOWS_ARM64"))
+    PathRef(requiredRuntime(bundledRuntimes.find(_.platform == "windows-arm64").get))
   }
 
   private def runtimeMacosAarch64 = Task.Input {
-    PathRef(requiredRuntime("FDSWARM_RUNTIME_MACOS_AARCH64"))
+    PathRef(requiredRuntime(bundledRuntimes.find(_.platform == "macos-aarch64").get))
   }
 
   private def runtimeLinuxX64 = Task.Input {
-    PathRef(requiredRuntime("FDSWARM_RUNTIME_LINUX_X64"))
+    PathRef(requiredRuntime(bundledRuntimes.find(_.platform == "linux-x64").get))
+  }
+
+  private def runtimeLinuxAarch64 = Task.Input {
+    PathRef(requiredRuntime(bundledRuntimes.find(_.platform == "linux-aarch64").get))
   }
 
   def copyFatJarToParallels = Task {

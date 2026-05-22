@@ -139,42 +139,39 @@ Use BellSoft Liberica JDK 21 Full archives from https://bell-sw.com/pages/downlo
 
 ### Local Zip Builds
 
-Fetch the Liberica JDK 21 Full runtimes:
+Build all zip distributions:
 
 ```bash
-scripts/fetch-liberica-runtimes.sh --env-file .fdswarm-runtimes/env.sh
-source .fdswarm-runtimes/env.sh
+MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distAll
 ```
 
-The script downloads and unpacks these archives under `.fdswarm-runtimes/`:
+The Mill zip tasks download missing Liberica JDK 21 Full runtimes under
+`.fdswarm-runtimes/`:
 
 - Windows x64 ZIP
 - Windows ARM64 ZIP
 - macOS ARM64 TAR.GZ
 - Linux x64 TAR.GZ
+- Linux ARM64 TAR.GZ
 
-Or set the variables manually if you downloaded and unpacked the JDKs yourself:
+You can still set variables manually to override the downloaded runtime paths:
 
 ```bash
 export FDSWARM_RUNTIME_WINDOWS_X64=/path/to/unpacked/windows-jdk-full
 export FDSWARM_RUNTIME_WINDOWS_ARM64=/path/to/unpacked/windows-arm64-jdk-full
 export FDSWARM_RUNTIME_MACOS_AARCH64=/path/to/unpacked/macos-jdk-full.jdk/Contents/Home
 export FDSWARM_RUNTIME_LINUX_X64=/path/to/unpacked/linux-jdk-full
+export FDSWARM_RUNTIME_LINUX_AARCH64=/path/to/unpacked/linux-arm64-jdk-full
 ```
 
-Build all zip distributions:
+To avoid building every zip, run one platform task:
 
 ```bash
-./mill --no-daemon fdswarm.distAll
-```
-
-Or build one platform zip:
-
-```bash
-./mill --no-daemon fdswarm.distWindowsX64
-./mill --no-daemon fdswarm.distWindowsArm64
-./mill --no-daemon fdswarm.distMacosAarch64
-./mill --no-daemon fdswarm.distLinuxX64
+MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distWindowsX64
+MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distWindowsArm64
+MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distMacosAarch64
+MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distLinuxX64
+MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distLinuxAarch64
 ```
 
 The zip files are written to:
@@ -184,6 +181,7 @@ out/fdswarm/distWindowsX64.dest/FdSwarm-<version>-windows-x64.zip
 out/fdswarm/distWindowsArm64.dest/FdSwarm-<version>-windows-arm64.zip
 out/fdswarm/distMacosAarch64.dest/FdSwarm-<version>-macos-aarch64.zip
 out/fdswarm/distLinuxX64.dest/FdSwarm-<version>-linux-x64.zip
+out/fdswarm/distLinuxAarch64.dest/FdSwarm-<version>-linux-aarch64.zip
 ```
 
 ## Using the manager

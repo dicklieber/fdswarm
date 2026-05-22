@@ -15,13 +15,14 @@ Downloads and unpacks BellSoft Liberica JDK 21 Full runtimes for:
   - Windows ARM64
   - macOS aarch64
   - Linux x64
+  - Linux aarch64
 
-By default, runtimes are written under .fdswarm-runtimes and shell export
-commands are printed for local builds.
+By default, runtimes are written under .fdswarm-runtimes for Mill to
+auto-discover.
 
 Options:
   --dest DIR        Directory for downloaded archives and unpacked runtimes.
-  --env-file FILE   Write shell export commands to FILE.
+  --env-file FILE   Write optional shell export overrides to FILE.
   -h, --help        Show this help.
 EOF
 }
@@ -138,7 +139,6 @@ write_env() {
   if [[ -n "$env_file" ]]; then
     echo "$export_line" >> "$env_file"
   fi
-  echo "$export_line"
 }
 
 windows_url="$(liberica_url windows x86 zip)"
@@ -169,9 +169,28 @@ download "Liberica JDK 21 Full for Linux x64" "$linux_url" "$linux_archive"
 extract_tar_gz "$linux_archive" "$linux_dir"
 linux_home="$(find_java_home "$linux_dir" java)"
 
+linux_aarch64_url="$(liberica_url linux arm tar.gz)"
+linux_aarch64_archive="$dest/cache/linux-aarch64.tar.gz"
+linux_aarch64_dir="$dest/linux-aarch64"
+download "Liberica JDK 21 Full for Linux aarch64" "$linux_aarch64_url" "$linux_aarch64_archive"
+extract_tar_gz "$linux_aarch64_archive" "$linux_aarch64_dir"
+linux_aarch64_home="$(find_java_home "$linux_aarch64_dir" java)"
+
 echo
-echo "Runtime environment:"
+echo "Runtime homes:"
+echo "  windows-x64:    $windows_home"
+echo "  windows-arm64:  $windows_arm64_home"
+echo "  macos-aarch64:  $macos_home"
+echo "  linux-x64:      $linux_home"
+echo "  linux-aarch64:  $linux_aarch64_home"
+
 write_env FDSWARM_RUNTIME_WINDOWS_X64 "$windows_home"
 write_env FDSWARM_RUNTIME_WINDOWS_ARM64 "$windows_arm64_home"
 write_env FDSWARM_RUNTIME_MACOS_AARCH64 "$macos_home"
 write_env FDSWARM_RUNTIME_LINUX_X64 "$linux_home"
+write_env FDSWARM_RUNTIME_LINUX_AARCH64 "$linux_aarch64_home"
+
+if [[ -n "$env_file" ]]; then
+  echo
+  echo "Wrote optional runtime overrides to $env_file"
+fi

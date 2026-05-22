@@ -30,6 +30,10 @@ object Platforms {
     Platform(
       "linux-x64",
       s"https://download.bell-sw.com/java/$version/bellsoft-jdk$version-linux-amd64-full.tar.gz"
+    ),
+    Platform(
+      "linux-aarch64",
+      s"https://download.bell-sw.com/java/$version/bellsoft-jdk$version-linux-aarch64-full.tar.gz"
     )
   )
 
