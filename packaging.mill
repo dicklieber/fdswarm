@@ -404,14 +404,30 @@ trait FdSwarmPackaging extends JpackageModule:
   }
 
   def distAll = Task {
-    Seq(
+copy     val zips = Seq(
       distWindowsX64(),
       distWindowsArm64(),
       distMacosAarch64(),
       distLinuxX64(),
       distLinuxAarch64()
     )
+    copyZipsToWebServer(zips)
+    zips
   }
+
+  private def copyZipsToWebServer(
+      zips: Seq[PathRef]
+    ): Unit =
+    val dest = os.Path("/Library/WebServer/Documents/zips")
+    os.makeDir.all(dest)
+    zips.foreach { zip =>
+      os.copy.over(
+        from = zip.path,
+        to = dest / zip.path.last,
+        createFolders = true
+      )
+    }
+    println(s"Copied ${zips.size} ZIP files to $dest")
 
   private def buildZipDist(
       platform: String,
