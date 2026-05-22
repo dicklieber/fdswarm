@@ -190,7 +190,6 @@ runtime_base_dirs() {
   fi
 
   printf '%s\n' \
-    "$repo_dir/.fdswarm-runtimes" \
     "$repo_dir/fdswarm-runtimes" \
     "$repo_dir/runtimes" \
     "$repo_dir/runtimes/windows"

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-dest=".fdswarm-runtimes"
+dest="fdswarm-runtimes"
 env_file=""
 
 usage() {
@@ -17,7 +17,7 @@ Downloads and unpacks BellSoft Liberica JDK 21 Full runtimes for:
   - Linux x64
   - Linux aarch64
 
-By default, runtimes are written under .fdswarm-runtimes for Mill to
+By default, runtimes are written under fdswarm-runtimes for Mill to
 auto-discover.
 
 Options:

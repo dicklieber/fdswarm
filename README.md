@@ -116,7 +116,35 @@ The MSI is written to:
 out/fdswarm/winMsi.dest/
 ```
 
-Windows ARM64 packaging requires WiX 3.14.1 on the PATH.
+Windows MSI packaging requires WiX 3.14.1 on the PATH.
+
+For release MSIs, build the release JAR first so it exists at
+`out/fdswarm/assembly.dest/fdswarm.jar`, and make sure the Windows x64 and
+Windows ARM64 JDK runtimes exist under `fdswarm-runtimes`. Then run from
+PowerShell on Windows:
+
+```powershell
+.\scripts\release-windows-msi.ps1
+```
+
+The release MSIs are written to:
+
+```text
+release/artifacts/FdSwarm-<version>-windows-x64.msi
+release/artifacts/FdSwarm-<version>-windows-arm64.msi
+```
+
+To Authenticode-sign the MSI, pass a certificate thumbprint:
+
+```powershell
+.\scripts\release-windows-msi.ps1 -CertificateThumbprint '0123456789ABCDEF0123456789ABCDEF01234567'
+```
+
+To upload the MSI to the matching GitHub release:
+
+```powershell
+.\scripts\release-windows-msi.ps1 -Publish
+```
 
 To build self-contained Windows Launch4j ZIP packages from an existing assembly
 JAR and bundled Windows runtimes, run:
@@ -178,7 +206,7 @@ MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distAll
 ```
 
 The Mill zip tasks download missing Liberica JDK 21 Full runtimes under
-`.fdswarm-runtimes/`:
+`fdswarm-runtimes/`:
 
 - Windows x64 ZIP
 - Windows ARM64 ZIP

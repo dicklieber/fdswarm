@@ -477,7 +477,7 @@ trait FdSwarmPackaging extends JpackageModule:
   private def discoverRuntime(
       runtime: BundledRuntime
     ): Option[os.Path] =
-    val root = repoPath(s".fdswarm-runtimes/${runtime.platform}")
+    val root = repoPath(s"fdswarm-runtimes/${runtime.platform}")
     if !os.exists(root) then None
     else
       os.walk(root)
@@ -487,8 +487,8 @@ trait FdSwarmPackaging extends JpackageModule:
   private def fetchRuntime(
       runtime: BundledRuntime
     ): os.Path =
-    val root = repoPath(s".fdswarm-runtimes/${runtime.platform}")
-    val cache = repoPath(".fdswarm-runtimes/cache")
+    val root = repoPath(s"fdswarm-runtimes/${runtime.platform}")
+    val cache = repoPath("fdswarm-runtimes/cache")
     val archive = cache / s"${runtime.platform}.${runtime.archiveExtension}"
 
     os.makeDir.all(cache)
