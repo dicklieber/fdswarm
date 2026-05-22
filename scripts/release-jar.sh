@@ -6,9 +6,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd "$script_dir/.." && pwd)"
 version_file="version.txt"
 build_number_file="build.number"
-install_doc_file="docs/src/install.md"
-install_doc_jar_entry="FDSwarmDocs/install.html"
-install_doc_asset_name="install.html"
+install_doc_file="docs/install.md"
 mill_output_dir="${MILL_OUTPUT_DIR:-}"
 
 cd "$repo_dir"
@@ -71,39 +69,16 @@ extract_implementation_version() {
     awk -F': ' '/^Implementation-Version: / { print $2; exit }'
 }
 
-extract_install_doc_asset() {
-  local jar_path="$1"
-  local asset_dir
-  local asset_path
-
-  [[ -f "$install_doc_file" ]] ||
-    die "missing install documentation file: $install_doc_file"
-
-  if ! jar tf "$jar_path" | grep -Fxq "$install_doc_jar_entry"; then
-    die "$jar_path does not contain $install_doc_jar_entry"
-  fi
-
-  asset_dir="$(mktemp -d "${TMPDIR:-/tmp}/fdswarm-release-jar.XXXXXX")"
-  asset_path="$asset_dir/$install_doc_asset_name"
-
-  unzip -p "$jar_path" "$install_doc_jar_entry" > "$asset_path"
-
-  [[ -s "$asset_path" ]] ||
-    die "failed to extract install documentation asset: $asset_path"
-
-  printf '%s\n' "$asset_path"
-}
-
 publish_release_jar() {
   local jar_path="$1"
   local target_ref="$2"
   local jar_version
-  local install_doc_asset
   local tag
 
   require_command gh
-  require_command jar
   require_command unzip
+  [[ -f "$install_doc_file" ]] ||
+    die "missing install documentation file: $install_doc_file"
 
   jar_version="$(extract_implementation_version "$jar_path")"
   [[ -n "$jar_version" ]] ||
@@ -112,9 +87,8 @@ publish_release_jar() {
     die "refusing to publish snapshot jar version: $jar_version"
 
   tag="v$jar_version"
-  install_doc_asset="$(extract_install_doc_asset "$jar_path")"
 
-  echo "Publishing fdswarm.jar and $install_doc_asset_name to GitHub release $tag..."
+  echo "Publishing fdswarm.jar and $install_doc_file to GitHub release $tag..."
   gh auth status >/dev/null
 
   if gh release view "$tag" >/dev/null 2>&1; then
@@ -125,9 +99,9 @@ publish_release_jar() {
   fi
 
   gh release upload "$tag" "$jar_path" --clobber
-  gh release upload "$tag" "$install_doc_asset" --clobber
+  gh release upload "$tag" "$install_doc_file" --clobber
   echo "Published fdswarm.jar to GitHub release $tag"
-  echo "Published $install_doc_asset_name to GitHub release $tag"
+  echo "Published $install_doc_file to GitHub release $tag"
 }
 
 confirm() {
