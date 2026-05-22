@@ -6,8 +6,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd "$script_dir/.." && pwd)"
 version_file="version.txt"
 build_number_file="build.number"
-mill_output_dir="${MILL_OUTPUT_DIR:-/private/tmp/fdswarm-mill-out}"
-assembly_jar="$mill_output_dir/fdswarm/assembly.dest/fdswarm.jar"
+mill_output_dir="${MILL_OUTPUT_DIR:-}"
 
 cd "$repo_dir"
 
@@ -27,10 +26,44 @@ fail_after_release_files_changed() {
   die "$*"
 }
 
+run_mill() {
+  if [[ -n "$mill_output_dir" ]]; then
+    MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server "$@"
+  else
+    ./mill --no-server "$@"
+  fi
+}
+
+find_assembly_jar() {
+  local assembly_dir
+  local jar_path
+
+  if [[ -n "$mill_output_dir" ]]; then
+    assembly_dir="$mill_output_dir/fdswarm/assembly.dest"
+  else
+    assembly_dir="$repo_dir/out/fdswarm/assembly.dest"
+  fi
+
+  [[ -d "$assembly_dir" ]] ||
+    fail_after_release_files_changed "assembly completed but did not create expected directory: $assembly_dir"
+
+  jar_path="$assembly_dir/fdswarm.jar"
+  if [[ -f "$jar_path" ]]; then
+    printf '%s\n' "$jar_path"
+    return 0
+  fi
+
+  jar_path="$(find "$assembly_dir" -maxdepth 1 -type f -name '*.jar' -print | sort | tail -n 1)"
+  [[ -n "$jar_path" ]] ||
+    fail_after_release_files_changed "assembly completed but did not create a jar in: $assembly_dir"
+
+  printf '%s\n' "$jar_path"
+}
+
 extract_implementation_version() {
   local jar_path="$1"
 
-  unzip -p "$jar_path" META-INF/MANIFEST.MF |
+  { unzip -p "$jar_path" META-INF/MANIFEST.MF 2>/dev/null || true; } |
     tr -d '\r' |
     awk -F': ' '/^Implementation-Version: / { print $2; exit }'
 }
@@ -143,10 +176,9 @@ if ! confirm "Is $version_file correct"; then
 fi
 
 echo "Building fdswarm.jar..."
-MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server clean
-MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server fdswarm.assembly
-[[ -f "$assembly_jar" ]] ||
-  fail_after_release_files_changed "assembly completed but did not create expected jar: $assembly_jar"
+run_mill clean
+run_mill fdswarm.assembly
+assembly_jar="$(find_assembly_jar)"
 
 printf '%s\n' "$snapshot_version" > "$version_file"
 release_files_restored=true
