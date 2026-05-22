@@ -16,6 +16,11 @@ die() {
   exit 1
 }
 
+fail_after_release_files_changed() {
+  restore_release_files
+  die "$*"
+}
+
 confirm() {
   local prompt="$1"
   local answer
@@ -93,9 +98,10 @@ if ! confirm "Is $version_file correct"; then
 fi
 
 echo "Building fdswarm.jar..."
-MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server clean fdswarm.assembly
+MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server clean
+MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server fdswarm.assembly
 [[ -f "$assembly_jar" ]] ||
-  die "assembly completed but did not create expected jar: $assembly_jar"
+  fail_after_release_files_changed "assembly completed but did not create expected jar: $assembly_jar"
 
 printf '%s\n' "$snapshot_version" > "$version_file"
 release_files_restored=true
