@@ -141,7 +141,83 @@ function Add-SignToolToPath {
 function Open-Jar {
   param([string]$Path)
   Add-Type -AssemblyName System.IO.Compression.FileSystem
-  return [System.IO.Compression.ZipFile]::OpenRead($Path)
+  $Archive = $null
+  try {
+    $Archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+    if ($Archive.Entries.Count -eq 0) {
+      Fail "JAR contains no ZIP entries: $Path"
+    }
+
+    return $Archive
+  } catch [System.IO.InvalidDataException] {
+    if ($Archive) {
+      $Archive.Dispose()
+    }
+    Fail "JAR is not a readable ZIP archive: $Path. $($_.Exception.Message)"
+  } catch {
+    if ($Archive) {
+      $Archive.Dispose()
+    }
+    throw
+  }
+}
+
+function Get-ZipStartOffset {
+  param([string]$Path)
+
+  $MaxSearchBytes = 1024 * 1024
+  $Stream = [System.IO.File]::OpenRead($Path)
+  try {
+    $BytesToRead = [Math]::Min($Stream.Length, $MaxSearchBytes)
+    $Buffer = New-Object byte[] $BytesToRead
+    $Read = $Stream.Read($Buffer, 0, $Buffer.Length)
+
+    for ($Index = 0; $Index -le ($Read - 4); $Index++) {
+      if ($Buffer[$Index] -eq 0x50 -and
+          $Buffer[$Index + 1] -eq 0x4B -and
+          $Buffer[$Index + 2] -eq 0x03 -and
+          $Buffer[$Index + 3] -eq 0x04) {
+        return $Index
+      }
+    }
+
+    return -1
+  } finally {
+    $Stream.Dispose()
+  }
+}
+
+function Normalize-JarForZipArchive {
+  param([string]$Path)
+
+  $ZipStartOffset = Get-ZipStartOffset $Path
+  if ($ZipStartOffset -lt 0) {
+    Fail "downloaded JAR does not contain a ZIP local file header in the first 1 MiB: $Path"
+  }
+
+  if ($ZipStartOffset -eq 0) {
+    return
+  }
+
+  $PlainJarPath = "$Path.plain"
+  Remove-Item -LiteralPath $PlainJarPath -Force -ErrorAction SilentlyContinue
+
+  Write-Host "Normalizing executable JAR by removing $ZipStartOffset-byte launcher prefix"
+
+  $Source = [System.IO.File]::OpenRead($Path)
+  try {
+    $Destination = [System.IO.File]::Create($PlainJarPath)
+    try {
+      $Source.Position = $ZipStartOffset
+      $Source.CopyTo($Destination)
+    } finally {
+      $Destination.Dispose()
+    }
+  } finally {
+    $Source.Dispose()
+  }
+
+  Move-Item -LiteralPath $PlainJarPath -Destination $Path -Force
 }
 
 function Get-JarEntryText {
@@ -197,6 +273,8 @@ function Save-ReleaseJar {
   if ($JarFile.Length -le 0) {
     Fail "downloaded JAR is empty: $Destination"
   }
+
+  Normalize-JarForZipArchive $Destination
 }
 
 if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
