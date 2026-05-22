@@ -6,6 +6,30 @@
 
 This project uses [Mill](https://mill-build.com/) as the build tool.
 
+## macOS: Allowing the Downloaded JAR to Run
+
+macOS may block `fdswarm.jar` because it was downloaded from the internet and
+is not currently signed/notarized as a macOS application.
+
+If macOS blocks it:
+
+1. Open **System Settings**.
+2. Go to **Privacy & Security**.
+3. Scroll to **Security**.
+4. Find the message about `fdswarm.jar` being blocked.
+5. Click **Allow Anyway**.
+6. Run FdSwarm again.
+
+Advanced users can remove the quarantine flag from Terminal:
+
+```sh
+xattr -d com.apple.quarantine fdswarm.jar
+java -jar fdswarm.jar
+```
+
+FdSwarm is currently distributed as a portable Java JAR. A signed and notarized
+macOS installer is planned, but not yet available.
+
 ## Build and Development Commands
 
 ### Cleaning
