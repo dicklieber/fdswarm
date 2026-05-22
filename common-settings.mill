@@ -1,35 +1,36 @@
 package build
 
 import mill.*
+import mill.api.BuildCtx
 import mill.scalalib.*
 
 trait CommonSettings extends ScalaModule:
-  private val releaseVersion =
-    sys.env.get("FDSWARM_VERSION").map(_.trim.stripPrefix("v")).filter(_.nonEmpty)
-  private val releaseVersionPattern = raw"\d+\.\d+\.\d+"
-  private val buildNumberPattern = raw"\d+"
-  private val buildNumberFromEnv =
-    sys.env.get("FDSWARM_BUILD").map(_.trim).filter(_.nonEmpty)
+  private val versionFile = moduleDir / os.up / "version.txt"
+  private val versionPattern = raw"\d+\.\d+\.\d+(?:-(?:SNAPSHOT|\d+))?"
+  private val releaseBuildVersionPattern = raw"\d+\.\d+\.\d+-(\d+)".r
 
-  val version = releaseVersion.getOrElse("0.0.0-dev")
-  val buildNumber = buildNumberFromEnv match
-    case Some(v) if v.matches(buildNumberPattern) => v
-    case Some(v) =>
+  val version = BuildCtx.watchValue {
+    if !os.exists(versionFile) then
+      throw new RuntimeException(s"Missing version file: $versionFile")
+
+    val text = os.read(versionFile).trim.stripPrefix("v")
+    if text.isEmpty then
       throw new RuntimeException(
-        s"FDSWARM_BUILD must be a numeric build number, got: $v"
+        s"$versionFile must contain a version such as 0.0.3-SNAPSHOT"
       )
-    case None => "0"
-  val installerVersion = releaseVersion match
-    case Some(v) if v.matches(releaseVersionPattern) => v
-    case Some(v) =>
+    if !text.matches(versionPattern) then
       throw new RuntimeException(
-        s"FDSWARM_VERSION must be a numeric major.minor.patch version for installers, got: $v"
+        s"$versionFile must contain major.minor.patch, major.minor.patch-SNAPSHOT, or major.minor.patch-buildNumber; got: $text"
       )
-    case None => "0.0.0"
-  val displayVersion =
-    if buildNumber == "0" then version else s"$version build $buildNumber"
-  val artifactVersion =
-    if buildNumber == "0" then installerVersion else s"$installerVersion-build$buildNumber"
+    text
+  }
+
+  val installerVersion = version.takeWhile(_ != '-')
+  val buildNumber = version match
+    case releaseBuildVersionPattern(n) => n
+    case _                             => "0"
+  val displayVersion = version
+  val artifactVersion = version
   val majorVersion = installerVersion.takeWhile(_ != '.')
   // User-facing display name for windows, menus, native packaging, and app data directories.
   val appName = "FdSwarm"
