@@ -7,6 +7,7 @@ repo_dir="$(cd "$script_dir/.." && pwd)"
 version_file="version.txt"
 build_number_file="build.number"
 mill_output_dir="${MILL_OUTPUT_DIR:-/private/tmp/fdswarm-mill-out}"
+assembly_jar="$mill_output_dir/fdswarm/assembly.dest/fdswarm.jar"
 
 cd "$repo_dir"
 
@@ -92,7 +93,9 @@ if ! confirm "Is $version_file correct"; then
 fi
 
 echo "Building fdswarm.jar..."
-MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server fdswarm.assembly
+MILL_OUTPUT_DIR="$mill_output_dir" ./mill --no-server clean fdswarm.assembly
+[[ -f "$assembly_jar" ]] ||
+  die "assembly completed but did not create expected jar: $assembly_jar"
 
 printf '%s\n' "$snapshot_version" > "$version_file"
 release_files_restored=true
@@ -108,4 +111,4 @@ else
   echo "Push skipped."
 fi
 
-echo "Release jar: $mill_output_dir/fdswarm/assembly.dest/fdswarm.jar"
+echo "Release jar: $assembly_jar"
