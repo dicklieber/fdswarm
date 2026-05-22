@@ -16,9 +16,54 @@ die() {
   exit 1
 }
 
+require_command() {
+  local command_name="$1"
+  command -v "$command_name" >/dev/null 2>&1 ||
+    die "required command not found: $command_name"
+}
+
 fail_after_release_files_changed() {
   restore_release_files
   die "$*"
+}
+
+extract_implementation_version() {
+  local jar_path="$1"
+
+  unzip -p "$jar_path" META-INF/MANIFEST.MF |
+    tr -d '\r' |
+    awk -F': ' '/^Implementation-Version: / { print $2; exit }'
+}
+
+publish_release_jar() {
+  local jar_path="$1"
+  local target_ref="$2"
+  local jar_version
+  local tag
+
+  require_command gh
+  require_command unzip
+
+  jar_version="$(extract_implementation_version "$jar_path")"
+  [[ -n "$jar_version" ]] ||
+    die "could not extract Implementation-Version from $jar_path"
+  [[ "$jar_version" != *-SNAPSHOT ]] ||
+    die "refusing to publish snapshot jar version: $jar_version"
+
+  tag="v$jar_version"
+
+  echo "Publishing fdswarm.jar to GitHub release $tag..."
+  gh auth status >/dev/null
+
+  if gh release view "$tag" >/dev/null 2>&1; then
+    echo "GitHub release exists: $tag"
+  else
+    gh release create "$tag" --target "$target_ref" --title "$tag" --generate-notes
+    echo "Created GitHub release: $tag"
+  fi
+
+  gh release upload "$tag" "$jar_path" --clobber
+  echo "Published fdswarm.jar to GitHub release $tag"
 }
 
 confirm() {
@@ -110,11 +155,14 @@ trap - ERR INT TERM
 
 git add "$version_file" "$build_number_file"
 git commit -m "Release build $next_build_number"
+release_commit="$(git rev-parse HEAD)"
 
 if confirm "Push release commit"; then
   git push
 else
   echo "Push skipped."
 fi
+
+publish_release_jar "$assembly_jar" "$release_commit"
 
 echo "Release jar: $assembly_jar"
