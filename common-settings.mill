@@ -9,7 +9,7 @@ trait CommonSettings extends ScalaModule:
   private val versionPattern = raw"\d+\.\d+\.\d+(?:-(?:SNAPSHOT|\d+))?"
   private val releaseBuildVersionPattern = raw"\d+\.\d+\.\d+-(\d+)".r
 
-  val version = BuildCtx.watchValue {
+  def version = BuildCtx.watchValue {
     if !os.exists(versionFile) then
       throw new RuntimeException(s"Missing version file: $versionFile")
 
@@ -25,13 +25,13 @@ trait CommonSettings extends ScalaModule:
     text
   }
 
-  val installerVersion = version.takeWhile(_ != '-')
-  val buildNumber = version match
+  def installerVersion = version.takeWhile(_ != '-')
+  def buildNumber = version match
     case releaseBuildVersionPattern(n) => n
     case _                             => "0"
-  val displayVersion = version
-  val artifactVersion = version
-  val majorVersion = installerVersion.takeWhile(_ != '.')
+  def displayVersion = version
+  def artifactVersion = version
+  def majorVersion = installerVersion.takeWhile(_ != '.')
   // User-facing display name for windows, menus, native packaging, and app data directories.
   val appName = "FdSwarm"
   // Machine-facing token for file names, launchers, metrics, logs, and artifact identifiers.
