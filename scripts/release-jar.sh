@@ -6,8 +6,6 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd "$script_dir/.." && pwd)"
 version_file="version.txt"
 build_number_file="build.number"
-install_doc_file="docs/install.md"
-install_doc_html_name="install.html"
 mill_output_dir="${MILL_OUTPUT_DIR:-}"
 
 cd "$repo_dir"
@@ -70,49 +68,14 @@ extract_implementation_version() {
     awk -F': ' '/^Implementation-Version: / { print $2; exit }'
 }
 
-build_install_doc_html() {
-  local html_dir
-  local html_path
-  local rendered_markdown
-
-  [[ -f "$install_doc_file" ]] ||
-    die "missing install documentation file: $install_doc_file"
-
-  html_dir="$(mktemp -d "${TMPDIR:-/tmp}/fdswarm-release-jar.XXXXXX")"
-  html_path="$html_dir/$install_doc_html_name"
-  rendered_markdown="$(gh api markdown --field mode=gfm --field "text=@$install_doc_file")"
-
-  {
-    printf '%s\n' '<!doctype html>'
-    printf '%s\n' '<html lang="en">'
-    printf '%s\n' '<head>'
-    printf '%s\n' '  <meta charset="utf-8">'
-    printf '%s\n' '  <meta name="viewport" content="width=device-width, initial-scale=1">'
-    printf '%s\n' '  <title>FdSwarm Install</title>'
-    printf '%s\n' '</head>'
-    printf '%s\n' '<body>'
-    printf '%s\n' "$rendered_markdown"
-    printf '%s\n' '</body>'
-    printf '%s\n' '</html>'
-  } > "$html_path"
-
-  [[ -s "$html_path" ]] ||
-    die "failed to create install documentation HTML: $html_path"
-
-  printf '%s\n' "$html_path"
-}
-
 publish_release_jar() {
   local jar_path="$1"
   local target_ref="$2"
   local jar_version
-  local install_doc_html
   local tag
 
   require_command gh
   require_command unzip
-  [[ -f "$install_doc_file" ]] ||
-    die "missing install documentation file: $install_doc_file"
 
   jar_version="$(extract_implementation_version "$jar_path")"
   [[ -n "$jar_version" ]] ||
@@ -122,9 +85,8 @@ publish_release_jar() {
 
   tag="v$jar_version"
 
-  echo "Publishing fdswarm.jar and $install_doc_html_name to GitHub release $tag..."
+  echo "Publishing fdswarm.jar to GitHub release $tag..."
   gh auth status >/dev/null
-  install_doc_html="$(build_install_doc_html)"
 
   if gh release view "$tag" >/dev/null 2>&1; then
     echo "GitHub release exists: $tag"
@@ -134,9 +96,7 @@ publish_release_jar() {
   fi
 
   gh release upload "$tag" "$jar_path" --clobber
-  gh release upload "$tag" "$install_doc_html" --clobber
   echo "Published fdswarm.jar to GitHub release $tag"
-  echo "Published $install_doc_html_name to GitHub release $tag"
 }
 
 confirm() {
