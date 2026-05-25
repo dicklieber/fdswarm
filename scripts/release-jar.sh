@@ -179,6 +179,7 @@ echo "Building fdswarm.jar..."
 run_mill clean
 run_mill fdswarm.assembly
 assembly_jar="$(find_assembly_jar)"
+./scripts/ci/verify-docs-in-jar.sh "$assembly_jar"
 
 printf '%s\n' "$snapshot_version" > "$version_file"
 release_files_restored=true

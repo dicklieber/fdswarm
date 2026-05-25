@@ -45,13 +45,15 @@ final class FdSwarmDocsEndpoints extends ApiEndpoints:
 
 private object FdSwarmDocsEndpoints:
   private val resourceRoot = "FDSwarmDocs"
+  private val cacheControl = "no-store, max-age=0"
 
-  private type DocsOutput = (StatusCode, String, Array[Byte])
+  private type DocsOutput = (StatusCode, String, String, Array[Byte])
   private type DocsErrorOutput = (StatusCode, String)
 
   private val docsBody =
     statusCode
       .and(header[String]("Content-Type"))
+      .and(header[String]("Cache-Control"))
       .and(byteArrayBody)
 
   private val docsDef: PublicEndpoint[
@@ -112,6 +114,7 @@ private object FdSwarmDocsEndpoints:
           (
             StatusCode.Ok,
             contentType(path),
+            cacheControl,
             input.readAllBytes()
           )
         )
