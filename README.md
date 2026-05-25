@@ -59,6 +59,12 @@ To generate an HTML coverage report:
 The report will be available at: `out/fdswarm/scoverage/htmlReport.dest/index.html`
 
 ## Releases and Artifacts
+### Build & Release fdswarm.jar
+fdswrm.jar is the primary artifact of the project. It contains the fdswarm application and the docs. It can be run with
+```java -jar fdswarm.jar```
+Running this way requires a Java JDK version 21 or higher, with JavaFX be installed.
+
+While this can be 
 
 Build release artifacts locally with the package commands below. Set
 `FDSWARM_VERSION` to a three-part version such as `1.0.0` before building
