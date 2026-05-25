@@ -206,4 +206,4 @@ object releaseTool extends ScalaModule:
       mvn"org.scalameta::munit:1.0.3"
     )
 
-object docs extends DocsModule(common, monitor, manager, fdswarm)
+object docs extends DocsModule(common, fdswarm)

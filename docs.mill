@@ -17,32 +17,22 @@ import net.sourceforge.plantuml.{FileFormat, FileFormatOption, SourceFileReader}
 
 trait DocsModule(
     commonModule: ScalaModule,
-    monitorModule: ScalaModule,
-    managerModule: ScalaModule,
     fdswarmModule: ScalaModule
   ) extends ScalaModule:
   def scalaVersion = commonModule.scalaVersion
-  override def moduleDeps = Seq(commonModule, monitorModule, managerModule)
+  override def moduleDeps = Seq(commonModule)
 
   override def docSources = Task {
-    super.docSources() ++
-      commonModule.docSources() ++
-      monitorModule.docSources() ++
-      managerModule.docSources()
+    super.docSources() ++ commonModule.docSources()
   }
 
   override def docResources = Task {
-    super.docResources() ++
-      commonModule.docResources() ++
-      monitorModule.docResources() ++
-      managerModule.docResources()
+    super.docResources() ++ commonModule.docResources()
   }
 
   override def compileClasspath = Task {
     super.compileClasspath() ++
       commonModule.compileClasspath() ++
-      monitorModule.compileClasspath() ++
-      managerModule.compileClasspath() ++
       fdswarmModule.compileClasspath()
   }
 
