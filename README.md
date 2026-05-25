@@ -133,36 +133,33 @@ release/artifacts/FdSwarm-<version>-windows-arm64.msi
 Windows MSI packaging requires WiX 3.14.1 on the PATH.
 
 For release MSIs, make sure the Windows x64 and Windows ARM64 JDK runtimes
-exist under `fdswarm-runtimes`. The script downloads the latest release JAR
-from GitHub before packaging:
+exist under `fdswarm-runtimes`. The script downloads `fdswarm.jar` from the
+latest GitHub release, extracts `Implementation-Version` from its manifest,
+builds the MSI installers, and uploads them to the matching `v<version>`
+GitHub release:
 
 ```powershell
-.\scripts\release-windows-msi.ps1
-```
-
-By default, the script downloads:
-
-```text
-https://github.com/dicklieber/fdswarm/releases/latest/download/fdswarm.jar
+.\scripts\publish-msi-installers.ps1
 ```
 
 The release MSIs are written to:
 
 ```text
-release/artifacts/FdSwarm-<version>-windows-x64.msi
-release/artifacts/FdSwarm-<version>-windows-arm64.msi
+release/msi-installers/artifacts/FdSwarm-<version>-windows-x64.msi
+release/msi-installers/artifacts/FdSwarm-<version>-windows-arm64.msi
 ```
 
 To Authenticode-sign the MSI, pass a certificate thumbprint:
 
 ```powershell
-.\scripts\release-windows-msi.ps1 -CertificateThumbprint '0123456789ABCDEF0123456789ABCDEF01234567'
+.\scripts\publish-msi-installers.ps1 -CertificateThumbprint '0123456789ABCDEF0123456789ABCDEF01234567'
 ```
 
-To upload the MSI to the matching GitHub release:
+To download `fdswarm.jar` from a specific source release instead of the latest
+release:
 
 ```powershell
-.\scripts\release-windows-msi.ps1 -Publish
+.\scripts\publish-msi-installers.ps1 -Tag 'v1.2.3'
 ```
 
 To build self-contained Windows Launch4j ZIP packages from an existing assembly
