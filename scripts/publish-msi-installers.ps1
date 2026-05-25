@@ -1,6 +1,8 @@
 param(
   [string]$Tag = '',
-  [switch]$Publish,
+  [string]$RuntimesDir = '',
+  [string]$WorkDir = '',
+  [switch]$KeepWork,
   [switch]$SkipVerifyDocs,
   [switch]$SkipSign,
   [string]$CertificateThumbprint = $env:WINDOWS_CODESIGN_CERT_THUMBPRINT,
@@ -17,14 +19,19 @@ $Vendor = 'FdSwarm'
 $MainClass = 'fdswarm.FdSwarm'
 $MainJarName = 'fdswarm.jar'
 $WinUpgradeUuid = '8F095DE2-D316-43A7-94C3-7702217CAE1D'
-$JarPath = Join-Path $RepoDir 'out/fdswarm/assembly.dest/fdswarm.jar'
-$WorkDir = Join-Path $RepoDir 'out/fdswarm/msi-release.dest'
-$ArtifactsDir = Join-Path $RepoDir 'release/artifacts'
-$WindowsRuntimesDir = Join-Path $RepoDir 'fdswarm-runtimes'
+$DefaultRuntimesDir = Join-Path $RepoDir 'fdswarm-runtimes'
+$DefaultWorkDir = Join-Path $RepoDir 'release/msi-installers'
+
+if (-not $RuntimesDir) {
+  $RuntimesDir = $DefaultRuntimesDir
+}
+if (-not $WorkDir) {
+  $WorkDir = $DefaultWorkDir
+}
 
 function Fail {
   param([string]$Message)
-  throw "release-windows-msi: $Message"
+  throw "publish-msi-installers: $Message"
 }
 
 function Require-Command {
@@ -60,13 +67,34 @@ function Add-WixToPath {
   }
 }
 
+function Add-SignToolToPath {
+  if (Get-Command 'signtool.exe' -ErrorAction SilentlyContinue) {
+    return
+  }
+
+  $WindowsKitsBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
+  if (-not (Test-Path -LiteralPath $WindowsKitsBin -PathType Container)) {
+    return
+  }
+
+  $SignTool = Get-ChildItem -LiteralPath $WindowsKitsBin -Recurse -Filter 'signtool.exe' |
+    Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+    Sort-Object FullName -Descending |
+    Select-Object -First 1
+
+  if ($SignTool) {
+    $env:Path = "$($SignTool.DirectoryName);$env:Path"
+    Write-Host "signtool: $($SignTool.FullName)"
+  }
+}
+
 function Resolve-WindowsRuntimeImage {
   param(
     [Parameter(Mandatory = $true)]
     [string]$RuntimeId
   )
 
-  $RuntimeDir = Join-Path $WindowsRuntimesDir $RuntimeId
+  $RuntimeDir = Join-Path $RuntimesDir $RuntimeId
   if (-not (Test-Path -LiteralPath $RuntimeDir -PathType Container)) {
     Fail "runtime directory not found: $RuntimeDir"
   }
@@ -114,28 +142,7 @@ function Resolve-Jpackage {
     return $Command.Source
   }
 
-  Fail "jpackage not found. Install a JDK or set JPACKAGE."
-}
-
-function Add-SignToolToPath {
-  if (Get-Command 'signtool.exe' -ErrorAction SilentlyContinue) {
-    return
-  }
-
-  $WindowsKitsBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
-  if (-not (Test-Path -LiteralPath $WindowsKitsBin -PathType Container)) {
-    return
-  }
-
-  $SignTool = Get-ChildItem -LiteralPath $WindowsKitsBin -Recurse -Filter 'signtool.exe' |
-    Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
-    Sort-Object FullName -Descending |
-    Select-Object -First 1
-
-  if ($SignTool) {
-    $env:Path = "$($SignTool.DirectoryName);$env:Path"
-    Write-Host "signtool: $($SignTool.FullName)"
-  }
+  Fail 'jpackage not found. Install a JDK or set JPACKAGE.'
 }
 
 function Open-Jar {
@@ -181,25 +188,49 @@ if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
   Fail 'MSI packaging must run on Windows'
 }
 
+Set-Location -LiteralPath $RepoDir
+Require-Command 'gh'
+
 Add-WixToPath
 Require-Command 'candle.exe'
 Require-Command 'light.exe'
 
-$RuntimeImages = @(
-  @{
-    Id = 'windows-x64'
-    Path = (Resolve-WindowsRuntimeImage 'windows-x64')
-  },
-  @{
-    Id = 'windows-arm64'
-    Path = (Resolve-WindowsRuntimeImage 'windows-arm64')
+$ResolvedRuntimesDir = (Resolve-Path -LiteralPath $RuntimesDir).Path
+$RuntimesDir = $ResolvedRuntimesDir
+$ResolvedWorkDir = (New-Item -ItemType Directory -Force -Path $WorkDir).FullName
+
+Write-Host 'Checking GitHub authentication'
+& gh auth status | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
+
+if (-not $Tag) {
+  $Tag = (& gh release list --limit 1 --json tagName --jq '.[0].tagName')
+  if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
   }
-)
+  $Tag = $Tag.Trim()
+}
+if (-not $Tag) {
+  Fail 'could not determine latest GitHub release tag'
+}
 
-$Jpackage = Resolve-Jpackage $RuntimeImages[0].Path
+$DownloadDir = Join-Path $ResolvedWorkDir 'download'
+$ArtifactsDir = Join-Path $ResolvedWorkDir 'artifacts'
+$StageRoot = Join-Path $ResolvedWorkDir 'stage'
+$JarPath = Join-Path $DownloadDir $MainJarName
 
+Remove-Item -LiteralPath $DownloadDir, $ArtifactsDir, $StageRoot -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $DownloadDir, $ArtifactsDir, $StageRoot | Out-Null
+
+Write-Host "Downloading $MainJarName from GitHub release $Tag..."
+& gh release download $Tag --pattern $MainJarName --dir $DownloadDir --clobber
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
 if (-not (Test-Path -LiteralPath $JarPath -PathType Leaf)) {
-  Fail "assembly JAR not found: $JarPath"
+  Fail "downloaded release did not contain $MainJarName"
 }
 
 $Jar = Open-Jar $JarPath
@@ -209,12 +240,12 @@ try {
     Fail "JAR does not contain META-INF/MANIFEST.MF: $JarPath"
   }
 
-  $JarVersion = Get-ManifestValue $Manifest 'Implementation-Version'
-  if (-not $JarVersion) {
+  $Version = Get-ManifestValue $Manifest 'Implementation-Version'
+  if (-not $Version) {
     Fail "JAR manifest does not contain Implementation-Version: $JarPath"
   }
-  if ($JarVersion.EndsWith('-SNAPSHOT')) {
-    Fail "refusing to package snapshot JAR version: $JarVersion"
+  if ($Version.EndsWith('-SNAPSHOT')) {
+    Fail "refusing to publish snapshot version: $Version"
   }
 
   $MainClassEntry = "$($MainClass.Replace('.', '/')).class"
@@ -229,34 +260,54 @@ try {
   $Jar.Dispose()
 }
 
-$InstallerVersion = ($JarVersion -split '-', 2)[0]
+$InstallerVersion = ($Version -split '-', 2)[0]
 if ($InstallerVersion -notmatch '^\d+\.\d+\.\d+$') {
   Fail "MSI app version must be numeric major.minor.patch, got: $InstallerVersion"
 }
 
-if (-not $Tag) {
-  $Tag = "v$JarVersion"
+$ReleaseTag = "v$Version"
+Write-Host "Using release version $Version"
+
+& gh release view $ReleaseTag 2>$null | Out-Null
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "GitHub release exists: $ReleaseTag"
+} else {
+  & gh release create $ReleaseTag --title $ReleaseTag --generate-notes
+  if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+  }
+  Write-Host "Created GitHub release: $ReleaseTag"
 }
 
-$IconPath = Join-Path $RepoDir 'fdswarm/resources/icons/icon.ico'
+$RuntimeImages = @(
+  @{
+    Id = 'windows-x64'
+    Path = (Resolve-WindowsRuntimeImage 'windows-x64')
+  },
+  @{
+    Id = 'windows-arm64'
+    Path = (Resolve-WindowsRuntimeImage 'windows-arm64')
+  }
+)
 
-New-Item -ItemType Directory -Force -Path $WorkDir, $ArtifactsDir | Out-Null
+$Jpackage = Resolve-Jpackage $RuntimeImages[0].Path
+$IconPath = Join-Path $RepoDir 'fdswarm/resources/icons/icon.ico'
 
 Write-Host 'Building Windows MSI installers'
 Write-Host "JAR: $JarPath"
-Write-Host "Version: $JarVersion"
+Write-Host "Version: $Version"
 Write-Host "MSI version: $InstallerVersion"
-Write-Host "Runtimes: $WindowsRuntimesDir"
+Write-Host "Runtimes: $ResolvedRuntimesDir"
 Write-Host "jpackage: $Jpackage"
 
 foreach ($RuntimeImage in $RuntimeImages) {
   $RuntimeId = $RuntimeImage.Id
   $RuntimePath = $RuntimeImage.Path
-  $RuntimeWorkDir = Join-Path $WorkDir $RuntimeId
+  $RuntimeWorkDir = Join-Path $StageRoot $RuntimeId
   $InputDir = Join-Path $RuntimeWorkDir 'input'
   $DestDir = Join-Path $RuntimeWorkDir 'jpackage'
   $ConsoleLauncher = Join-Path $RuntimeWorkDir 'FdSwarmConsole.properties'
-  $ArtifactName = "$AppName-$JarVersion-$RuntimeId.msi"
+  $ArtifactName = "$AppName-$Version-$RuntimeId.msi"
   $ArtifactPath = Join-Path $ArtifactsDir $ArtifactName
 
   Remove-Item -LiteralPath $InputDir, $DestDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -321,22 +372,20 @@ foreach ($RuntimeImage in $RuntimeImages) {
     Write-Host 'No Windows code-signing certificate thumbprint provided; MSI will be unsigned.'
   }
 
-  if ($Publish) {
-    Require-Command 'gh'
-    Write-Host "Publishing $ArtifactPath to GitHub release $Tag"
-    & gh auth status | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      exit $LASTEXITCODE
-    }
-    & gh release view $Tag | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      exit $LASTEXITCODE
-    }
-    & gh release upload $Tag $ArtifactPath --clobber
-    if ($LASTEXITCODE -ne 0) {
-      exit $LASTEXITCODE
-    }
-  }
-
-  Write-Host "MSI: $ArtifactPath"
+  Write-Host "Built $ArtifactPath"
 }
+
+Write-Host "Uploading MSI installers to GitHub release $ReleaseTag..."
+foreach ($Artifact in (Get-ChildItem -LiteralPath $ArtifactsDir -Filter '*.msi')) {
+  & gh release upload $ReleaseTag $($Artifact.FullName) --clobber
+  if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+  }
+  Write-Host "Uploaded $($Artifact.Name)"
+}
+
+if (-not $KeepWork) {
+  Remove-Item -LiteralPath $StageRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "Published MSI installers for $ReleaseTag"
