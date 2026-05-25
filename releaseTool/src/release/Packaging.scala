@@ -30,6 +30,7 @@ object Packaging {
     val assemblyJar =
       findAssemblyJar()
 
+    requireDocsNavInJar(assemblyJar)
     copyReleaseJar(version, assemblyJar)
 
     println(s"[assembly] $assemblyJar")
@@ -88,15 +89,71 @@ object Packaging {
     if !os.exists(assemblyDir) then
       sys.error(s"assembly output directory does not exist: $assemblyDir")
 
-    val jars =
-      os.walk(assemblyDir)
-        .filter(p => os.isFile(p) && p.last.endsWith(".jar"))
-        .toSeq
+    val defaultJar =
+      assemblyDir / "fdswarm.jar"
 
-    if jars.isEmpty then
-      sys.error(s"no jar found under $assemblyDir")
+    if os.exists(defaultJar) && os.isFile(defaultJar) then
+      defaultJar
+    else {
+      val jars =
+        os.walk(assemblyDir)
+          .filter(p => os.isFile(p) && p.last.endsWith(".jar"))
+          .toSeq
 
-    jars.maxBy(p => os.size(p))
+      if jars.isEmpty then
+        sys.error(s"no jar found under $assemblyDir")
+
+      jars.maxBy(p => os.size(p))
+    }
+  }
+
+  private def requireDocsNavInJar(
+      jarPath: os.Path
+  ): Unit = {
+
+    val docsIndex =
+      "FDSwarmDocs/index.html"
+
+    val jar =
+      new java.util.jar.JarFile(jarPath.toIO)
+
+    try {
+      val entry =
+        Option(jar.getEntry(docsIndex))
+          .getOrElse(sys.error(s"$jarPath does not contain $docsIndex"))
+
+      val source =
+        scala.io.Source
+          .fromInputStream(jar.getInputStream(entry), "UTF-8")
+
+      val html =
+        try source.mkString
+        finally source.close()
+
+      def requireItem(item: String): Unit =
+        if !html.contains(item) then
+          sys.error(s"$docsIndex is missing expected nav item: $item")
+
+      requireItem("""href="install.html">Install</a>""")
+      requireItem("""nav-header">User</li>""")
+      requireItem("""href="user/fdswarm.html">FDSwarm</a>""")
+      requireItem("""nav-header">Developer</li>""")
+      requireItem("""href="developer/scaladoc.html">Scaladoc API Reference</a>""")
+
+      val installIndex =
+        html.indexOf("""href="install.html">Install</a>""")
+      val userIndex =
+        html.indexOf("""nav-header">User</li>""")
+      val developerIndex =
+        html.indexOf("""nav-header">Developer</li>""")
+
+      if installIndex >= userIndex || userIndex >= developerIndex then
+        sys.error(
+          s"$docsIndex has stale docs navigation order; expected Install, User, Developer"
+        )
+    } finally {
+      jar.close()
+    }
   }
 
   private def buildPlatformZip(
