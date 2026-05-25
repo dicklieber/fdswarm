@@ -64,7 +64,7 @@ trait DocsModule(
       )
       .site
       .topNavigationBar(
-        homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home)
+        homeLink = IconLink.internal(Root / "README.md", HeliumIcon.home)
       )
       .build
 
