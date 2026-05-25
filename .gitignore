@@ -8,6 +8,7 @@
 /fdlog-qso-journal.ndjson
 /${sys:fdlog.logFile}
 /fdswarm.jar
+/release/
 /mapstuff/arrl_rac_sections_build/data/ca/csd/lcsd000b21a_e.dbf
 /mapstuff/arrl_rac_sections_build/data/ca/csd/lcsd000b21a_e.prj
 /mapstuff/arrl_rac_sections_build/data/ca/csd/lcsd000b21a_e.shp

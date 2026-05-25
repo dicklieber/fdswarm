@@ -313,23 +313,4 @@ object manager extends CommonSettings:
     override def mvnDeps = super.mvnDeps() ++ Seq(
       mvn"org.scalameta::munit:1.0.3"
     )
-
-
-
-
-object releaseTool extends ScalaModule:
-  def scalaVersion = "3.7.4"
-
-  def mainClass = Some("release.ReleaseApp")
-
-  def mvnDeps = Seq(
-    mvn"com.lihaoyi::os-lib:0.11.6",
-    mvn"com.lihaoyi::mainargs:0.7.8"
-  )
-
-  object test extends ScalaTests with TestModule.Munit:
-    override def mvnDeps = super.mvnDeps() ++ Seq(
-      mvn"org.scalameta::munit:1.0.3"
-    )
-
 object docs extends DocsModule(common, fdswarm)

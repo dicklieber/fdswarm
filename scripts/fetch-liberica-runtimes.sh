@@ -17,8 +17,8 @@ Downloads and unpacks BellSoft Liberica JDK 21 Full runtimes for:
   - Linux x64
   - Linux aarch64
 
-By default, runtimes are written under fdswarm-runtimes for Mill to
-auto-discover.
+By default, runtimes are written under fdswarm-runtimes for
+scripts/publish-zip-installers.sh.
 
 Options:
   --dest DIR        Directory for downloaded archives and unpacked runtimes.

@@ -146,35 +146,10 @@ To upload the MSI to the matching GitHub release:
 .\scripts\release-windows-msi.ps1 -Publish
 ```
 
-To build self-contained Windows Launch4j ZIP packages from an existing assembly
-JAR and bundled Windows runtimes, run:
+## Zip Installer Publishing
 
-```powershell
-$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
-.\scripts\build-launch4j-installers.ps1
-```
-
-The script uses `LAUNCH4J` or `LAUNCH4J_HOME` when set. Otherwise, it downloads
-a local Launch4j copy under `out/fdswarm/launch4j.dest/tools`.
-
-The Launch4j ZIP files are written to:
-
-```text
-release/artifacts/FdSwarm-<version>-windows-x64-launch4j.zip
-release/artifacts/FdSwarm-<version>-windows-arm64-launch4j.zip
-```
-
-The generated Launch4j ZIP files are also copied to:
-
-```text
-/Library/WebServer/Documents/fdswarm/launch4j
-```
-
-Set `FDSWARM_LAUNCH4J_DIR` to publish them somewhere else.
-
-## Zip Distribution Builds
-
-Zip distributions are plain file-copy bundles. They do not use `jpackage`, MSI, DMG, PKG, WiX, or app-image.
+Zip installers are plain file-copy bundles. They do not use `jpackage`, MSI,
+DMG, PKG, WiX, Launch4j, or app-image.
 
 Each zip contains:
 
@@ -185,7 +160,7 @@ FdSwarm/
     fdswarm.bat
     install-start-menu-shortcut.bat on Windows
   lib/
-    fdswarm-all.jar
+    fdswarm.jar
   runtime/
     <bundled platform JDK>
   conf/
@@ -195,53 +170,48 @@ FdSwarm/
 On Windows, run `bin\install-start-menu-shortcut.bat` from the extracted `FdSwarm`
 folder to add a per-user `FdSwarm` shortcut to the Windows Start Menu.
 
-Use BellSoft Liberica JDK 21 Full archives from https://bell-sw.com/pages/downloads/#jdk-21-lts. Use the Full JDK because FdSwarm is a JavaFX app and the Full bundle includes LibericaFX.
-
-### Local Zip Builds
-
-Build all zip distributions:
-
-```bash
-MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distAll
-```
-
-The Mill zip tasks download missing Liberica JDK 21 Full runtimes under
-`fdswarm-runtimes/`:
-
-- Windows x64 ZIP
-- Windows ARM64 ZIP
-- macOS ARM64 TAR.GZ
-- Linux x64 TAR.GZ
-- Linux ARM64 TAR.GZ
-
-You can still set variables manually to override the downloaded runtime paths:
+The publisher consumes the `fdswarm.jar` asset from the latest GitHub release,
+extracts the release version from its `Implementation-Version` manifest entry,
+builds all zip installers from local runtimes under `fdswarm-runtimes`, and
+uploads the zip files to the matching GitHub release.
 
 ```bash
-export FDSWARM_RUNTIME_WINDOWS_X64=/path/to/unpacked/windows-jdk-full
-export FDSWARM_RUNTIME_WINDOWS_ARM64=/path/to/unpacked/windows-arm64-jdk-full
-export FDSWARM_RUNTIME_MACOS_AARCH64=/path/to/unpacked/macos-jdk-full.jdk/Contents/Home
-export FDSWARM_RUNTIME_LINUX_X64=/path/to/unpacked/linux-jdk-full
-export FDSWARM_RUNTIME_LINUX_AARCH64=/path/to/unpacked/linux-arm64-jdk-full
+./scripts/publish-zip-installers.sh
 ```
 
-To avoid building every zip, run one platform task:
+To publish from a specific source release instead of the latest release:
 
 ```bash
-MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distWindowsX64
-MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distWindowsArm64
-MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distMacosAarch64
-MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distLinuxX64
-MILL_OUTPUT_DIR=/private/tmp/fdswarm-mill-out ./mill --no-server fdswarm.distLinuxAarch64
+./scripts/publish-zip-installers.sh --tag v1.0.0-1
 ```
 
-The zip files are written to:
+The script requires these runtime directories to exist:
 
 ```text
-out/fdswarm/distWindowsX64.dest/FdSwarm-<version>-windows-x64.zip
-out/fdswarm/distWindowsArm64.dest/FdSwarm-<version>-windows-arm64.zip
-out/fdswarm/distMacosAarch64.dest/FdSwarm-<version>-macos-aarch64.zip
-out/fdswarm/distLinuxX64.dest/FdSwarm-<version>-linux-x64.zip
-out/fdswarm/distLinuxAarch64.dest/FdSwarm-<version>-linux-aarch64.zip
+fdswarm-runtimes/windows-x64/
+fdswarm-runtimes/windows-arm64/
+fdswarm-runtimes/macos-aarch64/
+fdswarm-runtimes/linux-x64/
+fdswarm-runtimes/linux-aarch64/
+```
+
+Use BellSoft Liberica JDK 21 Full archives from
+https://bell-sw.com/pages/downloads/#jdk-21-lts. Use the Full JDK because
+FdSwarm is a JavaFX app and the Full bundle includes LibericaFX. The helper
+below downloads and unpacks the runtimes into the expected layout:
+
+```bash
+./scripts/fetch-liberica-runtimes.sh
+```
+
+The local zip outputs are written to:
+
+```text
+release/zip-installers/artifacts/FdSwarm-<version>-windows-x64.zip
+release/zip-installers/artifacts/FdSwarm-<version>-windows-arm64.zip
+release/zip-installers/artifacts/FdSwarm-<version>-macos-aarch64.zip
+release/zip-installers/artifacts/FdSwarm-<version>-linux-x64.zip
+release/zip-installers/artifacts/FdSwarm-<version>-linux-aarch64.zip
 ```
 
 ## Using the manager
