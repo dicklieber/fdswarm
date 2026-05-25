@@ -25,6 +25,13 @@ howManyNodes=${howManyNodes:-2}
 
 echo "Building JARs..."
 ./build-jars.sh
+MILL_OUTPUT_DIR="${MILL_OUTPUT_DIR:-/private/tmp/fdswarm-mill-out}"
+JAR="$MILL_OUTPUT_DIR/fdswarm/assembly.dest/fdswarm.jar"
+
+if [ ! -f "$JAR" ]; then
+  echo "ERROR: fat jar not found: $JAR" >&2
+  exit 1
+fi
 
 echo "Starting swarm using java -jar..."
 
@@ -43,8 +50,9 @@ do
     # Run java -jar in background
     # Start in a new process group so we can kill everything later
     # We pass PORT as an environment variable as the app seems to expect it
-    PORT=$PORT java -Xdock:name=FdSwarm -Dapple.awt.application.name=FdSwarm -Dcom.apple.mrj.application.apple.menu.about.name=FdSwarm -Dapple.laf.useScreenMenuBar=true -jar fdswarm.jar > "$LOG_DIR/stdout.log" 2>&1 &
+    PORT=$PORT java -Xdock:name=FdSwarm -Dapple.awt.application.name=FdSwarm -Dcom.apple.mrj.application.apple.menu.about.name=FdSwarm -Dapple.laf.useScreenMenuBar=true -jar "$JAR" > "$LOG_DIR/stdout.log" 2>&1 &
     pids+=($!)
+    # shellcheck disable=SC2207
     pgids+=($(ps -o pgid= -p $!))
     sleep 2
 done

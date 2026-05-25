@@ -22,10 +22,17 @@ set -euo pipefail
 APP_NAME="FdSwarm"
 VERSION="1.0.0" # macOS app version must start with a positive integer
 MAIN_JAR="fdswarm.jar"
+MILL_OUTPUT_DIR="${MILL_OUTPUT_DIR:-/private/tmp/fdswarm-mill-out}"
+MAIN_JAR_PATH="$MILL_OUTPUT_DIR/fdswarm/assembly.dest/$MAIN_JAR"
 MAIN_CLASS="fdswarm.FdLogApp"
 
 echo "Building JAR..."
 ./build-jars.sh
+
+if [ ! -f "$MAIN_JAR_PATH" ]; then
+  echo "ERROR: fat jar not found: $MAIN_JAR_PATH" >&2
+  exit 1
+fi
 
 echo "Building macOS Application Bundle..."
 
@@ -36,8 +43,8 @@ rm -rf out/jpackage
 rm -rf out/jpackage
 mkdir -p out/jpackage/input
 
-# Copy only the JAR to the input directory to avoid recursive copying of 'out' or other unwanted files
-cp "$MAIN_JAR" out/jpackage/input/
+# Copy only the JAR to the input directory to avoid recursive copying of output directories
+cp "$MAIN_JAR_PATH" "out/jpackage/input/$MAIN_JAR"
 
 # Run jpackage to create a native macOS .app bundle
 jpackage \

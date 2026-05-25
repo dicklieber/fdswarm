@@ -19,12 +19,17 @@
 
 set -euo pipefail
 
+MILL_OUTPUT_DIR="${MILL_OUTPUT_DIR:-/private/tmp/fdswarm-mill-out}"
+ASSEMBLY_JAR="$MILL_OUTPUT_DIR/fdswarm/assembly.dest/fdswarm.jar"
+
 echo "Building fdswarm JAR..."
-./mill docs.site
-./mill fdswarm.assembly
+MILL_OUTPUT_DIR="$MILL_OUTPUT_DIR" ./mill --no-server docs.site
+MILL_OUTPUT_DIR="$MILL_OUTPUT_DIR" ./mill --no-server fdswarm.assembly
 
-echo "Copying JAR to current directory..."
-cp -v "out/fdswarm/assembly.dest/out.jar" "fdswarm.jar"
+if [ ! -f "$ASSEMBLY_JAR" ]; then
+  echo "ERROR: fat jar not found: $ASSEMBLY_JAR" >&2
+  exit 1
+fi
 
-echo "Build and copy complete:"
-ls -lh fdswarm.jar
+echo "Build complete:"
+ls -lh "$ASSEMBLY_JAR"
