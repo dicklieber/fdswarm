@@ -139,28 +139,70 @@ function Resolve-Jpackage {
   Fail 'jpackage not found. Install a JDK or set JPACKAGE.'
 }
 
-function Open-Jar {
-  param([string]$Path)
-  Add-Type -AssemblyName System.IO.Compression.FileSystem
-  return [System.IO.Compression.ZipFile]::OpenRead($Path)
+function Resolve-JarTool {
+  if ($env:JAR) {
+    if (-not (Test-Path -LiteralPath $env:JAR -PathType Leaf)) {
+      Fail "JAR does not exist: $env:JAR"
+    }
+    return $env:JAR
+  }
+
+  $Command = Get-Command 'jar.exe' -ErrorAction SilentlyContinue
+  if ($Command) {
+    return $Command.Source
+  }
+
+  $Command = Get-Command 'jar' -ErrorAction SilentlyContinue
+  if ($Command) {
+    return $Command.Source
+  }
+
+  Fail 'jar not found. Install a JDK or set JAR.'
+}
+
+function Get-JarEntries {
+  param(
+    [string]$JarTool,
+    [string]$Path
+  )
+
+  $Entries = & $JarTool tf $Path
+  if ($LASTEXITCODE -ne 0) {
+    Fail "could not list JAR entries: $Path"
+  }
+
+  $EntrySet = New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach ($Entry in $Entries) {
+    [void]$EntrySet.Add($Entry)
+  }
+  return ,$EntrySet
 }
 
 function Get-JarEntryText {
   param(
-    [System.IO.Compression.ZipArchive]$Jar,
+    [string]$JarTool,
+    [string]$Path,
     [string]$EntryName
   )
 
-  $Entry = $Jar.GetEntry($EntryName)
-  if (-not $Entry) {
-    return $null
-  }
-
-  $Reader = New-Object System.IO.StreamReader($Entry.Open())
+  $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) "fdswarm-jar-$([System.Guid]::NewGuid().ToString('N'))"
+  New-Item -ItemType Directory -Force -Path $TempDir | Out-Null
+  Push-Location -LiteralPath $TempDir
   try {
-    return $Reader.ReadToEnd()
+    & $JarTool xf $Path $EntryName
+    if ($LASTEXITCODE -ne 0) {
+      Fail "could not extract $EntryName from JAR: $Path"
+    }
+
+    $EntryPath = Join-Path $TempDir $EntryName
+    if (-not (Test-Path -LiteralPath $EntryPath -PathType Leaf)) {
+      return $null
+    }
+
+    return Get-Content -LiteralPath $EntryPath -Raw
   } finally {
-    $Reader.Dispose()
+    Pop-Location
+    Remove-Item -LiteralPath $TempDir -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
 
@@ -188,6 +230,7 @@ Require-Command 'gh'
 Add-WixToPath
 Require-Command 'candle.exe'
 Require-Command 'light.exe'
+$JarTool = Resolve-JarTool
 
 $RuntimesDir = (Resolve-Path -LiteralPath $RuntimesDir).Path
 $WorkDir = (New-Item -ItemType Directory -Force -Path $WorkDir).FullName
@@ -226,31 +269,28 @@ if (-not (Test-Path -LiteralPath $JarPath -PathType Leaf)) {
   Fail "downloaded release did not contain $MainJarName"
 }
 
-$Jar = Open-Jar $JarPath
-try {
-  $Manifest = Get-JarEntryText $Jar 'META-INF/MANIFEST.MF'
-  if (-not $Manifest) {
-    Fail "JAR does not contain META-INF/MANIFEST.MF: $JarPath"
-  }
+$JarEntries = Get-JarEntries $JarTool $JarPath
 
-  $Version = Get-ManifestValue $Manifest 'Implementation-Version'
-  if (-not $Version) {
-    Fail "JAR manifest does not contain Implementation-Version: $JarPath"
-  }
-  if ($Version.EndsWith('-SNAPSHOT')) {
-    Fail "refusing to publish snapshot version: $Version"
-  }
+$Manifest = Get-JarEntryText $JarTool $JarPath 'META-INF/MANIFEST.MF'
+if (-not $Manifest) {
+  Fail "JAR does not contain META-INF/MANIFEST.MF: $JarPath"
+}
 
-  $MainClassEntry = "$($MainClass.Replace('.', '/')).class"
-  if (-not $Jar.GetEntry($MainClassEntry)) {
-    Fail "JAR does not contain main class $MainClass ($MainClassEntry): $JarPath"
-  }
+$Version = Get-ManifestValue $Manifest 'Implementation-Version'
+if (-not $Version) {
+  Fail "JAR manifest does not contain Implementation-Version: $JarPath"
+}
+if ($Version.EndsWith('-SNAPSHOT')) {
+  Fail "refusing to publish snapshot version: $Version"
+}
 
-  if (-not $SkipVerifyDocs -and -not $Jar.GetEntry('FDSwarmDocs/index.html')) {
-    Fail "JAR does not contain FDSwarmDocs/index.html: $JarPath"
-  }
-} finally {
-  $Jar.Dispose()
+$MainClassEntry = "$($MainClass.Replace('.', '/')).class"
+if (-not $JarEntries.Contains($MainClassEntry)) {
+  Fail "JAR does not contain main class $MainClass ($MainClassEntry): $JarPath"
+}
+
+if (-not $SkipVerifyDocs -and -not $JarEntries.Contains('FDSwarmDocs/index.html')) {
+  Fail "JAR does not contain FDSwarmDocs/index.html: $JarPath"
 }
 
 $InstallerVersion = ($Version -split '-', 2)[0]
@@ -276,12 +316,11 @@ $RuntimeImages = @(
   @{
     Id = 'windows-x64'
     Path = (Resolve-WindowsRuntimeImage 'windows-x64')
-  },
-  @{
-    Id = 'windows-arm64'
-    Path = (Resolve-WindowsRuntimeImage 'windows-arm64')
   }
 )
+
+Write-Host 'Skipping windows-arm64 MSI: jpackage/WiX currently emits an x64 MSI custom-action DLL even when an ARM64 runtime image is supplied.'
+Write-Host 'Use the windows-arm64 zip distribution for native ARM64 Windows releases.'
 
 $Jpackage = Resolve-Jpackage $RuntimeImages[0].Path
 $IconPath = Join-Path $RepoDir 'fdswarm/resources/icons/icon.ico'

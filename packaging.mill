@@ -274,6 +274,11 @@ trait FdSwarmPackaging extends JpackageModule:
       else if rawArch.contains("amd64") || rawArch.contains("x86_64") then "x64"
       else rawArch
 
+    if arch == "arm64" then
+      throw new RuntimeException(
+        "Windows ARM64 MSI packaging is currently disabled because jpackage/WiX emits x64 Windows Installer custom actions. Use fdswarm.distWindowsArm64 for native ARM64 Windows releases."
+      )
+
     val dest = Task.dest / s"jpackage-win-$arch"
     os.makeDir.all(dest)
 
