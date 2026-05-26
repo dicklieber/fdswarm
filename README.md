@@ -129,26 +129,6 @@ The MSI files are written to:
 release/artifacts/FdSwarm-<version>-windows-x64.msi
 ```
 
-Windows MSI packaging requires WiX 3.14.1 on the PATH. Native Windows ARM64
-releases are published as zip distributions, not MSI installers; the current
-`jpackage`/WiX MSI path emits x64 Windows Installer custom actions even when an
-ARM64 runtime image is supplied.
-
-For release MSIs, make sure the Windows x64 JDK runtime exists under
-`fdswarm-runtimes`. The script downloads `fdswarm.jar` from the latest GitHub
-release, extracts `Implementation-Version` from its manifest, builds the MSI
-installer, and uploads it to the matching `v<version>` GitHub release:
-
-```powershell
-.\scripts\publish-msi-installers.ps1
-```
-
-The release MSIs are written to:
-
-```text
-release/msi-installers/artifacts/FdSwarm-<version>-windows-x64.msi
-```
-
 To publish Windows `.exe` installers with Inno Setup for both Windows x64 and
 Windows ARM64, install Inno Setup 6 on the Windows build machine and run:
 
@@ -170,7 +150,6 @@ To Authenticode-sign the Windows installer artifacts, pass a certificate
 thumbprint:
 
 ```powershell
-.\scripts\publish-msi-installers.ps1 -CertificateThumbprint '0123456789ABCDEF0123456789ABCDEF01234567'
 .\scripts\publish-inno-installers.ps1 -CertificateThumbprint '0123456789ABCDEF0123456789ABCDEF01234567'
 ```
 
@@ -178,7 +157,6 @@ To download `fdswarm.jar` from a specific source release instead of the latest
 release:
 
 ```powershell
-.\scripts\publish-msi-installers.ps1 -Tag 'v1.2.3'
 .\scripts\publish-inno-installers.ps1 -Tag 'v1.2.3'
 ```
 

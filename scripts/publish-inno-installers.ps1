@@ -279,14 +279,20 @@ function Write-WindowsLaunchers {
     '@echo off'
     'setlocal'
     'set "APP_HOME=%~dp0.."'
-    'start "" "%APP_HOME%\runtime\bin\javaw.exe" -jar "%APP_HOME%\lib\fdswarm.jar" %*'
+    'pushd "%APP_HOME%"'
+    'start "" "runtime\bin\javaw.exe" -jar "lib\fdswarm.jar" %*'
+    'popd'
+    'endlocal'
   ) | Set-Content -LiteralPath $Launcher -Encoding ASCII
 
   @(
     '@echo off'
     'setlocal'
     'set "APP_HOME=%~dp0.."'
-    '"%APP_HOME%\runtime\bin\java.exe" -jar "%APP_HOME%\lib\fdswarm.jar" %*'
+    'pushd "%APP_HOME%"'
+    '"runtime\bin\java.exe" -jar "lib\fdswarm.jar" %*'
+    'popd'
+    'endlocal'
   ) | Set-Content -LiteralPath $ConsoleLauncher -Encoding ASCII
 
   @(
@@ -328,6 +334,7 @@ function Write-InnoScript {
     'DefaultDirName={autopf}\FdSwarm'
     'DefaultGroupName=FdSwarm'
     'DisableProgramGroupPage=yes'
+    'DisableWelcomePage=no'
     "OutputDir=$EscapedArtifacts"
     "OutputBaseFilename=$ArtifactBaseName"
     'Compression=lzma2'
