@@ -285,16 +285,7 @@ trait FdSwarmPackaging extends JpackageModule:
     val (inputDir, mainJarName) =
       getJpackageInput(Task.dest, assembly())
 
-    val consoleLauncher = Task.dest / s"${appName}Console.properties"
-    os.write.over(
-      consoleLauncher,
-      s"""main-jar=$mainJarName
-         |main-class=${jpackageMainClass()}
-         |win-console=true
-         |""".stripMargin
-    )
-
-    val baseArgs = Seq(
+inno     val baseArgs = Seq(
       "jpackage",
       "--type",
       "msi",
@@ -311,8 +302,6 @@ trait FdSwarmPackaging extends JpackageModule:
       "--main-class",
       jpackageMainClass()
     ) ++ jpackageRuntimeModules ++ preserveNativeCommandsJlinkOptions ++ Seq(
-      "--add-launcher",
-      s"${jpackageName()}Console=$consoleLauncher",
       "--win-menu",
       "--win-shortcut"
     )

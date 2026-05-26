@@ -273,7 +273,6 @@ function Write-WindowsLaunchers {
   )
 
   $Launcher = Join-Path $BinDir 'fdswarm.bat'
-  $ConsoleLauncher = Join-Path $BinDir 'fdswarm-console.bat'
 
   @(
     '@echo off'
@@ -284,16 +283,6 @@ function Write-WindowsLaunchers {
     'popd'
     'endlocal'
   ) | Set-Content -LiteralPath $Launcher -Encoding ASCII
-
-  @(
-    '@echo off'
-    'setlocal'
-    'set "APP_HOME=%~dp0.."'
-    'pushd "%APP_HOME%"'
-    '"runtime\bin\java.exe" -jar "lib\fdswarm.jar" %*'
-    'popd'
-    'endlocal'
-  ) | Set-Content -LiteralPath $ConsoleLauncher -Encoding ASCII
 
   @(
     "@echo off"
@@ -357,7 +346,6 @@ function Write-InnoScript {
     ''
     '[Icons]'
     'Name: "{group}\FdSwarm"; Filename: "{app}\bin\fdswarm.bat"; WorkingDir: "{app}"'
-    'Name: "{group}\FdSwarm Console"; Filename: "{app}\bin\fdswarm-console.bat"; WorkingDir: "{app}"'
     'Name: "{autodesktop}\FdSwarm"; Filename: "{app}\bin\fdswarm.bat"; WorkingDir: "{app}"; Tasks: desktopicon'
     ''
     '[Tasks]'
