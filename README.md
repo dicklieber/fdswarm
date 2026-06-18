@@ -4,6 +4,7 @@
 ![Coverage](https://img.shields.io/badge/coverage-11.7%25-red)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 
+FdSwarm is a free, open-source, and cross-platform tool for logging Ham Radio field day events. Handles both ARRL and Winter Field Day.
 This project uses [Mill](https://mill-build.com/) as the build tool.
 
 ## macOS: Allowing the Downloaded JAR to Run

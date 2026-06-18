@@ -285,7 +285,7 @@ trait FdSwarmPackaging extends JpackageModule:
     val (inputDir, mainJarName) =
       getJpackageInput(Task.dest, assembly())
 
-inno     val baseArgs = Seq(
+  val baseArgs = Seq(
       "jpackage",
       "--type",
       "msi",
