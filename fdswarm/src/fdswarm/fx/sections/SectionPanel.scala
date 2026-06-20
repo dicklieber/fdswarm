@@ -77,14 +77,10 @@ class SectionPanel @Inject()(sectionsProvider: SectionsProvider,
         padding = Insets(0, 10, 0, 0)
         style = "-fx-font-weight: bold;"
 
-      sectionGroup.sections.foreach(
-        _.onSelect(
-          sectionField,
-          onSelected,
-          canSubmit
-        )
+      val sectionLabels = sectionGroup.sections.map(
+        _.createLabel(sectionField, onSelected, canSubmit)
       )
-      val groupGrid = GridColumns.toGrid(sectionGroup.sections, 11)
+      val groupGrid = GridColumns.toGrid(sectionLabels, 11)
       groupGrid.maxWidth = Double.MaxValue
       HBox.setHgrow(groupGrid, Priority.Always)
 

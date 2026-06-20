@@ -38,31 +38,52 @@ case class Section(code: String, name: String) extends Label derives Codec.AsObj
       onSelected: () => Unit,
       canSubmit: BooleanBinding
   ): Unit =
-    onMouseClicked = _ => {
+    applyHandlers(this, sectionField, onSelected, canSubmit)
+
+  def createLabel(
+      sectionField: StringProperty,
+      onSelected: () => Unit,
+      canSubmit: BooleanBinding
+  ): Label =
+    val label = new Label(code):
+      tooltip = Tooltip(name)
+      padding = Insets(2, 4, 2, 4)
+      minWidth = 0
+      textOverrun = OverrunStyle.Clip
+    applyHandlers(label, sectionField, onSelected, canSubmit)
+    label
+
+  private def applyHandlers(
+      label: Label,
+      sectionField: StringProperty,
+      onSelected: () => Unit,
+      canSubmit: BooleanBinding
+  ): Unit =
+    label.onMouseClicked = _ => {
       if canSubmit.value then
         sectionField.value = code
         onSelected()
     }
-    onMouseEntered = _ => {
+    label.onMouseEntered = _ => {
       if (canSubmit.value) {
-        style = "-fx-background-color: lightgray; -fx-cursor: hand;"
+        label.style = "-fx-background-color: lightgray; -fx-cursor: hand;"
       }
     }
-    onMouseExited = _ => style = "-fx-background-color: transparent; -fx-cursor: default;"
+    label.onMouseExited = _ => label.style = "-fx-background-color: transparent; -fx-cursor: default;"
 
     canSubmit.onChange { (_, _, nv) =>
-      if nv then styleClass.remove("section-disabled")
-      else if !styleClass.contains("section-disabled") then styleClass.add("section-disabled")
+      if nv then label.styleClass.remove("section-disabled")
+      else if !label.styleClass.contains("section-disabled") then label.styleClass.add("section-disabled")
     }
     // Initial state
-    if !canSubmit.value && !styleClass.contains("section-disabled") then styleClass.add("section-disabled")
+    if !canSubmit.value && !label.styleClass.contains("section-disabled") then label.styleClass.add("section-disabled")
 
     sectionField.onChange { (_, _, newValue) =>
       val input = if newValue == null then "" else newValue.trim.toUpperCase
       if input.nonEmpty && code.toUpperCase.startsWith(input) then
-        if !styleClass.contains("section-match") then styleClass.add("section-match")
+        if !label.styleClass.contains("section-match") then label.styleClass.add("section-match")
       else
-        styleClass.remove("section-match")
+        label.styleClass.remove("section-match")
     }
 
 import jakarta.inject.{Inject, Singleton}
