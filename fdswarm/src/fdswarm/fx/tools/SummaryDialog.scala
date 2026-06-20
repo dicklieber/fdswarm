@@ -66,7 +66,7 @@ class SummaryDialog @Inject()(
     val copyButton = new Button("Copy Operators"):
       onAction = _ =>
         val sortedOps = operatorCounts.map(_.callsign).sorted
-        val opList = sortedOps.mkString(" ")
+        val opList = sortedOps.mkString(", ")
         val content = new ClipboardContent()
         content.putString(opList)
         Clipboard.getSystemClipboard.setContent(content)
