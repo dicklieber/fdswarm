@@ -29,6 +29,7 @@ import fdswarm.fx.qso.ContestEntry
 import fdswarm.fx.utils.UiStyles
 import fdswarm.fx.WelcomeDialog
 import fdswarm.logging.LazyStructuredLogging
+import fdswarm.bandmodes.RigctldPoller
 import fdswarm.replication.{NodeStatusDispatcher, StatusBroadcastService}
 import fdswarm.util.NodeIdentityManager
 import jakarta.inject.{Inject, Singleton}
@@ -49,6 +50,7 @@ final class FdSwarmUi @Inject()(
                                 menus: FdSwarmMenus,
                                 repl: NodeStatusDispatcher,
                                 statusBroadcastService: StatusBroadcastService,
+                                rigctldPoller: RigctldPoller,
                                 qsoStore: fdswarm.store.QsoStore,
                                 apiServer: fdswarm.api.ApiServer,
                                 startupInfo: StartupInfo,
@@ -70,6 +72,7 @@ final class FdSwarmUi @Inject()(
     setAppIcon()
     stage.title = BuildInfo.appName
     statusBroadcastService.start()
+    rigctldPoller.start()
     apiServer.start().unsafeRunAndForget()
 
     if isMac then
@@ -237,6 +240,7 @@ final class FdSwarmUi @Inject()(
       )
 
   def stopApp(): Unit =
+    rigctldPoller.stop()
     statusBroadcastService.stop()
 
 object FdSwarmUi:

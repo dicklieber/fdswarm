@@ -61,6 +61,9 @@ object Band:
   def fromStringOption(band: String): Option[Band] =
     byName.get(band.trim.toLowerCase)
 
+  def fromFrequency(hz: Long): Option[Band] =
+    Band.values.find(b => hz >= b.startFrequencyHz && hz <= b.endFrequencyHz)
+
   given Schema[Band] = Schema.string
   given Encoder[Band] = Encoder.encodeString.contramap(_.name)
   given Decoder[Band] = Decoder.decodeString.emap(value =>
