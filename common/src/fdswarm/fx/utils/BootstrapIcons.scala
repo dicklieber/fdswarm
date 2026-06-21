@@ -12,8 +12,15 @@ object BootstrapIcons:
   private lazy val iconMap: Map[String, String] =
     (sprite \\ "symbol").flatMap { sym =>
       val id = (sym \ "@id").text
-      val path = (sym \\ "path").headOption.map(_ \@ "d")
-      path.map(p => id -> p)
+      val paths = (sym \\ "path").map(_ \@ "d").filter(_.nonEmpty)
+      if paths.isEmpty then None
+      else
+        // Each <path> element in the sprite is independent: its first M/m is
+        // relative to the viewBox origin (0,0), not the last point of the
+        // previous path.  Inserting "M0 0" before every path after the first
+        // resets the current point so relative moveto commands land correctly.
+        val combined = paths.head + paths.tail.map(" M0 0 " + _).mkString
+        Some(id -> combined)
     }.toMap
 
   def svgPath(name: String, size: Double = 16, color: Color = Color.Black): SVGPath =

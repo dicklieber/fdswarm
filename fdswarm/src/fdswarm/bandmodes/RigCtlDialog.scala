@@ -18,6 +18,8 @@
 
 package fdswarm.bandmodes
 
+import fdswarm.fx.components.{ButtonVariant, DialogButton}
+import fdswarm.fx.utils.UiStyles
 import fdswarm.fx.utils.editor.{CaseClassPropertyEditor, HelpBrowser}
 import fdswarm.logging.LazyStructuredLogging
 import jakarta.inject.{Inject, Singleton}
@@ -160,22 +162,22 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
 
     // ── Buttons ───────────────────────────────────────────────────────────────
 
-    val saveButton = new Button("Save"):
-      disable <== dirty.not()
-      onAction = _ =>
-        rigCtlManager.saveConfig(currentConfig())
-        dirty.value = false
-        statusLabel.text = "Configuration saved."
-        statusLabel.style = "-fx-text-fill: green;"
+    val saveButton = DialogButton("Save", "floppy", ButtonVariant.Primary, "Save configuration")
+    saveButton.disable <== dirty.not()
+    saveButton.onAction = _ =>
+      rigCtlManager.saveConfig(currentConfig())
+      dirty.value = false
+      statusLabel.text = "Configuration saved."
+      statusLabel.style = "-fx-text-fill: green;"
 
-    val refreshButton = new Button("Refresh"):
-      onAction = _ => loadRigModels()
+    val refreshButton = DialogButton("Refresh", "arrow-clockwise", ButtonVariant.Secondary, "Reload rig list from rigctld")
+    refreshButton.onAction = _ => loadRigModels()
 
-    val closeButton = new Button("Close"):
-      onAction = _ => stage.foreach(_.close())
+    val closeButton = DialogButton("Close", "x-circle", ButtonVariant.Secondary, "Close without saving")
+    closeButton.onAction = _ => stage.foreach(_.close())
 
-    val helpButton = new Button("Help"):
-      onAction = _ => HelpBrowser.open("/fdswarmDocs/user/rigctl.html")
+    val helpButton = DialogButton("Help", "info-circle", ButtonVariant.Help, "Open Rig Control documentation")
+    helpButton.onAction = _ => HelpBrowser.open("/fdswarmDocs/user/rigctl.html")
 
     // ── Layout ────────────────────────────────────────────────────────────────
 
@@ -203,13 +205,16 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
     val root = new VBox(settingsPane, rigModelSection, statusBar, commandLineBar, buttonBar):
       VBox.setVgrow(rigModelSection, Priority.Always)
 
+    val dialogScene = new Scene(root, 620, 560)
+    UiStyles.applyTo(dialogScene)
+
     val newStage = new Stage:
       title    = "RigCtl Manager"
       initOwner(ownerWindow)
       resizable = true
       minWidth  = 560
       minHeight = 480
-      scene     = new Scene(root, 620, 560)
+      scene     = dialogScene
       onHidden  = _ => stage = None
 
     newStage.show()

@@ -388,3 +388,91 @@
     -fx-background-insets: 0;
     -fx-border-insets: 0;
 }
+
+/* ── Bootstrap 5-style dialog buttons ──────────────────────────────────── */
+
+.btn-primary {
+    -fx-background-color: #0d6efd;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-primary:hover   { -fx-background-color: #0b5ed7; }
+.btn-primary:pressed { -fx-background-color: #0a58ca; }
+.btn-primary:focused { -fx-background-color: #0b5ed7; -fx-border-color: #9ec5fe; -fx-border-radius: 6; -fx-border-width: 2; }
+.btn-primary:disabled { -fx-opacity: 0.65; }
+
+.btn-secondary {
+    -fx-background-color: #6c757d;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-secondary:hover   { -fx-background-color: #5c636a; }
+.btn-secondary:pressed { -fx-background-color: #565e64; }
+.btn-secondary:focused { -fx-background-color: #5c636a; -fx-border-color: #c4c8cb; -fx-border-radius: 6; -fx-border-width: 2; }
+.btn-secondary:disabled { -fx-opacity: 0.65; }
+
+.btn-danger {
+    -fx-background-color: #dc3545;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-danger:hover   { -fx-background-color: #bb2d3b; }
+.btn-danger:pressed { -fx-background-color: #b02a37; }
+.btn-danger:focused { -fx-background-color: #bb2d3b; -fx-border-color: #f1aeb5; -fx-border-radius: 6; -fx-border-width: 2; }
+.btn-danger:disabled { -fx-opacity: 0.65; }
+
+.btn-success {
+    -fx-background-color: #198754;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-success:hover   { -fx-background-color: #157347; }
+.btn-success:pressed { -fx-background-color: #146c43; }
+.btn-success:focused { -fx-background-color: #157347; -fx-border-color: #a3cfbb; -fx-border-radius: 6; -fx-border-width: 2; }
+.btn-success:disabled { -fx-opacity: 0.65; }
+
+.btn-help {
+    -fx-background-color: #0dcaf0;
+    -fx-text-fill: #000000;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-help:hover   { -fx-background-color: #31d2f2; }
+.btn-help:pressed { -fx-background-color: #25cff0; }
+.btn-help:focused { -fx-background-color: #31d2f2; -fx-border-color: #6edff6; -fx-border-radius: 6; -fx-border-width: 2; }
+.btn-help:disabled { -fx-opacity: 0.65; }
+
+.btn-warning {
+    -fx-background-color: #ffc107;
+    -fx-text-fill: #000000;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-warning:hover   { -fx-background-color: #ffca2c; }
+.btn-warning:pressed { -fx-background-color: #ffc720; }
+.btn-warning:focused { -fx-background-color: #ffca2c; -fx-border-color: #ffe69c; -fx-border-radius: 6; -fx-border-width: 2; }
+.btn-warning:disabled { -fx-opacity: 0.65; }
+
+/* Hyperlink-style "?" field-help links in CaseClassPropertyEditor */
+.field-help-link {
+    -fx-padding: 0 3 0 3;
+    -fx-font-size: 0.85em;
+    -fx-text-fill: #0d6efd;
+    -fx-border-color: transparent;
+}
