@@ -81,6 +81,9 @@ private object FdSwarmDocsEndpoints:
       case Some(path) =>
         readResource(path)
           .orElse(
+            if path.contains('.') then None else readResource(s"$path.html")
+          )
+          .orElse(
             if path.contains('.') then None else readResource(s"$path/index.html")
           )
           .orElse(

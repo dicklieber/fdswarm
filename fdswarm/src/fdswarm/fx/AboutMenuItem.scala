@@ -23,6 +23,7 @@ import com.typesafe.config.Config
 import fdswarm.StartupInfo
 import fdswarm.fx.utils.JsonPrettyPrinter
 import fdswarm.io.FileHelper
+import fdswarm.fx.utils.editor.HelpBrowser
 import fdswarm.replication.Transport
 import fdswarm.util.NodeIdentityManager
 import io.circe.syntax.*
@@ -136,11 +137,11 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
               catch
                 case e: Exception => s"Error reading file: ${e.getMessage}"
 
-              val alert = new Alert(AlertType.Information):
+              val alert: Alert = new Alert(AlertType.Information):
                 initOwner(window)
                 title = fileName
                 headerText = s"Contents of $fileName"
-                val copyButton = new Button("Copy to Clipboard"):
+                val copyButton: Button = new Button("Copy to Clipboard"):
                   onAction = _ =>
                     val content = new ClipboardContent()
                     content.putString(fileContent)
@@ -209,11 +210,7 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
 
     val docsUrl = s"http://${NodeIdentityManager.nodeIdentity.hostPort}/docs"
     val docsLink = new Hyperlink(docsUrl):
-      onAction = _ =>
-        try
-          java.awt.Desktop.getDesktop.browse(new java.net.URI(docsUrl))
-        catch
-          case _: Throwable => ()
+      onAction = _ => HelpBrowser.openApiDocs()
 
     grid.add(new Label("API Docs:"), 0, 11)
     grid.add(docsLink, 1, 11)
@@ -225,10 +222,10 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
 
     val javaDetailsButton = new Hyperlink("More Java Details"):
       onAction = _ =>
-        val props = sys.props.toSeq.sortBy(_._1).filter { (k, v) =>
+        val props = sys.props.toSeq.filter { (k, v) =>
           (k.startsWith("java.") || k.contains("arch") || k.contains("os.") || k.contains("vendor") || k.contains("vm.")) &&
           k != "java.class.path"
-        }
+        }.sortBy(_._1)
         val javaInfo = props.map { case (k, v) => s"$k: $v" }.mkString("\n")
 
         val groups = props.groupBy { (k, v) =>
@@ -273,11 +270,11 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
           prefViewportHeight = 400
           prefViewportWidth = 700
 
-        val alert = new Alert(AlertType.Information):
+        val alert: Alert = new Alert(AlertType.Information):
           initOwner(window)
           title = "Java & Architecture Details"
           headerText = "Detailed Java and System Information"
-          val copyButton = new Button("Copy to Clipboard"):
+          val copyButton: Button = new Button("Copy to Clipboard"):
             onAction = _ =>
               val content = new ClipboardContent()
               content.putString(javaInfo)
@@ -296,11 +293,11 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
     val configDetailsButton = new Hyperlink("Show application.conf"):
       onAction = _ =>
         val configStr = config.root().render(com.typesafe.config.ConfigRenderOptions.defaults().setOriginComments(false).setComments(true).setFormatted(true).setJson(false))
-        val alert = new Alert(AlertType.Information):
+        val alert: Alert = new Alert(AlertType.Information):
           initOwner(window)
           title = "application.conf"
           headerText = "Application Configuration"
-          val copyButton = new Button("Copy to Clipboard"):
+          val copyButton: Button = new Button("Copy to Clipboard"):
             onAction = _ =>
               val content = new ClipboardContent()
               content.putString(configStr)
@@ -351,11 +348,11 @@ class AboutMenuItem @Inject()(fileHelper: FileHelper,
           prefViewportHeight = 400
           prefViewportWidth = 800
 
-        val alert = new Alert(AlertType.Information):
+        val alert: Alert = new Alert(AlertType.Information):
           initOwner(window)
           title = "Environment Variables"
           headerText = "Process Environment Variables"
-          val copyButton = new Button("Copy to Clipboard"):
+          val copyButton: Button = new Button("Copy to Clipboard"):
             onAction = _ =>
               val content = new ClipboardContent()
               content.putString(envStr)

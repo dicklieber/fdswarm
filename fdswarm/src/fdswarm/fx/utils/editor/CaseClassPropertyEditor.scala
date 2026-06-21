@@ -25,6 +25,7 @@ import scalafx.beans.property.*
 import scalafx.scene.Node
 import scalafx.scene.control.*
 import scalafx.scene.layout.*
+import scalafx.geometry.Pos
 
 import java.lang.reflect.Constructor
 import scala.collection.mutable
@@ -120,12 +121,15 @@ class CaseClassPropertyEditor[T <: Product](val target: T):
     }
 
     for ((fieldName, fieldValue), col) <- visibleProperties.zipWithIndex do
+      val helpInfo = helpInfoFor(fieldName)
       val label = new Label(camelToWords(fieldName)):
         minWidth = Region.USE_PREF_SIZE
         textOverrun = OverrunStyle.Clip
         styleClass.add("grid-row-label")
         styleClass.add("grid-header-primary-text")
         styleClass.add("grid-cell")
+        helpInfo.foreach(fh => tooltip = new Tooltip(fh.value()))
+      val labelNode = labelWithHelpLink(label, helpInfo, fieldName)
 
       val editorNode = nodeFor(fieldName, fieldValue)
       editorNode.styleClass.add("grid-value")
@@ -133,7 +137,7 @@ class CaseClassPropertyEditor[T <: Product](val target: T):
       editorNode.styleClass.add("grid-cell")
       fieldEditorsInOrder += editorNode
 
-      val labelCell = GridCells.addCell(grid, col, 0, label, "grid-cell", "grid-row-label", "grid-header-primary-cell")
+      val labelCell = GridCells.addCell(grid, col, 0, labelNode, "grid-cell", "grid-row-label", "grid-header-primary-cell")
       val valueCell = GridCells.addCell(grid, col, 1, editorNode, "grid-cell", "grid-value")
 
       if fieldValue.isNumeric then valueCell.styleClass.add("gridNumber")
@@ -161,11 +165,14 @@ class CaseClassPropertyEditor[T <: Product](val target: T):
     }
 
     for ((fieldName, fieldValue), row) <- visibleProperties.zipWithIndex do
+      val helpInfo = helpInfoFor(fieldName)
       val label = new Label(camelToWords(fieldName)):
         minWidth = Region.USE_PREF_SIZE
         textOverrun = OverrunStyle.Clip
         styleClass.add("grid-row-label")
         styleClass.add("grid-cell")
+        helpInfo.foreach(fh => tooltip = new Tooltip(fh.value()))
+      val labelNode = labelWithHelpLink(label, helpInfo, fieldName)
 
       val editorNode = nodeFor(fieldName, fieldValue)
       editorNode.styleClass.add("grid-value")
@@ -173,7 +180,7 @@ class CaseClassPropertyEditor[T <: Product](val target: T):
       editorNode.styleClass.add("grid-cell")
       fieldEditorsInOrder += editorNode
 
-      val labelCell = GridCells.addCell(grid, 0, row, label, "grid-cell", "grid-row-label")
+      val labelCell = GridCells.addCell(grid, 0, row, labelNode, "grid-cell", "grid-row-label")
       val valueCell = GridCells.addCell(grid, 1, row, editorNode, "grid-cell", "grid-value")
 
       if fieldValue.isNumeric then valueCell.styleClass.add("gridNumber")
@@ -295,6 +302,52 @@ class CaseClassPropertyEditor[T <: Product](val target: T):
           p.onChange { (_, _, _) =>
             text.value = Option(p.value).map(_.toString).getOrElse("")
           }
+
+  /** Returns the [[FieldHelp]] annotation for `fieldName`, or `None`. */
+  private def helpInfoFor(fieldName: String): Option[FieldHelp] =
+    // Scala 3 emits @Target(FIELD) annotations on the backing field.
+    // As a fallback we also check the primary constructor parameter.
+    val fromField: Option[FieldHelp] =
+      try
+        val f = runtimeClass.getDeclaredField(fieldName)
+        Option(f.getAnnotation(classOf[FieldHelp]))
+      catch
+        case _: NoSuchFieldException => None
+    fromField.orElse {
+      val paramIndex = fieldNames.indexOf(fieldName)
+      if paramIndex < 0 then None
+      else
+        val ctor = runtimeClass.getDeclaredConstructors.maxBy(_.getParameterCount)
+        val params = ctor.getParameters
+        if paramIndex < params.length then
+          Option(params(paramIndex).getAnnotation(classOf[FieldHelp]))
+        else None
+    }
+
+  /**
+   * Wraps `label` in an [[HBox]] containing a small `"?"` [[Hyperlink]] when
+   * `@FieldHelp` is present.
+   *
+   * The URL passed to [[HelpBrowser.open]] is taken from the annotation's
+   * `url` element when non-empty; otherwise `fieldName` is used as a bare
+   * relative path (resolved to `baseUrl/fdswarmDocs/help/<fieldName>`).
+   *
+   * Returns `label` unchanged when no `@FieldHelp` annotation is present.
+   */
+  private def labelWithHelpLink(label: Label, helpInfo: Option[FieldHelp], fieldName: String): Node =
+    helpInfo match
+      case None => label
+      case Some(fh) =>
+        val url = fh.url() match
+          case "" => fieldName
+          case u  => u
+        val link = new Hyperlink("?"):
+          styleClass.add("field-help-link")
+          onAction = _ => HelpBrowser.open(url)
+        new HBox:
+          spacing = 2
+          alignment = Pos.CenterLeft
+          children = Seq(label, link)
 
   private def primaryConstructor(clazz: Class[?]): Constructor[?] =
     val ctor = clazz.getDeclaredConstructors.maxBy(_.getParameterCount)

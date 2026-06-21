@@ -20,12 +20,14 @@ package fdswarm
 
 import fdswarm.contestStart.StartContestDialog
 import FdSwarmUi.isMac
+import fdswarm.bandmodes.RigCtlDialog
 import fdswarm.fx.bandmodes.BandsAndModesPane
 import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.discovery.ContestConfigDialog
 import fdswarm.fx.station.StationEditor
 import fdswarm.fx.tools.*
 import fdswarm.fx.{AboutMenuItem, UserConfig, UserConfigEditor}
+import fdswarm.fx.utils.editor.HelpBrowser
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.metric.StatsManager
 import fdswarm.replication.status.ContestConfigMismatchUi
@@ -70,6 +72,7 @@ final class FdSwarmMenus @Inject()(
                                    contestScoreResultsDialog: ContestScoreResultsDialog,
                                    startContestDialog: StartContestDialog,
                                    contestConfigMismatchUi: ContestConfigMismatchUi,
+                                   rigCtlDialog: RigCtlDialog,
 )
     extends LazyStructuredLogging:
   aboutMenuItem.onAction = _ => showAboutDialog()
@@ -106,6 +109,10 @@ final class FdSwarmMenus @Inject()(
         ,
         new MenuItem("Scoring"):
           onAction = _ => contestScoringConfigDialog.show()
+        ,
+        new SeparatorMenuItem(),
+        new MenuItem("RigCtl Manager"):
+          onAction = _ => rigCtlDialog.show(FdSwarmUi.primaryStage)
         ,
         developerModeMenuItem
       )
@@ -237,18 +244,7 @@ final class FdSwarmMenus @Inject()(
       )
 
   private def showFdSwarmDocs(): Unit =
-    val docsUrl = s"http://${util.NodeIdentityManager.nodeIdentity.hostPort}/fdswarmDocs/"
-    try
-      java.awt.Desktop.getDesktop.browse(
-        new URI(docsUrl)
-      )
-    catch
-      case e: Throwable =>
-        logger.warn(
-          "Could not open FDSwarmDocs",
-          "url" -> docsUrl,
-          "error" -> e.toString
-        )
+    HelpBrowser.openUserDocs()
 
   val menuBar: MenuBar =
     new MenuBar:

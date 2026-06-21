@@ -18,7 +18,6 @@
 
 package fdswarm.bandmodes
 
-import com.google.inject.name.Named
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.{Band, BandMode, Mode}
 import jakarta.inject.{Inject, Singleton}
@@ -30,22 +29,21 @@ import java.net.Socket
 /** Polls rigctld via TCP and updates [[SelectedBandModeManager.selected]] when the rig's band or mode changes.
   *
   * rigctld (from Hamlib) must be running and accessible at the configured host/port.
-  * Polling is disabled by default; set `fdswarm.rigctld.enabled = true` in config to activate.
+  * Configuration is read from [[RigCtlManager]] at each (re)start, so changes made in the
+  * RigCtl Manager dialog take effect immediately after calling [[restart]].
   */
 @Singleton
 class RigctldPoller @Inject()(
     selectedBandModeManager: SelectedBandModeManager,
-    @Named("fdswarm.rigctld.enabled") enabled: Boolean,
-    @Named("fdswarm.rigctld.host") host: String,
-    @Named("fdswarm.rigctld.port") port: Int,
-    @Named("fdswarm.rigctld.pollIntervalMs") pollIntervalMs: Int
+    rigCtlManager: RigCtlManager
 ) extends LazyStructuredLogging:
 
   @volatile private var stopRequested = false
   @volatile private var maybeThread: Option[Thread] = None
 
   def start(): Unit = this.synchronized {
-    if !enabled then
+    val cfg = rigCtlManager.config.value
+    if !cfg.enabled then
       logger.info("rigctld polling is disabled")
       return
     if maybeThread.isEmpty then
@@ -54,7 +52,7 @@ class RigctldPoller @Inject()(
       t.setDaemon(true)
       t.start()
       maybeThread = Some(t)
-      logger.info(s"rigctld poller started, connecting to $host:$port every ${pollIntervalMs}ms")
+      logger.info(s"rigctld poller started, connecting to ${cfg.host}:${cfg.port} every ${cfg.pollIntervalMs}ms")
   }
 
   def stop(): Unit = this.synchronized {
@@ -63,15 +61,21 @@ class RigctldPoller @Inject()(
     maybeThread = None
   }
 
+  /** Stops any running poll thread and restarts with the current [[RigCtlManager]] config. */
+  def restart(): Unit =
+    stop()
+    start()
+
   private def pollLoop(): Unit =
     while !Thread.currentThread().isInterrupted do
+      val cfg = rigCtlManager.config.value
       try
-        val socket = new Socket(host, port)
+        val socket = new Socket(cfg.host, cfg.port)
         socket.setSoTimeout(2000)
         try
           val out = new PrintWriter(socket.getOutputStream, true)
-          val in = new BufferedReader(new InputStreamReader(socket.getInputStream))
-          logger.info(s"Connected to rigctld at $host:$port")
+          val in  = new BufferedReader(new InputStreamReader(socket.getInputStream))
+          logger.info(s"Connected to rigctld at ${cfg.host}:${cfg.port}")
           innerLoop(out, in, socket)
         finally
           socket.close()
@@ -79,7 +83,7 @@ class RigctldPoller @Inject()(
         case _: InterruptedException =>
           Thread.currentThread().interrupt()
         case e: java.net.ConnectException =>
-          logger.debug(s"rigctld not available at $host:$port – ${e.getMessage}")
+          logger.debug(s"rigctld not available at ${cfg.host}:${cfg.port} – ${e.getMessage}")
           sleepOrInterrupt(5000)
         case e: Exception =>
           logger.warn(s"rigctld connection error: ${e.getMessage}")
@@ -87,8 +91,9 @@ class RigctldPoller @Inject()(
 
   private def innerLoop(out: PrintWriter, in: BufferedReader, socket: Socket): Unit =
     while !Thread.currentThread().isInterrupted && !socket.isClosed do
+      val cfg = rigCtlManager.config.value
       try
-        val freqHz = queryFrequency(out, in)
+        val freqHz  = queryFrequency(out, in)
         val modeStr = queryMode(out, in)
 
         for
@@ -103,7 +108,7 @@ class RigctldPoller @Inject()(
               selectedBandModeManager.save(newBandMode)
             }
 
-        Thread.sleep(pollIntervalMs)
+        Thread.sleep(cfg.pollIntervalMs)
       catch
         case _: java.net.SocketTimeoutException =>
           logger.debug("rigctld read timeout")
