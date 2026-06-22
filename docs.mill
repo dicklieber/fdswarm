@@ -66,6 +66,8 @@ trait DocsModule(
       .topNavigationBar(
         homeLink = IconLink.internal(Root / "README.md", HeliumIcon.home)
       )
+      .site
+      .mainNavigation(depth = 3)
       .build
 
     val transformer = Transformer

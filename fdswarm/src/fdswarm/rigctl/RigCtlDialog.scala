@@ -39,7 +39,7 @@ import scalafx.stage.{Stage, Window}
   * [[CaseClassPropertyEditor]].
   */
 @Singleton
-class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: RigctldPoller)
+class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: RigctldPoller, rigCtlTestDialog: RigCtlTestDialog)
     extends LazyStructuredLogging:
 
   private var stage: Option[Stage] = None
@@ -90,6 +90,9 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
     val helpButton = DialogButton("Help", "info-circle", ButtonVariant.Help, "Open Rig Control documentation")
     helpButton.onAction = _ => HelpBrowser.open("/fdswarmDocs/user/rigctl.html")
 
+    val testButton = DialogButton("Test", "bug", ButtonVariant.Warning, "Open RigCtl test dialog")
+    testButton.onAction = _ => rigCtlTestDialog.show(ownerWindow)
+
     // ── Launch / status ───────────────────────────────────────────────────────
 
     val statusLabel = new Label:
@@ -124,7 +127,7 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
     val launchBar = new HBox(8, launchButton, statusLabel):
       padding = Insets(4, 12, 4, 12)
 
-    val buttonBar = new HBox(10, saveButton, closeButton, helpButton):
+    val buttonBar = new HBox(10, saveButton, closeButton, testButton, helpButton):
       padding = Insets(8, 12, 10, 12)
 
     val root = new VBox(settingsPane, commandLineBar, launchBar, buttonBar):

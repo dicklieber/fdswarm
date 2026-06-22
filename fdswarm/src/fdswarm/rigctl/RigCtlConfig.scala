@@ -52,7 +52,10 @@ case class RigCtlConfig(
   port: Int = 4532,
   @FieldHelp(value = "How often to poll the rig for band/mode changes (milliseconds)",
              url   = "rigctl/pollIntervalMs")
-  pollIntervalMs: Int = 1000
+  pollIntervalMs: Int = 1000,
+  @FieldHelp(value = "Use the rigctld command line.",
+             url   = "rigctl/cmdOverride")
+  cmdOverride: String = ""
 ) derives Codec.AsObject
 
 /** A single entry from `rigctl -l`, describing a supported Hamlib rig. */

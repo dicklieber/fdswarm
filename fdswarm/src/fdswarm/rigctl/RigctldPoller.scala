@@ -123,13 +123,15 @@ class RigctldPoller @Inject()(
   private def queryFrequency(out: PrintWriter, in: BufferedReader): Option[Long] =
     out.print("f\n")
     out.flush()
-    Option(in.readLine()).flatMap(s => scala.util.Try(s.trim.toLong).toOption)
+    val str = in.readLine()
+    Option(str).flatMap(s => scala.util.Try(s.trim.toLong).toOption)
 
   /** Sends `m\n`, reads mode + passband lines, returns the mode string. */
   private def queryMode(out: PrintWriter, in: BufferedReader): Option[String] =
     out.print("m\n")
     out.flush()
-    val modeStr = Option(in.readLine()).map(_.trim)
+    val modeline = in.readLine()
+    val modeStr = Option(modeline).map(_.trim)
     in.readLine()  // consume passband width line
     modeStr
 

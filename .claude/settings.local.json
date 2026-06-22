@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./mill fdswarm.compile)"
+      "Bash(./mill fdswarm.compile)",
+      "Bash(jar tf:*)",
+      "Read(//private/tmp/**)",
+      "Bash(jar xf:*)",
+      "Read(//tmp/laika/helium/config/**)"
     ]
   }
 }

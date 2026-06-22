@@ -45,6 +45,11 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
 
   @volatile private var rigctldProcess: Option[Process] = None
 
+  /** Called with each non-empty output line from the running rigctld process.
+    * Set to [[None]] to stop receiving notifications.
+    */
+  @volatile var outputListener: Option[String => Unit] = None
+
   /** Saves a new configuration (triggers auto-persist via the onChange listener). */
   def saveConfig(cfg: RigCtlConfig): Unit =
     config.value = cfg
@@ -80,9 +85,13 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
           new java.io.InputStreamReader(proc.getInputStream))
         var line = reader.readLine()
         while line != null do
-          if line.nonEmpty then logger.debug(s"rigctld: $line")
+          if line.nonEmpty then
+            logger.debug(s"rigctld: $line")
+            outputListener.foreach(_(line))
           line = reader.readLine()
-        logger.debug(s"rigctld process ended, exitCode=${proc.waitFor()}"),
+        val exitCode = proc.waitFor()
+        logger.debug(s"rigctld process ended, exitCode=$exitCode")
+        outputListener.foreach(_(s"process ended, exitCode=$exitCode")),
       "rigctld-output"
     )
     t.setDaemon(true)
