@@ -57,13 +57,14 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
     kill()
     val cfg = config.value
     val cmd = buildCommand(cfg)
-    logger.info("Launching rigctld", "command" -> cmd.mkString(" "))
+    logger.debug(s"Launching rigctld: ${cmd.mkString(" ")}")
     try
       val pb = new ProcessBuilder(cmd*)
       pb.redirectErrorStream(true)
       val proc = pb.start()
       rigctldProcess = Some(proc)
       logger.info("rigctld process started", "pid" -> proc.pid())
+      startOutputLogger(proc)
       Right(())
     catch
       case e: Exception =>
@@ -71,6 +72,21 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
         val msg = s"Failed to launch rigctld: ${e.getMessage}"
         logger.error(msg, e)
         Left(msg)
+
+  private def startOutputLogger(proc: Process): Unit =
+    val t = new Thread(
+      () =>
+        val reader = new java.io.BufferedReader(
+          new java.io.InputStreamReader(proc.getInputStream))
+        var line = reader.readLine()
+        while line != null do
+          if line.nonEmpty then logger.debug(s"rigctld: $line")
+          line = reader.readLine()
+        logger.debug(s"rigctld process ended, exitCode=${proc.waitFor()}"),
+      "rigctld-output"
+    )
+    t.setDaemon(true)
+    t.start()
 
   /** Kills the rigctld process previously started by [[launch]], if any. */
   def kill(): Unit =

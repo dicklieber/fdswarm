@@ -90,16 +90,44 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
     val helpButton = DialogButton("Help", "info-circle", ButtonVariant.Help, "Open Rig Control documentation")
     helpButton.onAction = _ => HelpBrowser.open("/fdswarmDocs/user/rigctl.html")
 
+    // ── Launch / status ───────────────────────────────────────────────────────
+
+    val statusLabel = new Label:
+      def refresh(): Unit =
+        if rigCtlManager.isRunning then
+          text  = "● Running"
+          style = "-fx-text-fill: green;"
+        else
+          text  = "○ Stopped"
+          style = "-fx-text-fill: gray;"
+      refresh()
+
+    val launchButton = DialogButton("Launch", "play-circle", ButtonVariant.Success, "Launch (or relaunch) rigctld")
+    launchButton.onAction = _ =>
+      rigCtlManager.launch() match
+        case Right(_) =>
+          launchButton.text = "Relaunch"
+          statusLabel.text  = "● Running"
+          statusLabel.style = "-fx-text-fill: green;"
+        case Left(err) =>
+          statusLabel.text  = s"✗ $err"
+          statusLabel.style = "-fx-text-fill: red;"
+
+    if rigCtlManager.isRunning then launchButton.text = "Relaunch"
+
     // ── Layout ────────────────────────────────────────────────────────────────
 
     val commandLineBar = new HBox(8, new Label("Command:"), commandLineField):
       padding = Insets(4, 12, 4, 12)
       HBox.setHgrow(commandLineField, Priority.Always)
 
+    val launchBar = new HBox(8, launchButton, statusLabel):
+      padding = Insets(4, 12, 4, 12)
+
     val buttonBar = new HBox(10, saveButton, closeButton, helpButton):
       padding = Insets(8, 12, 10, 12)
 
-    val root = new VBox(settingsPane, commandLineBar, buttonBar):
+    val root = new VBox(settingsPane, commandLineBar, launchBar, buttonBar):
       VBox.setVgrow(settingsPane, Priority.Always)
 
     val dialogScene = new Scene(root, 620, 600)

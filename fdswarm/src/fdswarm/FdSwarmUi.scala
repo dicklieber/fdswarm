@@ -30,7 +30,7 @@ import fdswarm.fx.utils.UiStyles
 import fdswarm.fx.WelcomeDialog
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.replication.{NodeStatusDispatcher, StatusBroadcastService}
-import fdswarm.rigctl.RigctldPoller
+import fdswarm.rigctl.{RigCtlManager, RigctldPoller}
 import fdswarm.util.NodeIdentityManager
 import jakarta.inject.{Inject, Singleton}
 import javafx.embed.swing.SwingFXUtils
@@ -50,6 +50,7 @@ final class FdSwarmUi @Inject()(
                                 menus: FdSwarmMenus,
                                 repl: NodeStatusDispatcher,
                                 statusBroadcastService: StatusBroadcastService,
+                                rigCtlManager: RigCtlManager,
                                 rigctldPoller: RigctldPoller,
                                 qsoStore: fdswarm.store.QsoStore,
                                 apiServer: fdswarm.api.ApiServer,
@@ -72,6 +73,8 @@ final class FdSwarmUi @Inject()(
     setAppIcon()
     stage.title = BuildInfo.appName
     statusBroadcastService.start()
+    if rigCtlManager.config.value.enabled then
+      rigCtlManager.launch()
     rigctldPoller.start()
     apiServer.start().unsafeRunAndForget()
 
@@ -241,6 +244,7 @@ final class FdSwarmUi @Inject()(
 
   def stopApp(): Unit =
     rigctldPoller.stop()
+    rigCtlManager.kill()
     statusBroadcastService.stop()
 
 object FdSwarmUi:
