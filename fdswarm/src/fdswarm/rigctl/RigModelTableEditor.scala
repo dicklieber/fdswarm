@@ -17,25 +17,20 @@
 
 package fdswarm.rigctl
 
-import fdswarm.fx.components.{ButtonVariant, DialogButton}
+import fdswarm.fx.utils.BootstrapIcons
 import fdswarm.fx.utils.editor.CustomFieldEditor
 import scalafx.Includes.*
 import scalafx.application.Platform
-import scalafx.beans.property.{IntegerProperty, StringProperty}
-import scalafx.collections.ObservableBuffer
+import scalafx.beans.property.IntegerProperty
 import scalafx.scene.Node
-import scalafx.scene.control.*
-import scalafx.scene.layout.*
-
-import scala.jdk.CollectionConverters.*
+import scalafx.scene.control.Button
+import scalafx.scene.paint.Color
 
 /** A [[CustomFieldEditor]] for the `rigModel` field in [[RigCtlConfig]].
   *
-  * Presents a searchable [[TableView]] of all Hamlib-supported rig models,
-  * populated asynchronously via `rigctl -l`.  Selecting a row updates the
-  * underlying [[IntegerProperty]] so
-  * [[fdswarm.fx.utils.editor.CaseClassPropertyEditor#finish]] picks up the
-  * correct value automatically without any extra wiring in the owning dialog.
+  * Renders as a compact button showing the currently-selected rig's
+  * manufacturer and model name.  Clicking the button opens [[RigPickerDialog]],
+  * a modal table where the user selects a rig by double-clicking a row.
   *
   * Register with:
   * {{{
@@ -44,95 +39,40 @@ import scala.jdk.CollectionConverters.*
   */
 class RigModelTableEditor(rigCtlManager: RigCtlManager) extends CustomFieldEditor:
 
-  /** Always valid — any model number is acceptable. */
+  /** Always valid — every model number is acceptable. */
   override def isValid: Boolean = true
 
   override def editor(fieldProperty: Any): Node =
-    buildNode(fieldProperty.asInstanceOf[IntegerProperty])
+    val rigModelProp = fieldProperty.asInstanceOf[IntegerProperty]
 
-  private def buildNode(rigModelProp: IntegerProperty): Node =
-
-    val statusLabel = new Label(""):
-      style    = "-fx-text-fill: grey;"
-      wrapText = true
+    val pickerBtn = new Button(s"Model #${rigModelProp.value}"):
+      graphic  = BootstrapIcons.svgPath("search", 13, Color.White)
+      styleClass += "btn-secondary"
       maxWidth = Double.MaxValue
 
-    val allRigs   = ObservableBuffer.empty[RigInfo]
-    val tableRows = ObservableBuffer.empty[RigInfo]
+    // Resolve the saved model number to a display name in the background.
+    val t = new Thread(
+      () =>
+        rigCtlManager.listRigs() match
+          case Right(rigs) =>
+            rigs.find(_.modelNumber == rigModelProp.value).foreach { rig =>
+              Platform.runLater { pickerBtn.text = rigLabel(rig) }
+            }
+          case Left(_) => ()
+      ,
+      "rigctl-init-resolve"
+    )
+    t.setDaemon(true)
+    t.start()
 
-    val filterField = new TextField:
-      promptText = "Filter by manufacturer or model…"
+    pickerBtn.onAction = _ =>
+      val owner = pickerBtn.scene.value.window.value
+      RigPickerDialog.show(ownerWindow = owner, rigModelProp.value, rigCtlManager) { rig =>
+        rigModelProp.value = rig.modelNumber
+        pickerBtn.text     = rigLabel(rig)
+      }
 
-    def applyFilter(text: String): Unit =
-      val q = text.trim.toLowerCase
-      val filtered: Seq[RigInfo] =
-        if q.isEmpty then allRigs.toSeq
-        else allRigs.toSeq.filter(r =>
-          r.manufacturer.toLowerCase.contains(q) || r.model.toLowerCase.contains(q))
-      tableRows.setAll(filtered.asJava)
+    pickerBtn
 
-    filterField.text.onChange((_, _, newText) => applyFilter(newText))
-
-    def col(header: String, colWidth: Double)(f: RigInfo => String): TableColumn[RigInfo, String] =
-      new TableColumn[RigInfo, String]:
-        text             = header
-        prefWidth        = colWidth
-        sortable         = false
-        cellValueFactory = r => StringProperty(f(r.value))
-
-    val rigTable = new TableView[RigInfo](tableRows):
-      columns ++= Seq(
-        col("#",            60)(_.modelNumber.toString),
-        col("Manufacturer", 160)(_.manufacturer),
-        col("Model",        200)(_.model),
-        col("Status",       80)(_.status)
-      )
-      columnResizePolicy = TableView.ConstrainedResizePolicy
-      prefHeight         = 260
-
-    rigTable.selectionModel().selectedItemProperty().addListener { (_, _, selected) =>
-      if selected != null then
-        rigModelProp.value = selected.modelNumber
-    }
-
-    def loadRigModels(): Unit =
-      statusLabel.text  = "Running rigctl -l …"
-      statusLabel.style = "-fx-text-fill: grey;"
-      val t = new Thread(
-        () =>
-          rigCtlManager.listRigs() match
-            case Right(rigs) =>
-              Platform.runLater {
-                allRigs.setAll(rigs.asJava)
-                applyFilter(filterField.text.value)
-                tableRows.zipWithIndex
-                  .find { case (r, _) => r.modelNumber == rigModelProp.value }
-                  .foreach { case (_, idx) =>
-                    rigTable.selectionModel().select(idx)
-                    rigTable.scrollTo(idx)
-                  }
-                statusLabel.text = s"${rigs.size} rigs loaded."
-              }
-            case Left(err) =>
-              Platform.runLater {
-                statusLabel.text  = s"Could not load rig list: $err"
-                statusLabel.style = "-fx-text-fill: red;"
-              }
-        ,
-        "rigctl-list-loader"
-      )
-      t.setDaemon(true)
-      t.start()
-
-    loadRigModels()
-
-    val refreshButton = DialogButton("Refresh", "arrow-clockwise", ButtonVariant.Secondary, "Reload rig list")
-    refreshButton.onAction = _ => loadRigModels()
-
-    val filterBar = new HBox(8, filterField, refreshButton):
-      HBox.setHgrow(filterField, Priority.Always)
-
-    val statusBar = new HBox(statusLabel):
-      HBox.setHgrow(statusLabel, Priority.Always)
-
-    new VBox(4, filterBar, rigTable, statusBar)
+  private def rigLabel(rig: RigInfo): String =
+    s"${rig.manufacturer}  —  ${rig.model}"

@@ -24,6 +24,7 @@ import fdswarm.fx.utils.editor.{CaseClassPropertyEditor, HelpBrowser}
 import fdswarm.logging.LazyStructuredLogging
 import jakarta.inject.{Inject, Singleton}
 import scalafx.Includes.*
+import scalafx.beans.property.BooleanProperty
 import scalafx.geometry.Insets
 import scalafx.scene.Scene
 import scalafx.scene.control.*
@@ -67,13 +68,18 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
       style    = "-fx-font-family: monospace; -fx-background-color: #f4f4f4;"
       maxWidth = Double.MaxValue
 
-    editor.onAnyFieldChange(() =>
-      commandLineField.text = rigCtlManager.commandLine(editor.finish())
-    )
+    val dirty = BooleanProperty(false)
+
+    editor.onAnyFieldChange { () =>
+      val current = editor.finish()
+      commandLineField.text = rigCtlManager.commandLine(current)
+      dirty.value = current != cfg
+    }
 
     // ── Buttons ───────────────────────────────────────────────────────────────
 
     val saveButton = DialogButton("Save", "floppy", ButtonVariant.Primary, "Save configuration")
+    saveButton.disable <== dirty.not()
     saveButton.onAction = _ =>
       rigCtlManager.saveConfig(editor.finish())
       stage.foreach(_.close())

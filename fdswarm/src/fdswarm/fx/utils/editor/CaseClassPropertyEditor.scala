@@ -196,9 +196,12 @@ class CaseClassPropertyEditor[T <: Product](val target: T):
 
   /**
    * Finish editing and return the target.
+   *
+   * Rebuilds directly from the current property values so that fields with
+   * empty-string defaults (e.g. optional device paths) are always included.
    */
   def finish(): T =
-    propertyT.value
+    rebuildTarget().asInstanceOf[T]
 
   def isValid: Boolean =
     propertiesInOrder
