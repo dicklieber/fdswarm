@@ -20,7 +20,6 @@ package fdswarm
 
 import fdswarm.contestStart.StartContestDialog
 import FdSwarmUi.isMac
-import fdswarm.bandmodes.RigCtlDialog
 import fdswarm.fx.bandmodes.BandsAndModesPane
 import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.discovery.ContestConfigDialog
@@ -34,6 +33,7 @@ import fdswarm.replication.status.ContestConfigMismatchUi
 import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
 import _root_.io.circe.parser.decode
 import _root_.io.circe.syntax.EncoderOps
+import fdswarm.rigctl.RigCtlDialog
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
 import javafx.scene.control.{Menu as JfxMenu, MenuItem as JfxMenuItem}

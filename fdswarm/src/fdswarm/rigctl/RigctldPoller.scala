@@ -16,8 +16,9 @@
  *
  */
 
-package fdswarm.bandmodes
+package fdswarm.rigctl
 
+import fdswarm.bandmodes.SelectedBandModeManager
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.{Band, BandMode, Mode}
 import jakarta.inject.{Inject, Singleton}

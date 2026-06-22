@@ -16,7 +16,7 @@
  *
  */
 
-package fdswarm.bandmodes
+package fdswarm.rigctl
 
 import fdswarm.io.FileHelper
 import fdswarm.logging.LazyStructuredLogging

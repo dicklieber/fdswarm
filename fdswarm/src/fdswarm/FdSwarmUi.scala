@@ -29,8 +29,8 @@ import fdswarm.fx.qso.ContestEntry
 import fdswarm.fx.utils.UiStyles
 import fdswarm.fx.WelcomeDialog
 import fdswarm.logging.LazyStructuredLogging
-import fdswarm.bandmodes.RigctldPoller
 import fdswarm.replication.{NodeStatusDispatcher, StatusBroadcastService}
+import fdswarm.rigctl.RigctldPoller
 import fdswarm.util.NodeIdentityManager
 import jakarta.inject.{Inject, Singleton}
 import javafx.embed.swing.SwingFXUtils

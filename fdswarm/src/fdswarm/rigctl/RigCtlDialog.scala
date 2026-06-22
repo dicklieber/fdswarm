@@ -16,14 +16,13 @@
  *
  */
 
-package fdswarm.bandmodes
+package fdswarm.rigctl
 
 import fdswarm.fx.components.{ButtonVariant, DialogButton}
 import fdswarm.fx.utils.UiStyles
 import fdswarm.fx.utils.editor.{CaseClassPropertyEditor, HelpBrowser}
 import fdswarm.logging.LazyStructuredLogging
 import jakarta.inject.{Inject, Singleton}
-import scala.jdk.CollectionConverters.*
 import scalafx.Includes.*
 import scalafx.application.Platform
 import scalafx.beans.property.{BooleanProperty, StringProperty}
@@ -33,6 +32,8 @@ import scalafx.scene.Scene
 import scalafx.scene.control.*
 import scalafx.scene.layout.*
 import scalafx.stage.{Stage, Window}
+
+import scala.jdk.CollectionConverters.*
 
 /** Dialog for configuring and managing the rigctld integration.
   *
@@ -163,12 +164,9 @@ class RigCtlDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Rigctl
     // ── Buttons ───────────────────────────────────────────────────────────────
 
     val saveButton = DialogButton("Save", "floppy", ButtonVariant.Primary, "Save configuration")
-    saveButton.disable <== dirty.not()
     saveButton.onAction = _ =>
       rigCtlManager.saveConfig(currentConfig())
-      dirty.value = false
-      statusLabel.text = "Configuration saved."
-      statusLabel.style = "-fx-text-fill: green;"
+      stage.foreach(_.close())
 
     val refreshButton = DialogButton("Refresh", "arrow-clockwise", ButtonVariant.Secondary, "Reload rig list from rigctld")
     refreshButton.onAction = _ => loadRigModels()

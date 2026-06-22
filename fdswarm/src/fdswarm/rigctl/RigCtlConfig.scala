@@ -16,7 +16,7 @@
  *
  */
 
-package fdswarm.bandmodes
+package fdswarm.rigctl
 
 import fdswarm.fx.utils.editor.FieldHelp
 import io.circe.Codec
