@@ -19,7 +19,9 @@
 package fdswarm.fx.bandmodes
 
 import fdswarm.bandmodes.BandModeMatrixPane
+import fdswarm.fx.GridColumns
 import fdswarm.fx.bands.{BandCheckBoxPane, ModeCheckBoxPane}
+import fdswarm.fx.components.{ButtonVariant, DialogButton}
 import fdswarm.fx.utils.IconButton
 import fdswarm.rigctl.{RigCtlDialog, RigctldPoller}
 import jakarta.inject.{Inject, Singleton}
@@ -27,6 +29,7 @@ import scalafx.Includes.*
 import scalafx.geometry.Insets
 import scalafx.scene.control.*
 import scalafx.scene.layout.*
+import scalafx.scene.paint.Color
 import scalafx.stage.Window
 
 /** 3-pane editor:
@@ -75,9 +78,16 @@ final class BandsAndModesPane @Inject()(
       headerText = "Manage Bands and Modes"
     }
     dialog.dialogPane().content = this
+    // Keep ButtonType.Close so ESC closes the dialog; we'll hide the auto-generated button
     dialog.dialogPane().buttonTypes = Seq(ButtonType.Close)
+    val autoCloseBtn = dialog.dialogPane().delegate.lookupButton(ButtonType.Close.delegate)
+    autoCloseBtn.setVisible(false)
+    autoCloseBtn.setManaged(false)
 
-    val rigCtlButton = IconButton("gear", 15, "Open RigCtl Manager")
+    val closeButton = DialogButton("Close", "x-circle", ButtonVariant.Secondary, "Close")
+    closeButton.onAction = _ => dialog.close()
+
+    val rigCtlButton = IconButton("gear", 15, "Open RigCtl Manager", color = Color.BLUE)
     rigCtlButton.onAction = _ => rigCtlDialog.show(ownerWindow)
 
     val pauseCheckBox = new CheckBox("Pause RigCtl"):
@@ -85,13 +95,17 @@ final class BandsAndModesPane @Inject()(
     pauseCheckBox.onAction = _ =>
       if pauseCheckBox.selected.value then rigctldPoller.pause() else rigctldPoller.resume()
 
+    val rigCtlGroup = GridColumns.fieldSet("RigCtl",
+      new HBox(4, rigCtlButton, pauseCheckBox)
+    )
+
     val buttonBar = dialog.dialogPane().delegate.lookup(".button-bar")
       .asInstanceOf[javafx.scene.control.ButtonBar]
-    javafx.scene.control.ButtonBar.setButtonData(rigCtlButton.delegate,
+    javafx.scene.control.ButtonBar.setButtonData(rigCtlGroup.delegate,
       javafx.scene.control.ButtonBar.ButtonData.LEFT)
-    javafx.scene.control.ButtonBar.setButtonData(pauseCheckBox.delegate,
-      javafx.scene.control.ButtonBar.ButtonData.LEFT)
-    buttonBar.getButtons.addAll(rigCtlButton.delegate, pauseCheckBox.delegate)
+    javafx.scene.control.ButtonBar.setButtonData(closeButton.delegate,
+      javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE)
+    buttonBar.getButtons.addAll(rigCtlGroup.delegate, closeButton.delegate)
 
     dialog.showAndWait()
 
