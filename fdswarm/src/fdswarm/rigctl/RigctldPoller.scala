@@ -42,6 +42,11 @@ class RigctldPoller @Inject()(
 
   @volatile private var stopRequested = false
   @volatile private var maybeThread: Option[Thread] = None
+  @volatile private var paused = false
+
+  def pause(): Unit  = paused = true
+  def resume(): Unit = paused = false
+  def isEnabled: Boolean = rigCtlManager.config.value.enabled
 
   def start(): Unit = this.synchronized {
     val cfg = rigCtlManager.config.value
@@ -95,22 +100,25 @@ class RigctldPoller @Inject()(
     while !Thread.currentThread().isInterrupted && !socket.isClosed do
       val cfg = rigCtlManager.config.value
       try
-        val freqHz  = queryFrequency(out, in)
-        val modeStr = queryMode(out, in)
+        if paused then
+          Thread.sleep(cfg.pollIntervalMs)
+        else
+          val freqHz  = queryFrequency(out, in)
+          val modeStr = queryMode(out, in)
 
-        for
-          hz   <- freqHz
-          band <- Band.fromFrequency(hz)
-          mode <- modeStr.flatMap(s => scala.util.Try(Mode.fromString(s)).toOption)
-        do
-          val newBandMode = BandMode(band, mode)
-          if newBandMode != selectedBandModeManager.selected.value then
-            logger.info(s"rigctld: band/mode changed to $newBandMode")
-            Platform.runLater {
-              selectedBandModeManager.save(newBandMode)
-            }
+          for
+            hz   <- freqHz
+            band <- Band.fromFrequency(hz)
+            mode <- modeStr.flatMap(s => scala.util.Try(Mode.fromString(s)).toOption)
+          do
+            val newBandMode = BandMode(band, mode)
+            if newBandMode != selectedBandModeManager.selected.value then
+              logger.info(s"rigctld: band/mode changed to $newBandMode")
+              Platform.runLater {
+                selectedBandModeManager.save(newBandMode)
+              }
 
-        Thread.sleep(cfg.pollIntervalMs)
+          Thread.sleep(cfg.pollIntervalMs)
       catch
         case _: java.net.SocketTimeoutException =>
           logger.debug("rigctld read timeout")

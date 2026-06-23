@@ -62,7 +62,9 @@ object Band:
     byName.get(band.trim.toLowerCase)
 
   def fromFrequency(hz: Long): Option[Band] =
-    Band.values.find(b => hz >= b.startFrequencyHz && hz <= b.endFrequencyHz)
+    val maybeBand = Band.values.find(b => hz >= b.startFrequencyHz && hz <= b.endFrequencyHz)
+
+    maybeBand
 
   given Schema[Band] = Schema.string
   given Encoder[Band] = Encoder.encodeString.contramap(_.name)

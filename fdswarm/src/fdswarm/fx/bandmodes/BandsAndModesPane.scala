@@ -20,6 +20,8 @@ package fdswarm.fx.bandmodes
 
 import fdswarm.bandmodes.BandModeMatrixPane
 import fdswarm.fx.bands.{BandCheckBoxPane, ModeCheckBoxPane}
+import fdswarm.fx.utils.IconButton
+import fdswarm.rigctl.{RigCtlDialog, RigctldPoller}
 import jakarta.inject.{Inject, Singleton}
 import scalafx.Includes.*
 import scalafx.geometry.Insets
@@ -41,7 +43,9 @@ final class BandsAndModesPane @Inject()(
                                          bandCheckBoxPane: BandCheckBoxPane,
                                          modeCheckBoxPane: ModeCheckBoxPane,
                                          matrixPane: BandModeMatrixPane,
-                                         contestManager: fdswarm.fx.contest.ContestConfigManager
+                                         contestManager: fdswarm.fx.contest.ContestConfigManager,
+                                         rigctldPoller: RigctldPoller,
+                                         rigCtlDialog: RigCtlDialog
                                       ) extends GridPane:
 
   matrixPane.onConfigRequest = Some(() => {
@@ -72,6 +76,23 @@ final class BandsAndModesPane @Inject()(
     }
     dialog.dialogPane().content = this
     dialog.dialogPane().buttonTypes = Seq(ButtonType.Close)
+
+    val rigCtlButton = IconButton("gear", 15, "Open RigCtl Manager")
+    rigCtlButton.onAction = _ => rigCtlDialog.show(ownerWindow)
+
+    val pauseCheckBox = new CheckBox("Pause RigCtl"):
+      disable = !rigctldPoller.isEnabled
+    pauseCheckBox.onAction = _ =>
+      if pauseCheckBox.selected.value then rigctldPoller.pause() else rigctldPoller.resume()
+
+    val buttonBar = dialog.dialogPane().delegate.lookup(".button-bar")
+      .asInstanceOf[javafx.scene.control.ButtonBar]
+    javafx.scene.control.ButtonBar.setButtonData(rigCtlButton.delegate,
+      javafx.scene.control.ButtonBar.ButtonData.LEFT)
+    javafx.scene.control.ButtonBar.setButtonData(pauseCheckBox.delegate,
+      javafx.scene.control.ButtonBar.ButtonData.LEFT)
+    buttonBar.getButtons.addAll(rigCtlButton.delegate, pauseCheckBox.delegate)
+
     dialog.showAndWait()
 
 /*

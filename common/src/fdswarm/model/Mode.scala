@@ -30,13 +30,14 @@ object Mode:
   private val byName: Map[String, Mode] =
     Mode.values.map(m => m.toString -> m).toMap
 
+  private val cwRx   = "CW.*".r
+  private val digiRx = "(?:PKT|RTTY).*".r
+
   def fromString(mode: String): Mode =
-    val normalized = mode.trim.toUpperCase
-    normalized match
-      case "CW" => Mode.CW
-      case "PH" | "PHONE" | "SSB" | "USB" | "LSB" | "AM" | "FM" => Mode.PH
-      case "DIGI" | "DI" | "DATA" | "RTTY" => Mode.DIGI
-      case _ => byName.getOrElse(normalized, throw new IllegalArgumentException(s"Unknown mode: '$mode'"))
+    mode.trim.toUpperCase match
+      case cwRx()   => Mode.CW
+      case digiRx() => Mode.DIGI
+      case _        => Mode.PH
 
   given Schema[Mode] = Schema.string
   given Encoder[Mode] = Encoder.encodeString.contramap(_.toString)

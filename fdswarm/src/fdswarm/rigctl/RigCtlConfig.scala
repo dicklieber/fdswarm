@@ -50,9 +50,9 @@ case class RigCtlConfig(
   @FieldHelp(value = "TCP port rigctld listens on (default 4532)",
              url   = "rigctl/port")
   port: Int = 4532,
-  @FieldHelp(value = "How often to poll the rig for band/mode changes (milliseconds)",
+  @FieldHelp(value = "How often to poll the rigctl for band/mode changes (milliseconds)",
              url   = "rigctl/pollIntervalMs")
-  pollIntervalMs: Int = 1000,
+  pollIntervalMs: Int = 3000,
   @FieldHelp(value = "Use the rigctld command line.",
              url   = "rigctl/cmdOverride")
   cmdOverride: String = ""

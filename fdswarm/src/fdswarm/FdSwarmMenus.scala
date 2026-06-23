@@ -110,10 +110,6 @@ final class FdSwarmMenus @Inject()(
         new MenuItem("Scoring"):
           onAction = _ => contestScoringConfigDialog.show()
         ,
-        new SeparatorMenuItem(),
-        new MenuItem("RigCtl Manager"):
-          onAction = _ => rigCtlDialog.show(FdSwarmUi.primaryStage)
-        ,
         developerModeMenuItem
       )
   private val arrlRegionMapPath: os.Path = os.pwd / "arrl-region-map.json"
@@ -211,6 +207,9 @@ final class FdSwarmMenus @Inject()(
     bandModeManagerPane.show(
       FdSwarmUi.primaryStage
     )
+
+  def showRigCtlDialog(): Unit =
+    rigCtlDialog.show(FdSwarmUi.primaryStage)
 
   private def fileMenu: Menu =
     new Menu("File"):
