@@ -25,14 +25,9 @@ import scalafx.scene.control.Button
 import scalafx.scene.layout.{BorderPane, HBox}
 import scalafx.stage.Stage
 
-import java.awt.Desktop
-import java.net.URI
-
 final class MonitorUi @Inject() (
     nodeStore: NodeStore,
-    nodeStatusView: NodeStatusView,
-    logProcesser: LogProcesser,
-    elasticsearchLogIndexer: ElasticsearchLogIndexer
+    nodeStatusView: NodeStatusView
 ):
 
   def start(primaryStage: Stage): Unit =
@@ -47,13 +42,4 @@ final class MonitorUi @Inject() (
             new Button("Clear"):
               onAction = _ =>
                 nodeStore.clear()
-                elasticsearchLogIndexer.deleteElasticsearchIndex()
-            ,
-            new Button("Open Kibana"):
-              onAction = _ =>
-                Desktop.getDesktop.browse(URI("http://localhost:5601/app/discover"))
           )
-
-//  private def stop(): Unit =
-//    logProcesser.stop()
-//    udpPacketListener.stop()

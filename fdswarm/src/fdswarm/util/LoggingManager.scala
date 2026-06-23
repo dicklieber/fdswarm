@@ -27,6 +27,18 @@ import jakarta.inject.Inject
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.core.config.Configurator
 
+/**
+ * Manages logging configurations by interacting with Log4j2 and persisting logging levels in a JSON file.
+ *
+ * @param fileHelper A utility class for handling file-related operations.
+ *
+ *                   This class provides functionality to:
+ *                   - Retrieve the current list of logging configurations.
+ *                   - Update the logging level for a specific logger.
+ *                   - Remove all custom loggers and reset them to the default level.
+ *                   - Apply initial logging configurations from a persisted JSON file.
+ *
+ *                   Logging configurations are stored in a `logging.json` file and use Log4j2 for runtime level adjustments. */
 class LoggingManager @Inject() (
                                  fileHelper: FileHelper
                                ) extends LazyStructuredLogging:

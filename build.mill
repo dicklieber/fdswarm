@@ -147,7 +147,6 @@ object monitor extends CommonSettings:
     mvn"org.apache.logging.log4j:log4j-api:$log4jV",
     mvn"org.apache.logging.log4j:log4j-core:$log4jV",
     mvn"org.apache.logging.log4j:log4j-slf4j-impl:$log4jV",
-    mvn"nl.gn0s1s::elastic4s-client-esjava:$elastic4sV",
     mvn"com.fasterxml.jackson.core:jackson-databind:$jacksonV",
     mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonV",
     scalaFxDep,

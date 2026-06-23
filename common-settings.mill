@@ -40,7 +40,6 @@ trait CommonSettings extends ScalaModule:
   val log4jV = Versions.log4j
   val scalaV = Versions.scala
   val jacksonV = Versions.jackson
-  val elastic4sV = Versions.elastic4s
   val tapirV = Versions.tapir
   val http4sV = Versions.http4s
   val otelV = Versions.otel

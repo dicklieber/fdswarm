@@ -2,7 +2,6 @@ package fdswarm.util
 
 import com.organization.BuildInfo
 import fdswarm.io.FileHelper
-import fdswarm.logging.StructuredLogger
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.core.config.Configurator
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory
@@ -17,12 +16,6 @@ object LoggingConfigurator:
     val accessLogFile = fileHelper.directory / "access.log"
     os.write.append(logFile, "", createFolders = true)
     os.write.append(accessLogFile, "", createFolders = true)
-    StructuredLogger.setJsonEventSink: eventJson =>
-      os.write.append(
-        logFile,
-        eventJson + System.lineSeparator(),
-        createFolders = true
-      )
 
     val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
     builder.setStatusLevel(Level.WARN)
@@ -38,6 +31,12 @@ object LoggingConfigurator:
     console.addAttribute("target", "SYSTEM_OUT")
     console.add(consoleLayout)
     builder.add(console)
+
+    val logFileAppender = builder.newAppender("LogFile", "File")
+    logFileAppender.addAttribute("fileName", logFile.toString)
+    logFileAppender.addAttribute("immediateFlush", true)
+    logFileAppender.add(builder.newLayout("PatternLayout").addAttribute("pattern", "%msg%n"))
+    builder.add(logFileAppender)
 
     val accessFile =
       builder.newAppender("AccessFile", "File")
@@ -61,6 +60,7 @@ object LoggingConfigurator:
       builder
         .newRootLogger(Level.INFO)
         .add(builder.newAppenderRef("Console"))
+        .add(builder.newAppenderRef("LogFile"))
     )
 
     Configurator.reconfigure(builder.build())

@@ -219,29 +219,9 @@ final class StructuredLogger private (private val logger: Logger):
                    args: Seq[(String, Any)]
                  ): Unit =
     val contextValues = buildContextValues(throwable, args)
-    val eventJson =
-      buildEventJson(
-        level,
-        message,
-        contextValues
-      )
-
+    val eventJson = buildEventJson(level, message, contextValues)
     Using.resource(withThreadContext(contextValues)): _ =>
-      throwable match
-        case Some(t) =>
-          logger.log(
-            level,
-            message.orNull,
-            t
-          )
-        case None    =>
-          logger.log(
-            level,
-            message.orNull
-          )
-      StructuredLogger.publishJsonEvent(
-        eventJson
-      )
+      logger.log(level, eventJson)
 
   private def buildContextValues(
                                   throwable: Option[Throwable],
@@ -448,27 +428,6 @@ final class StructuredLogger private (private val logger: Logger):
     else Json.fromString(value)
 
 object StructuredLogger:
-  @volatile
-  private var jsonEventSink: Option[String => Unit] = None
-
-  def setJsonEventSink(
-                       sink: String => Unit
-                     ): Unit =
-    jsonEventSink = Option(sink)
-
-  def clearJsonEventSink(): Unit =
-    jsonEventSink = None
-
-  private[logging] def publishJsonEvent(
-                                         eventJson: String
-                                       ): Unit =
-    jsonEventSink.foreach: sink =>
-      try
-        sink(eventJson)
-      catch
-        case _: Throwable =>
-          ()
-
   def apply(clazz: Class[?]): StructuredLogger =
     new StructuredLogger(LogManager.getLogger(clazz))
 
