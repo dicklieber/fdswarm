@@ -43,7 +43,7 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
     logger.info("RigCtl config saved", "config" -> newValue.toString)
   }
 
-  @volatile private var rigctldProcess: Option[Process] = None
+  @volatile private var rigctldProcess: Option[os.SubProcess] = None
 
   /** Called with each non-empty output line from the running rigctld process.
     * Set to [[None]] to stop receiving notifications.
@@ -64,11 +64,9 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
     val cmd = buildCommand(cfg)
     logger.debug(s"Launching rigctld: ${cmd.mkString(" ")}")
     try
-      val pb = new ProcessBuilder(cmd*)
-      pb.redirectErrorStream(true)
-      val proc = pb.start()
+      val proc = os.proc(cmd).spawn(mergeErrIntoOut = true)
       rigctldProcess = Some(proc)
-      logger.info("rigctld process started", "pid" -> proc.pid())
+      logger.info("rigctld process started", "pid" -> proc.wrapped.pid())
       startOutputLogger(proc)
       Right(())
     catch
@@ -78,11 +76,11 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
         logger.error(msg, e)
         Left(msg)
 
-  private def startOutputLogger(proc: Process): Unit =
+  private def startOutputLogger(proc: os.SubProcess): Unit =
     val t = new Thread(
       () =>
         val reader = new java.io.BufferedReader(
-          new java.io.InputStreamReader(proc.getInputStream))
+          new java.io.InputStreamReader(proc.stdout.wrapped))
         var line = reader.readLine()
         while line != null do
           if line.nonEmpty then
@@ -100,14 +98,14 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
   /** Kills the rigctld process previously started by [[launch]], if any. */
   def kill(): Unit =
     rigctldProcess.foreach { proc =>
-      if proc.isAlive then
+      if proc.isAlive() then
         proc.destroy()
         logger.info("rigctld process stopped")
     }
     rigctldProcess = None
 
   /** Returns `true` if the rigctld process launched by [[launch]] is currently running. */
-  def isRunning: Boolean = rigctldProcess.exists(_.isAlive)
+  def isRunning: Boolean = rigctldProcess.exists(_.isAlive())
 
   /** Runs `rigctl -l` and returns all supported rig models, or an error message.
     *
@@ -122,11 +120,7 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
       else "rigctl"
 
     try
-      val proc = new ProcessBuilder(rigctlBin, "-l")
-        .redirectErrorStream(true)
-        .start()
-      val output = scala.io.Source.fromInputStream(proc.getInputStream).mkString
-      proc.waitFor()
+      val output = os.proc(rigctlBin, "-l").call(mergeErrIntoOut = true, check = false).out.text()
       val rigs = output.linesIterator
         .drop(1)                          // skip header
         .flatMap(parseRigLine)

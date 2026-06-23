@@ -21,6 +21,7 @@ package fdswarm.rigctl
 import fdswarm.bandmodes.SelectedBandModeManager
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.{Band, BandMode, Mode}
+import fdswarm.rigctl.RigctldPoller.*
 import jakarta.inject.{Inject, Singleton}
 import scalafx.application.Platform
 
@@ -121,20 +122,28 @@ class RigctldPoller @Inject()(
 
   /** Sends `f\n` and returns the frequency in Hz. */
   private def queryFrequency(out: PrintWriter, in: BufferedReader): Option[Long] =
-    out.print("f\n")
+    out.print(frequencyCommand)
     out.flush()
     val str = in.readLine()
-    Option(str).flatMap(s => scala.util.Try(s.trim.toLong).toOption)
+    val maybeLong = Option(str).flatMap(s => scala.util.Try(s.trim.toLong).toOption)
+    logger.trace("freqPoll", "Sent" -> frequencyCommand, "received" -> str)
+    maybeLong
 
   /** Sends `m\n`, reads mode + passband lines, returns the mode string. */
-  private def queryMode(out: PrintWriter, in: BufferedReader): Option[String] =
-    out.print("m\n")
+  private def queryMode(out: PrintWriter, in: BufferedReader): Option[String] = 
+    out.print(modeCommand)
     out.flush()
     val modeline = in.readLine()
     val modeStr = Option(modeline).map(_.trim)
     in.readLine()  // consume passband width line
+    logger.trace("modePoll", "Sent" -> modeCommand, "received" -> modeStr)
+
     modeStr
 
   private def sleepOrInterrupt(ms: Long): Unit =
     try Thread.sleep(ms)
     catch case _: InterruptedException => Thread.currentThread().interrupt()
+
+object RigctldPoller:
+  private val frequencyCommand = "f\n"
+  private val modeCommand = "m\n"
