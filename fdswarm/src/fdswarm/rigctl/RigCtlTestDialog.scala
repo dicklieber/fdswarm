@@ -94,39 +94,6 @@ class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Ri
         case Right(_) => append("rigctld process started")
         case Left(err) => append(s"ERROR: $err")
 
-    val testNetButton = DialogButton("Test Radio Network", "wifi", ButtonVariant.Warning, "Test TCP connectivity to the radio device")
-    testNetButton.onAction = _ =>
-      val cfg = rigCtlManager.config.value
-      val device = cfg.rigDevice.trim
-      if device.isEmpty then
-        append("No radio device configured (rigDevice is empty)")
-      else
-        val (host, port) =
-          if device.contains(":") then
-            val parts = device.split(":", 2)
-            (parts(0), scala.util.Try(parts(1).toInt).getOrElse(4992))
-          else
-            (device, 4992)
-        append(s"--- Testing TCP connection to $host:$port ---")
-        val t = new Thread(
-          () =>
-            try
-              val socket = new java.net.Socket()
-              socket.connect(new java.net.InetSocketAddress(host, port), 3000)
-              socket.close()
-              append(s"[OK] Reachable: $host:$port")
-            catch
-              case _: java.net.ConnectException =>
-                append(s"[FAIL] Connection refused at $host:$port — is the radio on?")
-              case _: java.net.SocketTimeoutException =>
-                append(s"[FAIL] Timeout connecting to $host:$port — radio not responding on network")
-              case e: Exception =>
-                append(s"[FAIL] ${e.getMessage}"),
-          "rigctld-net-test"
-        )
-        t.setDaemon(true)
-        t.start()
-
     val pollButton = DialogButton("Start Polling", "activity", ButtonVariant.Primary, "Poll rigctld for frequency and mode")
     pollButton.onAction = _ =>
       if pollThread.isDefined then
@@ -142,7 +109,7 @@ class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Ri
     val closeButton = DialogButton("Close", "x-circle", ButtonVariant.Secondary, "Close test dialog")
     closeButton.onAction = _ => stage.foreach(_.close())
 
-    val buttonBar = new HBox(10, launchButton, testNetButton, pollButton, clearButton, closeButton):
+    val buttonBar = new HBox(10, launchButton, pollButton, clearButton, closeButton):
       padding = Insets(8, 12, 10, 12)
 
     // ── Layout ────────────────────────────────────────────────────────────────

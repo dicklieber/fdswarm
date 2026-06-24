@@ -82,7 +82,7 @@ class RigctldPoller @Inject()(
         try
           val out = new PrintWriter(socket.getOutputStream, true)
           val in  = new BufferedReader(new InputStreamReader(socket.getInputStream))
-          logger.info(s"Connected to rigctld at ${cfg.host}:${cfg.port}")
+          logger.debug(s"Connected to rigctld at ${cfg.host}:${cfg.port}")
           innerLoop(out, in, socket)
         finally
           socket.close()

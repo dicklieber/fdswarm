@@ -27,5 +27,4 @@ automatically track your transceiver's band and mode.
 Use **RigCtl → Test** in the menu to open the test dialog, which lets you:
 
 - Launch or relaunch rigctld and view its live output
-- Test TCP connectivity to the radio before launching rigctld
 - Poll rigctld in real time to verify frequency and mode are being read correctly
