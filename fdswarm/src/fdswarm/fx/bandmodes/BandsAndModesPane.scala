@@ -87,7 +87,7 @@ final class BandsAndModesPane @Inject()(
     val closeButton = DialogButton("Close", "x-circle", ButtonVariant.Secondary, "Close")
     closeButton.onAction = _ => dialog.close()
 
-    val rigCtlButton = IconButton("gear", 15, "Open RigCtl Manager", color = Color.BLUE)
+    val rigCtlButton = IconButton.settings("RigCtl Settings")
     rigCtlButton.onAction = _ => rigCtlDialog.show(ownerWindow)
 
     val pauseCheckBox = new CheckBox("Pause RigCtl"):
