@@ -18,7 +18,7 @@
 
 package fdswarm.bandmodes
 
-import fdswarm.bands.{AvailableBandsManager, AvailableModesManager, BandModeBuilder}
+import fdswarm.bands.{AvailableBandsManager, BandModeBuilder, Modes}
 import fdswarm.fx.GridColumns
 import fdswarm.fx.utils.IconButton
 import fdswarm.logging.LazyStructuredLogging
@@ -44,7 +44,6 @@ import scala.jdk.CollectionConverters.*
  * - If there is no persisted BandMode, the top-left cell is selected (or the first enabled one if available)
  */
 final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsManager,
-                                         availableModesManager: AvailableModesManager,
                                          selectedStore: SelectedBandModeManager,
                                          bandModeBuilder: BandModeBuilder
                                         ) extends  LazyStructuredLogging:
@@ -90,11 +89,6 @@ final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsMana
     logger.debug("Available bands changed, rebuilding grid")
     buildGrid()
   }
-  availableModesManager.modes.onChange {
-    logger.debug("Available modes changed, rebuilding grid")
-    buildGrid()
-  }
-
   def buildGrid():Unit=
     logger.debug(s"Building grid for BandModeMatrixPane (tg: $tg)")
     tg.getToggles.clear()
@@ -110,7 +104,7 @@ final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsMana
     grid.columnConstraints = Seq(firstColCc) ++ (1 to nBands).map(_ => bandColCc)
 
     for
-      (mode,row) <- availableModesManager.modes.zipWithIndex
+      (mode,row) <- Modes.modes.zipWithIndex
     do
       grid.add(new Label(mode.toString), 0, row)
       for (band, col) <- availableBandsStore.bands.zipWithIndex do
