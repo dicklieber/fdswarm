@@ -30,6 +30,7 @@ import io.circe.Codec
   * @param port           TCP port rigctld listens on (default 4532)
   * @param pollIntervalMs how often to query the rig for band/mode changes (ms)
   * @param rigctldPath    filesystem path to the rigctld binary
+  * @param civOverride    CI-V address override passed via `-c`; only relevant for Icom and some Ten-Tec rigs
   */
 case class RigCtlConfig(
   @FieldHelp(value = "Enable rigctld polling at startup",
@@ -55,7 +56,10 @@ case class RigCtlConfig(
   pollIntervalMs: Int = 3000,
   @FieldHelp(value = "Use the rigctld command line.",
              url   = "rigctl/cmdOverride")
-  cmdOverride: String = ""
+  cmdOverride: String = "",
+  @FieldHelp(value = "CI-V address to communicate with the rig (decimal or 0x-prefixed hex). Only useful for Icom and some Ten-Tec rigs.",
+             url   = "rigctl/civOverride")
+  civOverride: String = ""
 ) derives Codec.AsObject:
   /** Builds the rigctld command as a sequence of arguments. */
   def buildCommand: Seq[String] =
@@ -64,6 +68,7 @@ case class RigCtlConfig(
       "-m", rigModel.toString,
       "-t", port.toString
     ) ++ (if rigDevice.nonEmpty then Seq("-r", rigDevice) else Seq.empty)
+      ++ (if civOverride.nonEmpty then Seq("-c", civOverride) else Seq.empty)
 
   /** Returns the rigctld command as a display string. */
   def commandLine: String = buildCommand.mkString(" ")
