@@ -59,7 +59,8 @@ class AdifExporter @Inject()(stationManager: StationConfigManager):
     appendField(fields, "STATION_CALLSIGN", ownCall)
     appendField(fields, "CLASS", classSent)
     appendField(fields, "ARRL_SECT", section)
-    
+    appendField(fields, "APP_FDSWARM_UUID", qso.uuid)
+
     fields.append("<EOR>")
     fields.toString()
 
