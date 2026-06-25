@@ -18,18 +18,20 @@
 
 package fdswarm.bandmodes
 
-import fdswarm.bands.{AvailableBandsManager, BandModeBuilder, Modes}
+import fdswarm.bands.{AvailableBandsManager, AvailableModesManager, BandModeBuilder}
 import fdswarm.fx.GridColumns
 import fdswarm.fx.utils.IconButton
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.{Band, BandMode, Mode}
+import fdswarm.rigctl.{RigCtlDialog, RigctlPollerIndicator, RigctldPoller}
 import jakarta.inject.Inject
+import scalafx.Includes.*
 import scalafx.application.Platform
 import scalafx.beans.property.BooleanProperty
-import scalafx.geometry.{Insets, Pos}
+import scalafx.geometry.Insets
 import scalafx.scene.Node
 import scalafx.scene.control.*
-import scalafx.scene.layout.{ColumnConstraints, GridPane, Priority}
+import scalafx.scene.layout.{ColumnConstraints, GridPane, HBox, Priority, Region, VBox}
 
 import scala.jdk.CollectionConverters.*
 
@@ -44,15 +46,18 @@ import scala.jdk.CollectionConverters.*
  * - If there is no persisted BandMode, the top-left cell is selected (or the first enabled one if available)
  */
 final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsManager,
+                                         availableModesManager: AvailableModesManager,
                                          selectedStore: SelectedBandModeManager,
-                                         bandModeBuilder: BandModeBuilder
+                                         bandModeBuilder: BandModeBuilder,
+                                         rigctldPoller: RigctldPoller,
+                                         rigCtlDialog: RigCtlDialog
                                         ) extends  LazyStructuredLogging:
 
   val showConfigButton = BooleanProperty(true)
   var onConfigRequest: Option[() => Unit] = None
   private val tg = new ToggleGroup()
 
-  private val container = new scalafx.scene.layout.StackPane()
+  private val container = new VBox(4)
   buildGrid()
 
   selectedStore.selected.onChange { (_, _, newValue) =>
@@ -89,6 +94,12 @@ final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsMana
     logger.debug("Available bands changed, rebuilding grid")
     buildGrid()
   }
+
+  availableModesManager.modes.onChange {
+    logger.debug("Available modes changed, rebuilding grid")
+    buildGrid()
+  }
+
   def buildGrid():Unit=
     logger.debug(s"Building grid for BandModeMatrixPane (tg: $tg)")
     tg.getToggles.clear()
@@ -104,7 +115,7 @@ final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsMana
     grid.columnConstraints = Seq(firstColCc) ++ (1 to nBands).map(_ => bandColCc)
 
     for
-      (mode,row) <- Modes.modes.zipWithIndex
+      (mode,row) <- availableModesManager.modes.zipWithIndex
     do
       grid.add(new Label(mode.toString), 0, row)
       for (band, col) <- availableBandsStore.bands.zipWithIndex do
@@ -113,13 +124,21 @@ final class BandModeMatrixPane @Inject()(availableBandsStore: AvailableBandsMana
         grid.add(button, col + 1, row)
     val configButton = IconButton("sliders2-vertical", 24, "Change available bands and modes")
     configButton.visible <== showConfigButton
+    configButton.managed <== showConfigButton
     configButton.onAction = _ => onConfigRequest.foreach(_.apply())
+
+    val indicator = new RigctlPollerIndicator(
+      rigctldPoller,
+      Some(() => Option(container.scene.value).map(_.getWindow).foreach(w => rigCtlDialog.show(w)))
+    )
+    val spacer = new Region()
+    HBox.setHgrow(spacer, Priority.Always)
+    val bottomBar = new HBox(4, indicator, spacer, configButton)
+
     container.children = Seq(
       GridColumns.fieldSet("Band & Mode", grid),
-      configButton
+      bottomBar
     )
-    scalafx.scene.layout.StackPane.setAlignment(configButton, Pos.BottomRight)
-    scalafx.scene.layout.StackPane.setMargin(configButton, Insets(0, 5, 5, 0))
 
   val node:Node =
     container
