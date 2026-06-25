@@ -81,7 +81,7 @@ class RigCtlDialog @Inject()(
 
     val commandLineField = new TextField:
       editable = false
-      text     = rigCtlManager.commandLine(cfg)
+      text     = cfg.commandLine
       style    = "-fx-font-family: monospace; -fx-background-color: #f4f4f4;"
       maxWidth = Double.MaxValue
 
@@ -89,7 +89,7 @@ class RigCtlDialog @Inject()(
 
     editor.onAnyFieldChange { () =>
       val current = editor.finish()
-      commandLineField.text = rigCtlManager.commandLine(current)
+      commandLineField.text = current.commandLine
       dirty.value = current != cfg
     }
 

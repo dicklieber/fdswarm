@@ -61,8 +61,8 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
   def launch(): Either[String, Unit] =
     kill()
     val cfg = config.value
-    val cmd = buildCommand(cfg)
-    logger.debug(s"Launching rigctld: ${cmd.mkString(" ")}")
+    val cmd = cfg.buildCommand
+    logger.debug(s"Launching rigctld: ${cfg.commandLine}")
     try
       val proc = os.proc(cmd).spawn(mergeErrIntoOut = true)
       rigctldProcess = Some(proc)
@@ -135,16 +135,6 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
         Left(s"Failed to run '$rigctlBin -l': ${e.getMessage}")
 
   // ── helpers ──────────────────────────────────────────────────────────────────
-
-  /** Returns the rigctld command as a display string for the given config. */
-  def commandLine(cfg: RigCtlConfig): String = buildCommand(cfg).mkString(" ")
-
-  private def buildCommand(cfg: RigCtlConfig): Seq[String] =
-    Seq(
-      cfg.rigctldPath,
-      "-m", cfg.rigModel.toString,
-      "-t", cfg.port.toString
-    ) ++ (if cfg.rigDevice.nonEmpty then Seq("-r", cfg.rigDevice) else Seq.empty)
 
   /** Parses one line from `rigctl -l` output.
     * Expected format (fixed-width columns):

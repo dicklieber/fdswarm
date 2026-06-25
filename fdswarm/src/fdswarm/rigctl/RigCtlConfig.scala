@@ -56,7 +56,17 @@ case class RigCtlConfig(
   @FieldHelp(value = "Use the rigctld command line.",
              url   = "rigctl/cmdOverride")
   cmdOverride: String = ""
-) derives Codec.AsObject
+) derives Codec.AsObject:
+  /** Builds the rigctld command as a sequence of arguments. */
+  def buildCommand: Seq[String] =
+    Seq(
+      rigctldPath,
+      "-m", rigModel.toString,
+      "-t", port.toString
+    ) ++ (if rigDevice.nonEmpty then Seq("-r", rigDevice) else Seq.empty)
+
+  /** Returns the rigctld command as a display string. */
+  def commandLine: String = buildCommand.mkString(" ")
 
 /** A single entry from `rigctl -l`, describing a supported Hamlib rig. */
 case class RigInfo(modelNumber: Int, manufacturer: String, model: String, version: String, status: String):
