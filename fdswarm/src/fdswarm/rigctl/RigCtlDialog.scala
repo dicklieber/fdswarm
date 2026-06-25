@@ -126,6 +126,7 @@ class RigCtlDialog @Inject()(
     saveRestartButton.disable <== dirty.not()
     saveRestartButton.onAction = _ =>
       rigCtlManager.saveConfig(editor.finish())
+      rigCtlManager.launch()
       stopPoller()
       rows.clear()
       startPoller(addRow)

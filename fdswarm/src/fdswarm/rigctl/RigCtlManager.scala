@@ -54,15 +54,30 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
   def saveConfig(cfg: RigCtlConfig): Unit =
     config.value = cfg
 
+  /** Returns `true` if something is already listening on `host`:`port`. */
+  private def isPortOpen(host: String, port: Int): Boolean =
+    try
+      val s = new java.net.Socket()
+      s.connect(new java.net.InetSocketAddress(host, port), 500)
+      s.close()
+      true
+    catch
+      case _: Exception => false
+
   /** Launches rigctld with the current [[config]] parameters.
     *
-    * If rigctld is already running it is killed first.
+    * If [[RigCtlConfig.leaveRigctld]] is `true` and rigctld is already reachable on the
+    * configured port, the launch is skipped (the running instance is used as-is).
+    * Otherwise any previously-tracked process is killed first and a new one is started.
     */
   def launch(): Either[String, Unit] =
-    kill()
     val cfg = config.value
+    if cfg.leaveRigctld && isPortOpen(cfg.host, cfg.port) then
+      logger.info(s"rigctld already running at ${cfg.host}:${cfg.port} — skipping launch")
+      return Right(())
+    kill()
     val cmd = cfg.buildCommand
-    logger.debug(s"Launching rigctld: ${cfg.commandLine}")
+    logger.info(s"Launching rigctld: ${cfg.commandLine}")
     try
       val proc = os.proc(cmd).spawn(mergeErrIntoOut = true)
       rigctldProcess = Some(proc)
@@ -84,23 +99,33 @@ class RigCtlManager @Inject()(fileHelper: FileHelper) extends LazyStructuredLogg
         var line = reader.readLine()
         while line != null do
           if line.nonEmpty then
-            logger.debug(s"rigctld: $line")
+            logger.info(s"rigctld: $line")
             outputListener.foreach(_(line))
           line = reader.readLine()
-        val exitCode = proc.waitFor()
-        logger.debug(s"rigctld process ended, exitCode=$exitCode")
-        outputListener.foreach(_(s"process ended, exitCode=$exitCode")),
+        val exitedClean = proc.waitFor()
+        if exitedClean then
+          logger.info("rigctld process ended cleanly")
+        else
+          logger.warn("rigctld process ended with a non-zero exit code")
+        outputListener.foreach(_(s"process ended, success=$exitedClean")),
       "rigctld-output"
     )
     t.setDaemon(true)
     t.start()
 
-  /** Kills the rigctld process previously started by [[launch]], if any. */
+  /** Kills the rigctld process previously started by [[launch]], if any.
+    *
+    * If [[RigCtlConfig.leaveRigctld]] is `true` the process is detached (left running)
+    * rather than destroyed, so it persists after FdSwarm exits.
+    */
   def kill(): Unit =
     rigctldProcess.foreach { proc =>
       if proc.isAlive() then
-        proc.destroy()
-        logger.info("rigctld process stopped")
+        if config.value.leaveRigctld then
+          logger.info("rigctld process left running (leaveRigctld=true)")
+        else
+          proc.destroy()
+          logger.info("rigctld process stopped")
     }
     rigctldProcess = None
 

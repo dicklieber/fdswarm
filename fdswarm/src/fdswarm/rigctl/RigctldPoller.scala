@@ -137,8 +137,9 @@ class RigctldPoller @Inject()(
           Thread.sleep(cfg.pollIntervalMs)
       catch
         case _: java.net.SocketTimeoutException =>
-          logger.debug("rigctld read timeout")
+          logger.debug("rigctld read timeout (will reconnect)")
           Platform.runLater { lastError.value = Some("rigctld read timeout") }
+          return  // break inner loop → reconnect
         case _: InterruptedException =>
           Thread.currentThread().interrupt()
         case e: java.io.IOException =>

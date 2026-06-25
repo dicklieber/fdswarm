@@ -24,6 +24,7 @@ import io.circe.Codec
 /** Persistent configuration for the rigctld integration.
   *
   * @param enabled        whether rigctld polling is active at startup
+  * @param leaveRigctld   if true, launch rigctld as a daemon (leave it running); if false, manage its lifecycle
   * @param rigModel       Hamlib rig model number (see `rigctl -l`); 1 = Dummy
   * @param rigDevice      rig device path passed to rigctld via `-r` (e.g. `/dev/ttyUSB0`); empty = omit flag
   * @param host           hostname where rigctld is running
@@ -36,6 +37,9 @@ case class RigCtlConfig(
   @FieldHelp(value = "Enable rigctld polling at startup",
              url   = "rigctl/enabled")
   enabled: Boolean = false,
+  @FieldHelp(value = "Launch rigctld as a daemon (leave it running independently)",
+             url   = "rigctl/leaveRigctld")
+  leaveRigctld: Boolean = false,
   @FieldHelp(value = "Filesystem path to the rigctld binary (e.g. /usr/bin/rigctld)",
              url   = "rigctl/rigctldPath")
   rigctldPath: String = "rigctld",
