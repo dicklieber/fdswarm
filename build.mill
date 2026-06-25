@@ -184,4 +184,13 @@ object releaseTool extends ScalaModule:
       mvn"org.scalameta::munit:1.0.3"
     )
 
+object rigctlTool extends CommonSettings:
+  override def moduleDeps = Seq(common)
+
+  def mainClass = Some("rigctltool.RigCtlTool")
+
+  def mvnDeps = Seq(
+    mvn"com.lihaoyi::mainargs:0.7.8"
+  )
+
 object docs extends DocsModule(common, fdswarm)

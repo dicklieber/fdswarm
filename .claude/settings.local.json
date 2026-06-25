@@ -5,7 +5,8 @@
       "Bash(jar tf:*)",
       "Read(//private/tmp/**)",
       "Bash(jar xf:*)",
-      "Read(//tmp/laika/helium/config/**)"
+      "Read(//tmp/laika/helium/config/**)",
+      "Bash(./mill rigctlTool.compile)"
     ]
   }
 }
