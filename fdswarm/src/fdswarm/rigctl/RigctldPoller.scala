@@ -24,6 +24,7 @@ import fdswarm.model.{Band, BandMode}
 import fdswarm.rigctl.RigctldPoller.*
 import jakarta.inject.{Inject, Singleton}
 import scalafx.application.Platform
+import scalafx.beans.property.{IntegerProperty, ObjectProperty}
 
 import java.io.{BufferedReader, InputStreamReader, PrintWriter}
 import java.net.Socket
@@ -44,6 +45,12 @@ class RigctldPoller @Inject()(
   @volatile private var stopRequested = false
   @volatile private var maybeThread: Option[Thread] = None
   @volatile private var paused = false
+
+  /** Incremented on each successful poll cycle; observe to animate the indicator. */
+  val pollCount: IntegerProperty = IntegerProperty(0)
+
+  /** None when the last poll succeeded; Some(errorMessage) when it failed. */
+  val lastError: ObjectProperty[Option[String]] = ObjectProperty(Option.empty[String])
 
   def pause(): Unit  = paused = true
   def resume(): Unit = paused = false
@@ -92,9 +99,11 @@ class RigctldPoller @Inject()(
           Thread.currentThread().interrupt()
         case e: java.net.ConnectException =>
           logger.debug(s"rigctld not available at ${cfg.host}:${cfg.port} – ${e.getMessage}")
+          Platform.runLater { lastError.value = Some(s"${cfg.host}:${cfg.port} – ${e.getMessage}") }
           sleepOrInterrupt(5000)
         case e: Exception =>
           logger.warn(s"rigctld connection error: ${e.getMessage}")
+          Platform.runLater { lastError.value = Some(e.getMessage) }
           sleepOrInterrupt(5000)
 
   private def innerLoop(out: PrintWriter, in: BufferedReader, socket: Socket): Unit =
@@ -121,14 +130,20 @@ class RigctldPoller @Inject()(
                   selectedBandModeManager.save(newBandMode)
                 }
 
+          Platform.runLater {
+            pollCount.value = pollCount.value + 1
+            lastError.value = None
+          }
           Thread.sleep(cfg.pollIntervalMs)
       catch
         case _: java.net.SocketTimeoutException =>
           logger.debug("rigctld read timeout")
+          Platform.runLater { lastError.value = Some("rigctld read timeout") }
         case _: InterruptedException =>
           Thread.currentThread().interrupt()
         case e: java.io.IOException =>
           logger.debug(s"rigctld I/O error (will reconnect): ${e.getMessage}")
+          Platform.runLater { lastError.value = Some(s"I/O error: ${e.getMessage}") }
           return  // break inner loop → reconnect
 
   /** Sends `f\n` and returns the frequency in Hz. */

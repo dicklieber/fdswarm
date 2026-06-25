@@ -22,8 +22,7 @@ import fdswarm.bandmodes.BandModeMatrixPane
 import fdswarm.fx.GridColumns
 import fdswarm.fx.bands.{BandCheckBoxPane, ModeCheckBoxPane}
 import fdswarm.fx.components.{ButtonVariant, DialogButton}
-import fdswarm.fx.utils.IconButton
-import fdswarm.rigctl.{RigCtlDialog, RigctldPoller}
+import fdswarm.rigctl.{RigCtlDialog, RigctlPollerIndicator, RigctldPoller}
 import jakarta.inject.{Inject, Singleton}
 import scalafx.Includes.*
 import scalafx.geometry.Insets
@@ -87,8 +86,7 @@ final class BandsAndModesPane @Inject()(
     val closeButton = DialogButton("Close", "x-circle", ButtonVariant.Secondary, "Close")
     closeButton.onAction = _ => dialog.close()
 
-    val rigCtlButton = IconButton.settings("RigCtl Settings")
-    rigCtlButton.onAction = _ => rigCtlDialog.show(ownerWindow)
+    val indicator = new RigctlPollerIndicator(rigctldPoller, Some(() => rigCtlDialog.show(ownerWindow)))
 
     val pauseCheckBox = new CheckBox("Pause RigCtl"):
       disable = !rigctldPoller.isEnabled
@@ -96,7 +94,7 @@ final class BandsAndModesPane @Inject()(
       if pauseCheckBox.selected.value then rigctldPoller.pause() else rigctldPoller.resume()
 
     val rigCtlGroup = GridColumns.fieldSet("RigCtl",
-      new HBox(4, rigCtlButton, pauseCheckBox)
+      new HBox(4, indicator, pauseCheckBox)
     )
 
     val buttonBar = dialog.dialogPane().delegate.lookup(".button-bar")

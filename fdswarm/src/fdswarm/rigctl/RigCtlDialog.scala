@@ -142,7 +142,9 @@ class RigCtlDialog @Inject()(
       padding = Insets(4, 12, 4, 12)
       HBox.setHgrow(commandLineField, Priority.Always)
 
-    val buttonBar = new HBox(10, saveRestartButton, closeButton, helpButton):
+    val indicator = new RigctlPollerIndicator(rigctldPoller)
+
+    val buttonBar = new HBox(10, indicator, saveRestartButton, closeButton, helpButton):
       padding = Insets(8, 12, 10, 12)
 
     val root = new VBox(settingsPane, commandLineBar, table, buttonBar):
@@ -192,6 +194,10 @@ class RigCtlDialog @Inject()(
 
                 val contestMode = modeMappingManager.fromString(mode)
                 addRow(PollRow(freq, mode, contestMode.toString))
+                Platform.runLater {
+                  rigctldPoller.pollCount.value = rigctldPoller.pollCount.value + 1
+                  rigctldPoller.lastError.value = None
+                }
                 Thread.sleep(cfg.pollIntervalMs)
             finally
               socket.close()
@@ -200,12 +206,15 @@ class RigCtlDialog @Inject()(
               Thread.currentThread().interrupt()
             case e: java.net.ConnectException =>
               addRow(PollRow(s"${cfg.host}:${cfg.port}", "connect error", e.getMessage))
+              Platform.runLater { rigctldPoller.lastError.value = Some(s"${cfg.host}:${cfg.port} – ${e.getMessage}") }
               sleepOrInterrupt(3000)
             case e: java.net.SocketTimeoutException =>
               addRow(PollRow("—", "timeout", e.getMessage))
+              Platform.runLater { rigctldPoller.lastError.value = Some(s"Read timeout: ${e.getMessage}") }
               sleepOrInterrupt(3000)
             case e: Exception =>
               if !pollStop then addRow(PollRow("—", "error", e.getMessage))
+              Platform.runLater { rigctldPoller.lastError.value = Some(e.getMessage) }
               sleepOrInterrupt(3000),
       "rigctld-test-poller"
     )
