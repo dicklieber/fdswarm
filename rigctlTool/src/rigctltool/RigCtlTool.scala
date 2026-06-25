@@ -35,7 +35,7 @@ object RigCtlTool:
   @main
   def run(
       @arg(short = 'p', doc = "TCP port where rigctld is listening")
-      port: Int = 4532get_clock,
+      port: Int,
       @arg(short = 'h', doc = "Hostname where rigctld is listening (default: localhost)")
       host: String = "localhost"
   ): Unit =
