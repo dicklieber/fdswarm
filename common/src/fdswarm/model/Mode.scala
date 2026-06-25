@@ -27,14 +27,15 @@ enum Mode:
   override def toString: String = productPrefix
 
 object Mode:
-  private val byName: Map[String, Mode] =
-    Mode.values.map(m => m.toString -> m).toMap
 
   private val cwRx   = "CW.*".r
   private val digiRx = "(?:PKT|RTTY).*".r
 
   def fromString(mode: String): Mode =
     mode.trim.toUpperCase match
+      case "CW"     => Mode.CW
+      case "PH"     => Mode.PH
+      case "DIGI"   => Mode.DIGI
       case cwRx()   => Mode.CW
       case digiRx() => Mode.DIGI
       case _        => Mode.PH

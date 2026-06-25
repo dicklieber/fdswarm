@@ -33,7 +33,7 @@ import fdswarm.replication.status.ContestConfigMismatchUi
 import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
 import _root_.io.circe.parser.decode
 import _root_.io.circe.syntax.EncoderOps
-import fdswarm.rigctl.RigCtlDialog
+import fdswarm.rigctl.{ModeMappingDialog, RigCtlDialog}
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
 import javafx.scene.control.{Menu as JfxMenu, MenuItem as JfxMenuItem}
@@ -73,6 +73,7 @@ final class FdSwarmMenus @Inject()(
                                    startContestDialog: StartContestDialog,
                                    contestConfigMismatchUi: ContestConfigMismatchUi,
                                    rigCtlDialog: RigCtlDialog,
+                                   modeMappingDialog: ModeMappingDialog,
 )
     extends LazyStructuredLogging:
   aboutMenuItem.onAction = _ => showAboutDialog()
@@ -103,6 +104,9 @@ final class FdSwarmMenus @Inject()(
             userConfigEditor.show(
               FdSwarmUi.primaryStage
             )
+        ,
+        new MenuItem("Mode Mapping"):
+          onAction = _ => modeMappingDialog.show(FdSwarmUi.primaryStage)
         ,
         new MenuItem("Contest"):
           onAction = _ => contestConfigDialog.show()

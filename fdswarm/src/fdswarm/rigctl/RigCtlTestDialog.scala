@@ -24,6 +24,8 @@ import fdswarm.logging.LazyStructuredLogging
 import jakarta.inject.{Inject, Singleton}
 import scalafx.Includes.*
 import scalafx.application.Platform
+import scalafx.beans.property.StringProperty
+import scalafx.collections.ObservableBuffer
 import scalafx.geometry.Insets
 import scalafx.scene.Scene
 import scalafx.scene.control.*
@@ -35,16 +37,18 @@ import java.net.Socket
 
 /** Test dialog for verifying rigctld integration.
   *
-  * Displays rigctld process output and live poll results (raw frequency and mode) in a
-  * scrolling log area.  The dialog owns its own polling thread — independent of
-  * [[RigctldPoller]] — so it can show raw rigctld responses without affecting the main
-  * application state.
+  * Automatically polls rigctld on open and displays each reading as a table row
+  * with columns: Frequency, RigCtl Mode, Contest Mode. Shows the last 25 operations.
   */
 @Singleton
-class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: RigctldPoller) extends LazyStructuredLogging:
+class RigCtlTestDialog @Inject()(
+    rigCtlManager: RigCtlManager,
+    rigctldPoller: RigctldPoller,
+    modeMappingManager: ModeMappingManager
+) extends LazyStructuredLogging:
 
   private var stage: Option[Stage] = None
-  @volatile private var pollStop    = false
+  @volatile private var pollStop   = false
   @volatile private var pollThread: Option[Thread] = None
 
   def show(ownerWindow: Window): Unit =
@@ -55,96 +59,67 @@ class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Ri
   private def buildAndShowStage(ownerWindow: Window): Unit =
     rigctldPoller.stop()
 
-    // ── Log area ──────────────────────────────────────────────────────────────
+    val rows = ObservableBuffer.empty[PollRow]
 
-    val logArea = new TextArea:
-      editable  = false
-      wrapText  = false
-      style     = "-fx-font-family: monospace; -fx-font-size: 11;"
+    val freqCol = new TableColumn[PollRow, String]("Frequency"):
+      prefWidth       = 160
+      cellValueFactory = row => StringProperty(row.value.frequency)
+
+    val rigCtlModeCol = new TableColumn[PollRow, String]("RigCtl Mode"):
+      prefWidth       = 130
+      cellValueFactory = row => StringProperty(row.value.rigCtlMode)
+
+    val contestModeCol = new TableColumn[PollRow, String]("Contest Mode"):
+      prefWidth       = 130
+      cellValueFactory = row => StringProperty(row.value.contestMode)
+
+    val table = new TableView[PollRow](rows):
+      columns ++= Seq(freqCol, rigCtlModeCol, contestModeCol)
+      columnResizePolicy = TableView.ConstrainedResizePolicy
       maxWidth  = Double.MaxValue
       maxHeight = Double.MaxValue
 
-    def append(line: String): Unit =
+    def addRow(row: PollRow): Unit =
       Platform.runLater:
-        logArea.appendText(line + "\n")
-
-    // Forward rigctld process output to the log area; highlight known error patterns
-    rigCtlManager.outputListener = Some { line =>
-      val isError = line.contains("returning(-") ||
-                    line.startsWith("Communication timed out") ||
-                    line.contains("rig_open") && line.contains("error") ||
-                    line.contains("Cannot connect")
-      val prefix = if isError then "[rigctld][ERROR]" else "[rigctld]"
-      append(s"$prefix $line")
-    }
-
-    // If rigctld is already running, note it
-    if rigCtlManager.isRunning then
-      append("rigctld is already running (output shown going forward)")
-    else
-      append("rigctld is not running — press Launch to start it")
-
-    // ── Buttons ───────────────────────────────────────────────────────────────
-
-    val launchButton = DialogButton("Launch", "play-circle", ButtonVariant.Success, "Launch (or relaunch) rigctld")
-    launchButton.onAction = _ =>
-      append("--- Launching rigctld ---")
-      append(s"Command: ${rigCtlManager.commandLine(rigCtlManager.config.value)}")
-      rigCtlManager.launch() match
-        case Right(_) => append("rigctld process started")
-        case Left(err) => append(s"ERROR: $err")
-
-    val pollButton = DialogButton("Start Polling", "activity", ButtonVariant.Primary, "Poll rigctld for frequency and mode")
-    pollButton.onAction = _ =>
-      if pollThread.isDefined then
-        stopPoller()
-        pollButton.text = "Start Polling"
-      else
-        startPoller(append)
-        pollButton.text = "Stop Polling"
-
-    val clearButton = DialogButton("Clear", "trash", ButtonVariant.Warning, "Clear the log")
-    clearButton.onAction = _ => logArea.clear()
+        rows.prepend(row)
+        if rows.size > 25 then rows.remove(25, rows.size)
 
     val closeButton = DialogButton("Close", "x-circle", ButtonVariant.Secondary, "Close test dialog")
     closeButton.onAction = _ => stage.foreach(_.close())
 
-    val buttonBar = new HBox(10, launchButton, pollButton, clearButton, closeButton):
+    val buttonBar = new HBox(10, closeButton):
       padding = Insets(8, 12, 10, 12)
 
-    // ── Layout ────────────────────────────────────────────────────────────────
-
-    val root = new VBox(logArea, buttonBar):
-      VBox.setVgrow(logArea, Priority.Always)
+    val root = new VBox(table, buttonBar):
+      VBox.setVgrow(table, Priority.Always)
       padding = Insets(8)
 
-    val dialogScene = new Scene(root, 720, 480)
+    val dialogScene = new Scene(root, 480, 480)
     UiStyles.applyTo(dialogScene)
 
     val newStage = new Stage:
       title     = "RigCtl Test"
       initOwner(ownerWindow)
       resizable = true
-      minWidth  = 500
+      minWidth  = 400
       minHeight = 320
       scene     = dialogScene
       onHidden  = _ =>
         stopPoller()
-        rigCtlManager.outputListener = None
         stage = None
         rigctldPoller.restart()
 
     newStage.show()
     stage = Some(newStage)
+    startPoller(addRow)
 
   // ── Poller ────────────────────────────────────────────────────────────────
 
-  private def startPoller(append: String => Unit): Unit =
+  private def startPoller(addRow: PollRow => Unit): Unit =
     pollStop = false
     val cfg = rigCtlManager.config.value
     val t = new Thread(
       () =>
-        append(s"--- Connecting to ${cfg.host}:${cfg.port} ---")
         while !pollStop && !Thread.currentThread().isInterrupted do
           try
             val socket = new Socket(cfg.host, cfg.port)
@@ -152,14 +127,16 @@ class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Ri
             try
               val out = new PrintWriter(socket.getOutputStream, true)
               val in  = new BufferedReader(new InputStreamReader(socket.getInputStream))
-              append(s"Connected to rigctld at ${cfg.host}:${cfg.port}")
               while !pollStop && !socket.isClosed do
                 out.print("f\n"); out.flush()
                 val freq = Option(in.readLine()).map(_.trim).getOrElse("?")
+
                 out.print("m\n"); out.flush()
                 val mode     = Option(in.readLine()).map(_.trim).getOrElse("?")
-                val passband = Option(in.readLine()).map(_.trim).getOrElse("?")
-                append(s"freq=$freq Hz  mode=$mode  passband=$passband")
+                in.readLine() // consume passband line
+
+                val contestMode = modeMappingManager.fromString(mode)
+                addRow(PollRow(freq, mode, contestMode.toString))
                 Thread.sleep(cfg.pollIntervalMs)
             finally
               socket.close()
@@ -167,15 +144,14 @@ class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Ri
             case _: InterruptedException =>
               Thread.currentThread().interrupt()
             case e: java.net.ConnectException =>
-              append(s"Cannot connect to ${cfg.host}:${cfg.port} – ${e.getMessage}")
+              addRow(PollRow(s"${cfg.host}:${cfg.port}", "connect error", e.getMessage))
               sleepOrInterrupt(3000)
             case e: java.net.SocketTimeoutException =>
-              append(s"Timeout reading from rigctld – ${e.getMessage}")
+              addRow(PollRow("—", "timeout", e.getMessage))
               sleepOrInterrupt(3000)
             case e: Exception =>
-              if !pollStop then append(s"Error: ${e.getMessage}")
-              sleepOrInterrupt(3000)
-        append("--- Polling stopped ---"),
+              if !pollStop then addRow(PollRow("—", "error", e.getMessage))
+              sleepOrInterrupt(3000),
       "rigctld-test-poller"
     )
     t.setDaemon(true)
@@ -190,3 +166,6 @@ class RigCtlTestDialog @Inject()(rigCtlManager: RigCtlManager, rigctldPoller: Ri
   private def sleepOrInterrupt(ms: Long): Unit =
     try Thread.sleep(ms)
     catch case _: InterruptedException => Thread.currentThread().interrupt()
+
+/** One row displayed in the RigCtl test table. */
+case class PollRow(frequency: String, rigCtlMode: String, contestMode: String)

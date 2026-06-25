@@ -20,7 +20,7 @@ package fdswarm.rigctl
 
 import fdswarm.bandmodes.SelectedBandModeManager
 import fdswarm.logging.LazyStructuredLogging
-import fdswarm.model.{Band, BandMode, Mode}
+import fdswarm.model.{Band, BandMode}
 import fdswarm.rigctl.RigctldPoller.*
 import jakarta.inject.{Inject, Singleton}
 import scalafx.application.Platform
@@ -37,7 +37,8 @@ import java.net.Socket
 @Singleton
 class RigctldPoller @Inject()(
     selectedBandModeManager: SelectedBandModeManager,
-    rigCtlManager: RigCtlManager
+    rigCtlManager: RigCtlManager,
+    modeMappingManager: ModeMappingManager
 ) extends LazyStructuredLogging:
 
   @volatile private var stopRequested = false
@@ -107,16 +108,18 @@ class RigctldPoller @Inject()(
           val modeStr = queryMode(out, in)
 
           for
-            hz   <- freqHz
-            band <- Band.fromFrequency(hz)
-            mode <- modeStr.flatMap(s => scala.util.Try(Mode.fromString(s)).toOption)
+            hz      <- freqHz
+            rawMode <- modeStr
           do
-            val newBandMode = BandMode(band, mode)
-            if newBandMode != selectedBandModeManager.selected.value then
-              logger.info(s"rigctld: band/mode changed to $newBandMode")
-              Platform.runLater {
-                selectedBandModeManager.save(newBandMode)
-              }
+            val contestMode = modeMappingManager.fromString(rawMode)
+            logger.debug(s"rigctld poll: freq=$hz rigCtlMode=$rawMode contestMode=$contestMode")
+            for band <- Band.fromFrequency(hz) do
+              val newBandMode = BandMode(band, contestMode)
+              if newBandMode != selectedBandModeManager.selected.value then
+                logger.info(s"rigctld: band/mode changed to $newBandMode")
+                Platform.runLater {
+                  selectedBandModeManager.save(newBandMode)
+                }
 
           Thread.sleep(cfg.pollIntervalMs)
       catch

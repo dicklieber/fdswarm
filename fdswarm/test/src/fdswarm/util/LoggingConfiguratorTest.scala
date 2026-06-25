@@ -22,7 +22,6 @@ class LoggingConfiguratorTest extends FunSuite:
       assert(content.contains("test log event"))
       assert(content.contains("file-appender"))
     finally
-      StructuredLogger.clearJsonEventSink()
       if os.exists(dir) then os.remove.all(dir)
 
   test("configured logger levels keep writing to fdswarm.log"):
@@ -53,5 +52,4 @@ class LoggingConfiguratorTest extends FunSuite:
       assert(content.contains("debug log event"))
       assert(content.contains("configured-level"))
     finally
-      StructuredLogger.clearJsonEventSink()
       if os.exists(dir) then os.remove.all(dir)
