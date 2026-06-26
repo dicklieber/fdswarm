@@ -24,7 +24,8 @@ import java.io.InputStream
 /** Carries the raw ADIF record string and the exception thrown when parsing it. */
 case class QsoError(record: String, exception: Exception)
 
-/** Parses an ADIF (.adi) file from an [[InputStream]] into a sequence of [[Qso]] objects.
+/** Parses an ADIF (.adi) file from an [[InputStream]] into individual [[Qso]] objects
+  * via a callback, enabling streaming progress reporting.
   *
   * Record-level parsing is delegated to [[AdifRecordParser]]; see its scaladoc for the
   * full list of extracted fields and fallback behaviour.
@@ -36,20 +37,27 @@ class AdifParser(inputStream: InputStream, contestType: ContestType = ContestTyp
 
   private given qsoMetadata: QsoMetadata = QsoMetadata.adifImportQsoMetadata(contestType)
 
-  /** Returns each ADIF record as [[Right]]`[`[[Qso]]`]` on success or
-    * [[Left]]`[`[[QsoError]]`]` when parsing fails.
-    */
-  def qsos: Seq[Either[QsoError, Qso]] =
+  private val rawRecords: Seq[String] =
     val content = scala.io.Source.fromInputStream(inputStream, "UTF-8").mkString
     val eohIdx  = "(?i)<eoh>".r.findFirstMatchIn(content).map(_.end).getOrElse(0)
-    val body: String = content.substring(eohIdx)
-    splitRecords(body).map { record =>
-      AdifRecordParser().parseRecord(record).toEither.left.map { t =>
+    splitRecords(content.substring(eohIdx))
+
+  /** Total number of ADIF records in the file; available before [[process]] is called. */
+  val recordCount: Int = rawRecords.size
+
+  /** Parses each ADIF record and immediately invokes [[callback]] with the raw record
+    * text and its result: [[Right]]`[`[[Qso]]`]` on success or
+    * [[Left]]`[`[[QsoError]]`]` on failure.
+    */
+  def process(callback: (String, Either[QsoError, Qso]) => Unit): Unit =
+    rawRecords.foreach { record =>
+      val either = AdifRecordParser().parseRecord(record).toEither.left.map { t =>
         val ex = t match
           case e: Exception => e
           case _ => RuntimeException(t.getMessage, t)
         QsoError(record, ex)
       }
+      callback(record, either)
     }
 
   /** Splits the ADIF body on <EOR>/<eor> boundaries. */

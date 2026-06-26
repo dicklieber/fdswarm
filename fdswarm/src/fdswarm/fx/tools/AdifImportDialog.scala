@@ -19,7 +19,7 @@ package fdswarm.fx.tools
 
 import fdswarm.exporter.AdifExporter
 import fdswarm.fx.UserConfig
-import fdswarm.importer.{AdifRecordParser, QsoError}
+import fdswarm.importer.{AdifParser, QsoError}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.*
 import fdswarm.store.QsoStore
@@ -36,8 +36,12 @@ import scalafx.stage.FileChooser.ExtensionFilter
 
 import java.io.FileInputStream
 
-/** A parse result pairing the raw ADIF record text with its parse outcome. */
-private case class RecordResult(rawRecord: String, result: Either[QsoError, Qso])
+private case class ImportResult(
+  total: Int,
+  successCount: Int,
+  importDups: List[QsoError],
+  parseErrors: List[QsoError]
+)
 
 @Singleton
 final class AdifImportDialog @Inject()(
@@ -189,33 +193,20 @@ final class AdifImportDialog @Inject()(
           progressLabel.text   <== task.messageProperty()
 
           task.onSucceeded = _ =>
-            val recordResults: List[RecordResult] = task.getValue.asInstanceOf[List[RecordResult]]
+            val result: ImportResult = task.getValue.asInstanceOf[ImportResult]
 
             progressBar.progressProperty().unbind()
             progressLabel.textProperty().unbind()
             progressBar.progress = 1.0
             progressLabel.text   = "Processing complete."
 
-            val parseErrors = recordResults.collect { case RecordResult(_, Left(err)) => err }
-
-            val (successCount, importDups) =
-              recordResults.foldLeft((0, List.empty[QsoError])) {
-                case ((cnt, dups), RecordResult(raw, Right(qso))) =>
-                  val msg = qsoStore.add(qso)
-                  if msg.css == "duplicate-qso" then
-                    (cnt, QsoError(raw, Exception(msg.text)) :: dups)
-                  else
-                    (cnt + 1, dups)
-                case (acc, RecordResult(_, Left(_))) => acc
-              }
-
-            failedErrors = parseErrors ++ importDups
+            failedErrors = result.parseErrors ++ result.importDups
 
             def fmt(n: Int): String = "%,d".formatLocal(java.util.Locale.getDefault, n)
-            resultTotalLabel.text   = s"Total records in file: ${fmt(recordResults.size)}"
-            resultSuccessLabel.text = s"Successfully added:     ${fmt(successCount)}"
-            resultDupLabel.text     = s"Duplicates (skipped):   ${fmt(importDups.size)}"
-            resultErrorLabel.text   = s"Parse errors:           ${fmt(parseErrors.size)}"
+            resultTotalLabel.text   = s"Total records in file: ${fmt(result.total)}"
+            resultSuccessLabel.text = s"Successfully added:     ${fmt(result.successCount)}"
+            resultDupLabel.text     = s"Duplicates (skipped):   ${fmt(result.importDups.size)}"
+            resultErrorLabel.text   = s"Parse errors:           ${fmt(result.parseErrors.size)}"
 
             if failedErrors.nonEmpty then
               val sb = new StringBuilder
@@ -255,29 +246,34 @@ final class AdifImportDialog @Inject()(
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
-  private def buildParseTask(filePath: String): JfxTask[List[RecordResult]] =
-    new JfxTask[List[RecordResult]] {
-      override def call(): List[RecordResult] =
+  private def buildParseTask(filePath: String): JfxTask[ImportResult] =
+    new JfxTask[ImportResult] {
+      override def call(): ImportResult =
         val is = new FileInputStream(filePath)
         try
-          val content  = scala.io.Source.fromInputStream(is, "UTF-8").mkString
-          val eohIdx   = "(?i)<eoh>".r.findFirstMatchIn(content).map(_.end).getOrElse(0)
-          val body     = content.substring(eohIdx)
-          val rawRecs  = body.split("(?i)<eor>").toSeq.map(_.trim).filter(_.nonEmpty)
-          val total    = rawRecs.size.toLong
-          val fmtL     = (n: Long) => "%,d".formatLocal(java.util.Locale.getDefault, n)
-          updateMessage(s"0 of ${fmtL(total)} records parsed…")
-          rawRecs.zipWithIndex.map { case (raw, idx) =>
-            updateProgress(idx.toLong + 1L, total)
-            updateMessage(s"${fmtL(idx.toLong + 1L)} of ${fmtL(total)} records parsed…")
-            val either = AdifRecordParser().parseRecord(raw).toEither.left.map { t =>
-              val ex = t match
-                case e: Exception => e
-                case _            => RuntimeException(t.getMessage, t)
-              QsoError(raw, ex)
-            }
-            RecordResult(raw, either)
-          }.toList
+          val parser = new AdifParser(is)
+          val total  = parser.recordCount
+          val fmt    = (n: Long) => "%,d".formatLocal(java.util.Locale.getDefault, n)
+          updateMessage(s"0 of ${fmt(total)} records parsed…")
+          var idx          = 0L
+          var successCount = 0
+          var importDups   = List.empty[QsoError]
+          var parseErrors  = List.empty[QsoError]
+          parser.process { (raw, either) =>
+            idx += 1
+            updateProgress(idx, total.toLong)
+            updateMessage(s"${fmt(idx)} of ${fmt(total)} records parsed…")
+            either match
+              case Right(qso) =>
+                val msg = qsoStore.add(qso)
+                if msg.css == "duplicate-qso" then
+                  importDups = QsoError(raw, Exception(msg.text)) :: importDups
+                else
+                  successCount += 1
+              case Left(err) =>
+                parseErrors = err :: parseErrors
+          }
+          ImportResult(total, successCount, importDups.reverse, parseErrors.reverse)
         finally is.close()
     }
 
