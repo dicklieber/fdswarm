@@ -26,7 +26,7 @@ import fdswarm.replication.status.NodeBandOpPane
 import jakarta.inject.Singleton
 import scalafx.geometry.Insets
 import scalafx.scene.Node
-import scalafx.scene.layout.{ColumnConstraints, GridPane, Priority}
+import scalafx.scene.layout.{ColumnConstraints, GridPane, Priority, VBox}
 
 @Singleton
 class ContestEntry @Inject()(qsoEntryPanel: QsoEntryPanel,
@@ -35,7 +35,8 @@ class ContestEntry @Inject()(qsoEntryPanel: QsoEntryPanel,
                              val bandModeMatrixPane: BandModeMatrixPane,
                              sectionPanel: SectionPanel,
                              infoPanel: InfoPanel,
-                             nodeBandOpPane: NodeBandOpPane
+                             nodeBandOpPane: NodeBandOpPane,
+                             postContestPanel: PostContestPanel
                             ) extends LazyStructuredLogging:
 
   private val _node = new GridPane {
@@ -55,6 +56,7 @@ class ContestEntry @Inject()(qsoEntryPanel: QsoEntryPanel,
     qsoEntryPanel.buildUi()
     qsoSearchPane.buildUi()
     sectionPanel.buildUi()
+    postContestPanel.onReadyForQso = () => qsoEntryPanel.focusCallsign()
     _node.children.clear()
     // Row 0: Search pane above table
     _node.add(child = qsoSearchPane.node, columnIndex = 0, rowIndex = 0, colspan = 2, rowspan = 1)
@@ -62,8 +64,11 @@ class ContestEntry @Inject()(qsoEntryPanel: QsoEntryPanel,
     // Row 1: Table spans both columns
     _node.add(child = qsoTablePane.node, columnIndex = 0, rowIndex = 1, colspan = 2, rowspan = 1)
 
-    // Row 2: Entry panel and Section panel
-    _node.add(qsoEntryPanel.node, 0, 2)
+    // Row 2: PostContestPanel (hidden when inactive) + Entry panel, Section panel
+    val entryContainer = new VBox(4) {
+      children = Seq(postContestPanel.node, qsoEntryPanel.node)
+    }
+    _node.add(entryContainer, 0, 2)
     _node.add(sectionPanel.node, 1, 2, 1, 3) // Section panel spans 3 rows to match others
 
     // Row 3: Multi-purpose info panel

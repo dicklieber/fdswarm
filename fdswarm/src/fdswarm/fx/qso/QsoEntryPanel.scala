@@ -20,6 +20,7 @@ package fdswarm.fx.qso
 
 import fdswarm.StationConfigManager
 import fdswarm.bandmodes.SelectedBandModeManager
+import java.time.Instant
 import fdswarm.fx.{CallSignField, GridColumns}
 import fdswarm.fx.contest.{ContestConfigManager, ContestType}
 import fdswarm.logging.LazyStructuredLogging
@@ -87,7 +88,8 @@ class QsoEntryPanel @Inject()(
                                contestClassField: ContestClassField,
                                sectionField: fdswarm.fx.sections.SectionField,
                                dupPanel: DupPanel,
-                               contestConfigMismatchUi: ContestConfigMismatchUi
+                               contestConfigMismatchUi: ContestConfigMismatchUi,
+                               postContestPanel: PostContestPanel
                              ) extends LazyStructuredLogging():
 
   private val _node = new VBox()
@@ -155,6 +157,8 @@ class QsoEntryPanel @Inject()(
   def callsignFocusedProperty: scalafx.beans.property.ReadOnlyBooleanProperty =
     callsignField.focused
 
+  def focusCallsign(): Unit = callsignField.requestFocus()
+
   def contestClassFocusedProperty: scalafx.beans.property.ReadOnlyBooleanProperty =
     contestClassField.focused
 
@@ -219,16 +223,28 @@ class QsoEntryPanel @Inject()(
       )
       return
 
+    if postContestPanel.isActive && !postContestPanel.isStampValid then
+      dupPanel.show(StyledMessage("Invalid date/time – use yyyyMMdd and HHmm.", "error"))
+      return
+
+    val (meta, stamp) =
+      if postContestPanel.isActive then
+        (postContestPanel.makePostMetadata(), postContestPanel.stamp.get)
+      else
+        (qsoMetadata, Instant.now())
+
     val qso = Qso(
-      callsign = Callsign(callsignField.text.value),
-      exchange = Exchange(FdClass(contestClassField.text.value), sectionField.text.value),
-      bandMode = selectedBandModeStore.selected.value,
-      qsoMetadata = qsoMetadata
+      callsign    = Callsign(callsignField.text.value),
+      exchange    = Exchange(FdClass(contestClassField.text.value), sectionField.text.value),
+      bandMode    = selectedBandModeStore.selected.value,
+      qsoMetadata = meta,
+      stamp       = stamp
     )
     logger.debug("Submitting QSO", "qso" -> qso)
 
     val styledMessage: StyledMessage = qsoStore.add(qso)
     clearControls()
+    if postContestPanel.isActive then postContestPanel.showStatus(styledMessage)
     dupPanel.show(styledMessage)
 
   sectionField.onAction = _ =>
@@ -247,7 +263,8 @@ class QsoEntryPanel @Inject()(
     callsignField.text = ""
     contestClassField.text = ""
     sectionField.text = ""
-    callsignField.requestFocus()
+    if postContestPanel.isActive then postContestPanel.focusDate()
+    else callsignField.requestFocus()
 
   private def canSubmitNow: Boolean =
     callsignField.validProperty.value &&

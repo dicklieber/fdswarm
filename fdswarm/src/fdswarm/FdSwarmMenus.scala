@@ -33,6 +33,7 @@ import fdswarm.replication.status.ContestConfigMismatchUi
 import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
 import _root_.io.circe.parser.decode
 import _root_.io.circe.syntax.EncoderOps
+import fdswarm.fx.qso.PostContestPanel
 import fdswarm.rigctl.{ModeMappingDialog, RigCtlDialog}
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
@@ -74,6 +75,7 @@ final class FdSwarmMenus @Inject()(
                                    contestConfigMismatchUi: ContestConfigMismatchUi,
                                    rigCtlDialog: RigCtlDialog,
                                    modeMappingDialog: ModeMappingDialog,
+                                   postContestPanel: PostContestPanel,
 )
     extends LazyStructuredLogging:
   aboutMenuItem.onAction = _ => showAboutDialog()
@@ -186,6 +188,9 @@ final class FdSwarmMenus @Inject()(
             startContestDialog.showStartContestDialog(
               FdSwarmUi.primaryStage
             )
+        ,
+        new CheckMenuItem("Post-Contest Mode"):
+          selected <==> postContestPanel.isActiveProperty
       )
   private val reportsMenu: Menu =
     new Menu("Reports"):
