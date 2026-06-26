@@ -19,10 +19,10 @@ package fdswarm.importer
 
 import fdswarm.fx.contest.ContestType
 import fdswarm.model.*
-import fdswarm.util.NodeIdentity
-
 import java.io.InputStream
-import scala.util.Try
+
+/** Carries the raw ADIF record string and the exception thrown when parsing it. */
+case class QsoError(record: String, exception: Exception)
 
 /** Parses an ADIF (.adi) file from an [[InputStream]] into a sequence of [[Qso]] objects.
   *
@@ -36,14 +36,21 @@ class AdifParser(inputStream: InputStream, contestType: ContestType = ContestTyp
 
   private given qsoMetadata: QsoMetadata = QsoMetadata.adifImportQsoMetadata(contestType)
 
-  /** Returns all successfully parsed [[Qso]] records from the ADIF file.
-    * Records that cannot be parsed (e.g. missing required fields) are silently dropped.
+  /** Returns each ADIF record as [[Right]]`[`[[Qso]]`]` on success or
+    * [[Left]]`[`[[QsoError]]`]` when parsing fails.
     */
-  def qsos: Seq[Try[Qso]] =
+  def qsos: Seq[Either[QsoError, Qso]] =
     val content = scala.io.Source.fromInputStream(inputStream, "UTF-8").mkString
     val eohIdx  = "(?i)<eoh>".r.findFirstMatchIn(content).map(_.end).getOrElse(0)
     val body: String = content.substring(eohIdx)
-    splitRecords(body).map(AdifRecordParser().parseRecord(_))
+    splitRecords(body).map { record =>
+      AdifRecordParser().parseRecord(record).toEither.left.map { t =>
+        val ex = t match
+          case e: Exception => e
+          case _ => RuntimeException(t.getMessage, t)
+        QsoError(record, ex)
+      }
+    }
 
   /** Splits the ADIF body on <EOR>/<eor> boundaries. */
   private def splitRecords(body: String): Seq[String] =
