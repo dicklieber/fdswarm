@@ -108,11 +108,11 @@ class AdifRecordParserTest extends FunSuite:
 
   test("parseRecord: returns None when required field CALL is missing"):
     val record = "<BAND:3>15M<MODE:2>CW<CLASS:2>1H<ARRL_SECT:2>IL"
-    assertEquals(parser.parseRecord(record), None)
+    assertEquals(parser.parseRecord(record).isFailure, true)
 
   test("parseRecord: returns None when required field ARRL_SECT is missing"):
     val record = "<CALL:5>K9DRS<BAND:3>15M<MODE:2>CW<CLASS:2>1H"
-    assertEquals(parser.parseRecord(record), None)
+    assertEquals(parser.parseRecord(record).isFailure, true)
 
   test("parseRecord: APP_FDSWARM_UUID is preserved when present"):
     val record = "<CALL:5>K9DRS<BAND:3>15M<MODE:2>CW<CLASS:2>1H<ARRL_SECT:2>IL<APP_FDSWARM_UUID:8>TESTID12"

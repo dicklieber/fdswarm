@@ -18,48 +18,41 @@
 package fdswarm.importer
 
 import fdswarm.fx.contest.ContestType
-import fdswarm.fx.station.StationConfig
 import fdswarm.model.*
-import fdswarm.util.{Ids, NodeIdentity}
+import fdswarm.util.Ids
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDateTime, ZoneOffset}
+import scala.util.Try
 
 /** Parses a single ADIF record string into an optional [[Qso]].
   *
   * Extracted as a standalone class to enable unit testing of the record-level
   * parsing logic independently of I/O concerns in [[AdifParser]].
-  *
-  * @param node    node identity to embed in imported QSOs
-  * @param contest contest type to embed in imported QSOs
   */
-class AdifRecordParser(
-    node: NodeIdentity = NodeIdentity.mockNodeIdentity,
-    contest: ContestType = ContestType.ARRL):
+class AdifRecordParser(using qsoMetadata: QsoMetadata = QsoMetadata.adifImportQsoMetadata(ContestType.ARRL)):
+  import AdifRecordParser.FieldRx
 
-  private val FieldRx = """<([^:>]+):(\d+)(?::[^>]*)?>""".r
-
-  /** Parses a single ADIF record string into an optional [[Qso]].
-    * Returns [[None]] if any required field (CALL, BAND, MODE, CLASS, ARRL_SECT) is missing.
+  /** Parses a single ADIF record string into an [[Option]] of [[Qso]].
+    * Returns [[None]] if any required field (CALL, BAND, MODE, CLASS, ARRL_SECT) is missing or invalid.
     */
-  def parseRecord(record: String): Option[Qso] =
+  def parseRecord(record: String): Try[Qso] =
     val fields = extractFields(record)
-
-    for
-      callStr  <- fields.get("CALL")
-      bandStr  <- fields.get("BAND")
-      modeStr  <- fields.get("MODE")
-      classStr <- fields.get("CLASS")
-      sectStr  <- fields.get("ARRL_SECT")
-    yield
+    Try {
+      val callStr  = fields("CALL")
+      val bandStr  = fields("BAND")
+      val modeStr  = fields("MODE")
+      val classStr = fields("CLASS")
+      val sectStr  = fields("ARRL_SECT")
       val callsign = Callsign(callStr)
       val bandMode = BandMode(bandStr, modeStr)
       val exchange = Exchange(FdClass(classStr), sectStr)
       val stamp    = parseStamp(fields)
       val uuid     = fields.getOrElse("APP_FDSWARM_UUID", Ids.generateId())
-      val operator = Callsign(fields.getOrElse("OPERATOR", fields.getOrElse("STATION_CALLSIGN", "")))
-      val metadata = QsoMetadata(StationConfig(operator = operator), node, contest)
+      val operatorOpt = fields.get("OPERATOR").orElse(fields.get("STATION_CALLSIGN"))
+      val metadata = operatorOpt.map(op => qsoMetadata.withOperator(Callsign(op))).getOrElse(qsoMetadata)
       Qso(callsign, exchange, bandMode, metadata, stamp, uuid)
+    }
 
   /** Extracts all <FIELD:len>value entries from a record into an uppercase-keyed map. */
   def extractFields(record: String): Map[String, String] =
@@ -93,3 +86,6 @@ class AdifRecordParser(
           dt.toInstant(ZoneOffset.UTC)
         }.getOrElse(Instant.now())
       case _ => Instant.now()
+
+object AdifRecordParser:
+  private val FieldRx = """<([^:>]+):(\d+)(?::[^>]*)?>""".r

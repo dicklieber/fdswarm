@@ -87,6 +87,13 @@ object NodeIdentity:
     instanceId = "=id"
   )
 
+  val adifImportIdentity = NodeIdentity(
+    hostIp = "127.0.0.1",
+    port = 0,
+    hostName = "adifImport",
+    instanceId = "=adifImport"
+  )
+
   /**
     * @param address from packet.getAddress as received from UDP.
     * @param udpPiece for header.

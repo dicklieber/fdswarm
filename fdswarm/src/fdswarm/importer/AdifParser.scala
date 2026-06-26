@@ -22,6 +22,7 @@ import fdswarm.model.*
 import fdswarm.util.NodeIdentity
 
 import java.io.InputStream
+import scala.util.Try
 
 /** Parses an ADIF (.adi) file from an [[InputStream]] into a sequence of [[Qso]] objects.
   *
@@ -29,24 +30,20 @@ import java.io.InputStream
   * full list of extracted fields and fallback behaviour.
   *
   * @param inputStream the ADIF file content
-  * @param node        node identity to embed in imported QSOs; defaults to [[NodeIdentity.mockNodeIdentity]]
-  * @param contest     contest type to embed; defaults to [[ContestType.ARRL]]
+  * @param contestType contest type to embed; defaults to [[ContestType.ARRL]]
   */
-class AdifParser(
-    inputStream: InputStream,
-    node: NodeIdentity = NodeIdentity.mockNodeIdentity,
-    contest: ContestType = ContestType.ARRL):
+class AdifParser(inputStream: InputStream, contestType: ContestType = ContestType.ARRL):
 
-  private val recordParser = AdifRecordParser(node, contest)
+  private given qsoMetadata: QsoMetadata = QsoMetadata.adifImportQsoMetadata(contestType)
 
   /** Returns all successfully parsed [[Qso]] records from the ADIF file.
     * Records that cannot be parsed (e.g. missing required fields) are silently dropped.
     */
-  def qsos: Seq[Qso] =
+  def qsos: Seq[Try[Qso]] =
     val content = scala.io.Source.fromInputStream(inputStream, "UTF-8").mkString
     val eohIdx  = "(?i)<eoh>".r.findFirstMatchIn(content).map(_.end).getOrElse(0)
-    val body    = content.substring(eohIdx)
-    splitRecords(body).flatMap(recordParser.parseRecord)
+    val body: String = content.substring(eohIdx)
+    splitRecords(body).map(AdifRecordParser().parseRecord(_))
 
   /** Splits the ADIF body on <EOR>/<eor> boundaries. */
   private def splitRecords(body: String): Seq[String] =

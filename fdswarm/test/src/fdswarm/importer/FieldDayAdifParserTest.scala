@@ -31,7 +31,7 @@ class FieldDayAdifParserTest extends FunSuite:
     assertEquals(qsos.length, 2)
 
   test("AdifParser parses first QSO (W1AW) correctly"):
-    val qso = AdifParser(os.read.inputStream(testFile)).qsos.head
+    val qso = AdifParser(os.read.inputStream(testFile)).qsos.head.get
 
     assertEquals(qso.callsign.value, "W1AW")
     assertEquals(qso.bandMode.band.name, "20m")
@@ -42,7 +42,7 @@ class FieldDayAdifParserTest extends FunSuite:
     assertEquals(qso.stamp, Instant.parse("2026-06-27T18:15:23Z"))
 
   test("AdifParser parses second QSO (N0CALL) correctly"):
-    val qso = AdifParser(os.read.inputStream(testFile)).qsos(1)
+    val qso = AdifParser(os.read.inputStream(testFile)).qsos(1).get
 
     assertEquals(qso.callsign.value, "N0CALL")
     assertEquals(qso.bandMode.band.name, "40m")

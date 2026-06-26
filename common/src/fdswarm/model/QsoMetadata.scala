@@ -37,9 +37,15 @@ import io.circe.Codec
 case class QsoMetadata(station: StationConfig,
                        node: NodeIdentity,
                        contest: ContestType,
-                       v: String = BuildInfo.version) derives Codec.AsObject, sttp.tapir.Schema
+                       v: String = BuildInfo.version) derives Codec.AsObject, sttp.tapir.Schema:
+
+  def withOperator(operator: Callsign): QsoMetadata =
+    copy(station = station.copy(operator = operator))
 
 object QsoMetadata:
   val testQsoMetadata: QsoMetadata = QsoMetadata(station = StationConfig(),
     node = NodeIdentity(hostIp = "44.0.0.1", port = 8888, hostName = "testHost", instanceId = "qO-"),
     contest = ContestType.WFD)
+  def adifImportQsoMetadata(contestType: ContestType): QsoMetadata = QsoMetadata(station = StationConfig(),
+    node = NodeIdentity.adifImportIdentity,
+    contest = contestType)
