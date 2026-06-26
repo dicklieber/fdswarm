@@ -53,3 +53,29 @@ class AdifParserTest extends FunSuite:
     assertEquals(qso.exchange.sectionCode, "IN")
     assertEquals(qso.qsoMetadata.station.operator.value, "WA9NNN")
     assertEquals(qso.stamp, Instant.parse("2026-06-26T15:15:51Z"))
+
+  private val wsjtFile = os.pwd / "testdata" / "wsjt.adi"
+
+  test("AdifParser reads three QSOs from WSJT-X export"):
+    val qsos = AdifParser(os.read.inputStream(wsjtFile)).qsos
+    assertEquals(qsos.length, 3)
+
+  test("AdifParser parses first WSJT-X QSO correctly"):
+    val qso = AdifParser(os.read.inputStream(wsjtFile)).qsos.head.toOption.get
+
+    assertEquals(qso.callsign.value, "XX4XXX")
+    assertEquals(qso.bandMode.band.name, "160m")
+    assertEquals(qso.bandMode.mode, Mode.PH)
+    assertEquals(qso.exchange.fdClass.transmitters, 9)
+    assertEquals(qso.exchange.fdClass.classLetter, 'B')
+    assertEquals(qso.exchange.sectionCode, "IL")
+    assertEquals(qso.qsoMetadata.station.operator.value, "WA9NNN")
+    assertEquals(qso.stamp, Instant.parse("2026-06-26T22:48:45Z"))
+
+  test("AdifParser parses WSJT-X QSO with lowercase class and section"):
+    val qso = AdifParser(os.read.inputStream(wsjtFile)).qsos(2).toOption.get
+
+    assertEquals(qso.callsign.value, "XX4XXY")
+    assertEquals(qso.exchange.fdClass.transmitters, 3)
+    assertEquals(qso.exchange.fdClass.classLetter, 'B')
+    assertEquals(qso.exchange.sectionCode, "TX")

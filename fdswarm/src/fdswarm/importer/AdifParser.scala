@@ -45,6 +45,12 @@ class AdifParser(inputStream: InputStream, contestType: ContestType = ContestTyp
   /** Total number of ADIF records in the file; available before [[process]] is called. */
   val recordCount: Int = rawRecords.size
 
+  /** All parsed records as a sequence of [[Either]] values; computed lazily on first access. */
+  lazy val qsos: Seq[Either[QsoError, Qso]] =
+    val buf = scala.collection.mutable.ArrayBuffer.empty[Either[QsoError, Qso]]
+    process((_, result) => buf += result)
+    buf.toSeq
+
   /** Parses each ADIF record and immediately invokes [[callback]] with the raw record
     * text and its result: [[Right]]`[`[[Qso]]`]` on success or
     * [[Left]]`[`[[QsoError]]`]` on failure.

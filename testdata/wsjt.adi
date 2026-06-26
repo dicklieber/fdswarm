@@ -1,0 +1,10 @@
+ADIF Export
+<adif_ver:5>3.1.1
+<created_timestamp:15>20230721 234038
+<programid:6>WSJT-X
+<programversion:9>2.7.0-rc2
+<eoh>
+
+<call:6>XX4XXX <gridsquare:0> <mode:3>FT8 <rst_sent:0> <rst_rcvd:0> <qso_date:8>20260626 <time_on:6>224845 <qso_date_off:8>20260626 <time_off:6>224950 <band:4>160m <freq:8>1.901397 <station_callsign:6>WA9NNN <my_gridsquare:4>EN61 <tx_pwr:2>50 <comment:22>spooltenna in backyard <contest_id:14>ARRL-FIELD-DAY <SRX_STRING:5>9B IL <class:2>9B <arrl_sect:2>IL <eor>
+<call:6>XX4XXY <gridsquare:0> <mode:3>FT8 <rst_sent:0> <rst_rcvd:0> <qso_date:8>20260626 <time_on:6>225045 <qso_date_off:8>20260626 <time_off:6>225148 <band:4>160m <freq:8>1.901397 <station_callsign:6>WA9NNN <my_gridsquare:4>EN61 <tx_pwr:2>50 <comment:22>spooltenna in backyard <contest_id:14>ARRL-FIELD-DAY <SRX_STRING:5>4B TX <class:2>4B <arrl_sect:2>TX <eor>
+<call:6>XX4XXY <gridsquare:0> <mode:3>FT8 <rst_sent:0> <rst_rcvd:0> <qso_date:8>20260626 <time_on:6>225345 <qso_date_off:8>20260626 <time_off:6>225457 <band:4>160m <freq:8>1.901397 <station_callsign:6>WA9NNN <my_gridsquare:4>EN61 <tx_pwr:2>50 <comment:22>spooltenna in backyard <contest_id:14>ARRL-FIELD-DAY <SRX_STRING:5>3b tx <class:2>3b <arrl_sect:2>tx <eor>
