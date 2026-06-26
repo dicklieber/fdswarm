@@ -19,6 +19,7 @@
 package fdswarm.fx.tools
 
 import fdswarm.exporter.ExportService
+import fdswarm.fx.UserConfig
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.util.FilenameStamp
 import jakarta.inject.{Inject, Singleton}
@@ -32,14 +33,16 @@ import scalafx.stage.{DirectoryChooser, Window}
 final class ExportDialog @Inject()(
                                     exportService: ExportService,
                                     filenameStamp: FilenameStamp,
-                                    cabrilloHeaderDialog: CabrilloHeaderDialog
+                                    cabrilloHeaderDialog: CabrilloHeaderDialog,
+                                    userConfig: UserConfig
                                   ) extends LazyStructuredLogging:
 
   import exportService.ExportFormat
 
   def show(ownerWindow: Window): Unit =
     val initialFilename = filenameStamp.build()
-    
+    val lastExportDir = userConfig.getProperty[scalafx.beans.property.StringProperty]("lastExportDirectory")
+
     val filenameField = new TextField:
       text = initialFilename
       promptText = "Filename (without extension)"
@@ -48,8 +51,11 @@ final class ExportDialog @Inject()(
     val formatCombo = new ComboBox[ExportFormat](ExportFormat.values.toIndexedSeq):
       value = ExportFormat.CABRILLO
 
+    val savedExportDir = lastExportDir.value
+    val initialDir = if savedExportDir.nonEmpty then savedExportDir else System.getProperty("user.home")
+
     val directoryField = new TextField:
-      text = System.getProperty("user.home")
+      text = initialDir
       promptText = "Export Directory"
       editable = false
       hgrow = Priority.Always
@@ -112,6 +118,7 @@ final class ExportDialog @Inject()(
       
       try
         exportService.executeExport(fullPath, format)
+        lastExportDir.value = dir.toString
         val alert = new Alert(Alert.AlertType.Information):
           initOwner(ownerWindow)
           title = "Export Success"

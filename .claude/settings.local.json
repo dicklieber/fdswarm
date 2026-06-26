@@ -11,7 +11,8 @@
       "Bash(./mill fdswarm.test)",
       "Bash(./mill --version)",
       "Bash(./mill show:*)",
-      "Bash(./mill resolve:*)"
+      "Bash(./mill resolve:*)",
+      "Bash(grep -l \"extends.*Dialog\\\\|class.*Dialog\" /Users/dlieber/devlocal/github/fdswarm/fdswarm/src/fdswarm/fx/tools/*.scala)"
     ]
   }
 }

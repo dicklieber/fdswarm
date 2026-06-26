@@ -23,7 +23,7 @@ import _root_.io.circe.syntax.*
 import _root_.io.circe.{Json, Printer}
 import fdswarm.io.FileHelper
 import jakarta.inject.{Inject, Singleton}
-import scalafx.beans.property.{BooleanProperty, IntegerProperty, Property}
+import scalafx.beans.property.{BooleanProperty, IntegerProperty, Property, StringProperty}
 
 @Singleton
 final class UserConfig @Inject()(fileHelper:FileHelper) :
@@ -34,7 +34,9 @@ final class UserConfig @Inject()(fileHelper:FileHelper) :
     new BooleanProperty(this, "useNextField", true),
     new IntegerProperty(this, "qsoListLines", 10),
     new IntegerProperty(this, "qsoListLines", 10),
-    new BooleanProperty(this, "showWelcomeDialog", true)
+    new BooleanProperty(this, "showWelcomeDialog", true),
+    new StringProperty(this, "lastImportDirectory", ""),
+    new StringProperty(this, "lastExportDirectory", "")
   )
 
   private val properties: Map[String, Property[?, ?]] =
@@ -66,6 +68,8 @@ final class UserConfig @Inject()(fileHelper:FileHelper) :
                 jsonOpt.flatMap(_.asBoolean).foreach(bp.value = _)
               case ip: IntegerProperty =>
                 jsonOpt.flatMap(_.as[Int].toOption).foreach(ip.value = _)
+              case sp: StringProperty =>
+                jsonOpt.flatMap(_.asString).foreach(sp.value = _)
               case _ => // ignore other types for now
           }
         case Left(err) =>
@@ -77,6 +81,7 @@ final class UserConfig @Inject()(fileHelper:FileHelper) :
       val jsonValue = prop match
         case bp: BooleanProperty => bp.value.asJson
         case ip: IntegerProperty => ip.value.asJson
+        case sp: StringProperty => sp.value.asJson
         case _ => Json.fromString(prop.value.toString)
       name -> jsonValue
     }
