@@ -1,0 +1,64 @@
+ADIF Export from N3FJP's ARRL Field Day Contest Log 6.6.10
+Written by G. Scott Davis
+www.n3fjp.com
+Log exported on: 6/26/2026 10:17:02 AM
+<LOG_PGM:34>N3FJP's ARRL Field Day Contest Log
+<LOG_VER:6>6.6.10
+<PROGRAMID:34>N3FJP's ARRL Field Day Contest Log
+<PROGRAMVERSION:6>6.6.10
+<EOH>
+
+<Call:5>K9DRS
+<QSO_Date:8>20260626
+<Time_On:6>151309
+<Band:3>15M
+<Comment:7>ARRL-FD
+<N3FJP_COMPUTERNAME:8>MbpWin11
+<Contest_ID:7>ARRL-FD
+<Cont:2>NA
+<Country:3>USA
+<DXCC:3>291
+<CQz:2>04
+<Class:2>1H
+<N3FJP_Initials:3>NNN
+<ITUz:2>08
+<Mode:2>CW
+<N3FJP_ModeContest:2>CW
+<OPERATOR:6>WA9NNN
+<Pfx:2>K9
+<QSL_Sent:1>N
+<QSL_Rcvd:1>N
+<ARRL_Sect:2>IL
+<N3FJP_SPCNum:2>IL
+<State:2>IL
+<N3FJP_StationID:8>MbpWin11
+<N3FJP_TransmitterID:1>0
+<eor>
+
+<Call:6>WA9DEW
+<QSO_Date:8>20260626
+<Time_On:6>151551
+<Band:3>15M
+<Comment:7>ARRL-FD
+<N3FJP_COMPUTERNAME:8>MbpWin11
+<Contest_ID:7>ARRL-FD
+<Cont:2>NA
+<Country:3>USA
+<DXCC:3>291
+<CQz:2>04
+<Class:2>1O
+<N3FJP_Initials:3>NNN
+<ITUz:2>08
+<Mode:2>CW
+<N3FJP_ModeContest:2>CW
+<OPERATOR:6>WA9NNN
+<Pfx:3>WA9
+<QSL_Sent:1>N
+<QSL_Rcvd:1>N
+<ARRL_Sect:2>IN
+<N3FJP_SPCNum:2>IN
+<State:2>IN
+<N3FJP_StationID:8>MbpWin11
+<N3FJP_TransmitterID:1>0
+<eor>
+

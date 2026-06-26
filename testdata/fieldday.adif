@@ -1,0 +1,30 @@
+ADIF Export from Field Day
+<adif_ver:4>3.1.4
+<eoh>
+
+<call:4>W1AW
+<qso_date:8>20260627
+<time_on:6>181523
+<band:3>20M
+<freq:7>14.25000
+<mode:4>PHON
+<rst_sent:3>59
+<rst_rcvd:3>59
+<class:3>2A
+<arrl_sect:3>IL
+<gridsquare:6>EN52oc
+<comment:27>Field Day 2026 Club Station
+<eor>
+
+<call:6>N0CALL
+<qso_date:8>20260627
+<time_on:6>182245
+<band:2>40M
+<freq:7>7.25000
+<mode:4>PHON
+<rst_sent:3>59
+<rst_rcvd:3>59
+<class:3>1B
+<arrl_sect:3>LA
+<gridsquare:6>EM40
+<eor>
