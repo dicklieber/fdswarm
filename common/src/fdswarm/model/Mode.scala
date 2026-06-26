@@ -29,7 +29,7 @@ enum Mode:
 object Mode:
 
   private val cwRx   = "CW.*".r
-  private val digiRx = "(?:PKT|RTTY).*".r
+  private val digiRx = "(?:PKT|RTTY|DI).*".r
 
   def fromString(mode: String): Mode =
     mode.trim.toUpperCase match

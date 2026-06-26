@@ -7,7 +7,11 @@
       "Bash(jar xf:*)",
       "Read(//tmp/laika/helium/config/**)",
       "Bash(./mill rigctlTool.compile)",
-      "Bash(./mill rigctlTool.run --help)"
+      "Bash(./mill rigctlTool.run --help)",
+      "Bash(./mill fdswarm.test)",
+      "Bash(./mill --version)",
+      "Bash(./mill show:*)",
+      "Bash(./mill resolve:*)"
     ]
   }
 }

@@ -139,6 +139,8 @@ object fdswarm
     def scalaVersion = scalaV
     def munitVersion = munitV
     override def testReportXml = Some("test-report.xml")
+    override def forkWorkingDir = Task { moduleDir / os.up / os.up }
+    override def testSandboxWorkingDir = false
 
 
 object manager extends CommonSettings:
