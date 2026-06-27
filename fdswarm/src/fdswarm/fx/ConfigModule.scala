@@ -25,7 +25,6 @@ import com.typesafe.config.{Config, ConfigFactory}
 import fdswarm.api.ApiEndpoints
 import fdswarm.io.FileHelper
 import fdswarm.logging.LazyStructuredLogging
-import fdswarm.importer.WsjtxListener
 import fdswarm.replication.{BroadcastTransport, Transport}
 import fdswarm.{AutoBind, StartupInfo}
 import net.codingwell.scalaguice.ScalaModule
@@ -127,7 +126,6 @@ class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModu
     }
 
     bind[Config].toInstance(fullConfig)
-    bind[WsjtxListener].asEagerSingleton()
 
 object ConfigModule:
   given Conversion[String, os.Path] = (in: String) => os.Path(in)

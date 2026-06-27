@@ -17,7 +17,6 @@
 
 package fdswarm.importer
 
-import com.typesafe.config.Config
 import fdswarm.StationConfigManager
 import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.logging.LazyStructuredLogging
@@ -33,17 +32,12 @@ import java.nio.{ByteBuffer, ByteOrder}
   *
   * WSJT-X broadcasts a binary UDP message each time a QSO is logged.  Message type 12
   * carries the complete ADIF record for the just-logged contact.  This listener joins the
-  * configured multicast group, decodes those packets, and adds the resulting [[fdswarm.model.Qso]]
-  * objects to the [[QsoStore]].
+  * configured multicast group, decodes those packets, and adds the resulting
+  * [[fdswarm.model.Qso]] objects to the [[QsoStore]] using the live station/contest metadata.
   *
-  * Configuration (`reference.conf`):
-  * {{{
-  *   fdswarm.wsjtx {
-  *     enabled        = false
-  *     multicastGroup = "224.0.0.1"
-  *     port           = 2237
-  *   }
-  * }}}
+  * Configuration is managed by [[WsjtxConfigManager]] (persisted to `wsjtx.json`,
+  * falling back to `fdswarm.wsjtx.*` in `reference.conf`).  Call [[restart]] after
+  * saving new config to apply changes immediately.
   *
   * Wire protocol (big-endian):
   *   - uint32  magic  = 0xADBCCBDA
@@ -54,43 +48,67 @@ import java.nio.{ByteBuffer, ByteOrder}
   */
 @Singleton
 class WsjtxListener @Inject() (
-    config: Config,
+    wsjtxConfigManager: WsjtxConfigManager,
     qsoStore: QsoStore,
     stationConfigManager: StationConfigManager,
     contestConfigManager: ContestConfigManager
-) extends Runnable
-    with LazyStructuredLogging():
+) extends LazyStructuredLogging():
 
-  private val WsjtxMagic       = 0xADBCCBDAL   // unsigned comparison
-  private val MessageTypeAdif  = 12
+  private val WsjtxMagic      = 0xADBCCBDAL
+  private val MessageTypeAdif = 12
 
-  private val enabled        = config.getBoolean("fdswarm.wsjtx.enabled")
-  private val multicastGroup = config.getString("fdswarm.wsjtx.multicastGroup")
-  private val port           = config.getInt("fdswarm.wsjtx.port")
+  @volatile private var currentSocket: Option[MulticastSocket] = None
+  @volatile private var currentThread: Option[Thread]          = None
 
-  private val thread = new Thread(this, "WsjtxListener")
-  thread.setDaemon(true)
-  if enabled then
-    thread.start()
-    logger.info("WsjtxListener started", "group" -> multicastGroup, "port" -> port)
-  else
-    logger.info("WsjtxListener disabled (fdswarm.wsjtx.enabled = false)")
+  startIfEnabled()
 
-  override def run(): Unit =
-    val group  = InetAddress.getByName(multicastGroup)
-    val socket = new MulticastSocket(port)
-    socket.joinGroup(new InetSocketAddress(group, port), null)
-    val buf = new Array[Byte](65535)
-    while !Thread.currentThread().isInterrupted do
-      try
-        val packet = new DatagramPacket(buf, buf.length)
-        socket.receive(packet)
-        processPacket(packet.getData.take(packet.getLength))
-      catch
-        case _: java.net.SocketException if Thread.currentThread().isInterrupted =>
-          // normal shutdown
-        case e: Exception =>
-          logger.error("Error receiving WSJT-X packet", e)
+  /** Stops any running listener and restarts according to the current [[WsjtxConfigManager]] state. */
+  def restart(): Unit =
+    stop()
+    startIfEnabled()
+
+  private def startIfEnabled(): Unit =
+    val cfg = wsjtxConfigManager.wsjtxConfig.value
+    if cfg.enabled then
+      val t = new Thread(() => run(cfg), "WsjtxListener")
+      t.setDaemon(true)
+      t.start()
+      currentThread = Some(t)
+      logger.info("WsjtxListener started", "group" -> cfg.multicastGroup, "port" -> cfg.port)
+    else
+      logger.info("WsjtxListener disabled")
+
+  private def stop(): Unit =
+    currentThread.foreach(_.interrupt())
+    currentSocket.foreach(_.close())
+    currentSocket = None
+    currentThread = None
+
+  private def run(cfg: WsjtxConfig): Unit =
+    try
+      val group  = InetAddress.getByName(cfg.multicastGroup)
+      val socket = new MulticastSocket(cfg.port)
+      currentSocket = Some(socket)
+      socket.joinGroup(new InetSocketAddress(group, cfg.port), null)
+      logger.debug("WsjtxListener joined multicast group", "group" -> cfg.multicastGroup, "port" -> cfg.port)
+      val buf = new Array[Byte](65535)
+      while !Thread.currentThread().isInterrupted && !socket.isClosed do
+        try
+          val packet = new DatagramPacket(buf, buf.length)
+          socket.receive(packet)
+          processPacket(packet.getData.take(packet.getLength))
+        catch
+          case _: java.net.SocketException if Thread.currentThread().isInterrupted || socket.isClosed =>
+            // normal shutdown
+          case e: Exception =>
+            logger.error("Error receiving WSJT-X packet", e)
+    catch
+      case e: Exception =>
+        if !Thread.currentThread().isInterrupted then
+          logger.error("WsjtxListener failed to start", e)
+    finally
+      currentSocket = None
+      currentThread = None
 
   private def processPacket(data: Array[Byte]): Unit =
     val bb = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
@@ -122,7 +140,7 @@ class WsjtxListener @Inject() (
       case scala.util.Failure(ex) =>
         logger.warn("Failed to parse WSJT-X ADIF record", "record" -> adifRecord, "error" -> ex.getMessage)
 
-  /** Reads a length-prefixed UTF-8 string from the buffer; returns "" for null or empty strings. */
+  /** Reads a length-prefixed UTF-8 string; returns "" for null or empty strings. */
   private def readUtf8String(bb: ByteBuffer): String =
     if bb.remaining() < 4 then return ""
     val len = bb.getInt()

@@ -12,7 +12,8 @@
       "Bash(./mill --version)",
       "Bash(./mill show:*)",
       "Bash(./mill resolve:*)",
-      "Bash(grep -l \"extends.*Dialog\\\\|class.*Dialog\" /Users/dlieber/devlocal/github/fdswarm/fdswarm/src/fdswarm/fx/tools/*.scala)"
+      "Bash(grep -l \"extends.*Dialog\\\\|class.*Dialog\" /Users/dlieber/devlocal/github/fdswarm/fdswarm/src/fdswarm/fx/tools/*.scala)",
+      "Bash(find /Users/dlieber/devlocal/github/fdswarm -name \"*.scala\" -type f -exec grep -l \"FileHelper.*save\\\\|save.*FileHelper\" {})"
     ]
   }
 }

@@ -34,6 +34,7 @@ import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
 import _root_.io.circe.parser.decode
 import _root_.io.circe.syntax.EncoderOps
 import fdswarm.fx.qso.PostContestPanel
+import fdswarm.importer.WsjtxConfigDialog
 import fdswarm.rigctl.{ModeMappingDialog, RigCtlDialog}
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
@@ -77,6 +78,7 @@ final class FdSwarmMenus @Inject()(
                                    rigCtlDialog: RigCtlDialog,
                                    modeMappingDialog: ModeMappingDialog,
                                    postContestPanel: PostContestPanel,
+                                   wsjtxConfigDialog: WsjtxConfigDialog,
 )
     extends LazyStructuredLogging:
   aboutMenuItem.onAction = _ => showAboutDialog()
@@ -116,6 +118,10 @@ final class FdSwarmMenus @Inject()(
         ,
         new MenuItem("Scoring"):
           onAction = _ => contestScoringConfigDialog.show()
+        ,
+        new SeparatorMenuItem(),
+        new MenuItem("WSJT-X"):
+          onAction = _ => wsjtxConfigDialog.showAndWait()
         ,
         developerModeMenuItem
       )
