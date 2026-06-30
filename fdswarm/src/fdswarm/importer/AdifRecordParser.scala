@@ -17,9 +17,12 @@
 
 package fdswarm.importer
 
+import fdswarm.QsoMetadataManager
 import fdswarm.fx.contest.ContestType
 import fdswarm.model.*
+import fdswarm.rigctl.ModeMappingManager
 import fdswarm.util.Ids
+import jakarta.inject.{Inject, Singleton}
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, ZoneOffset}
@@ -29,14 +32,28 @@ import scala.util.Try
   *
   * Extracted as a standalone class to enable unit testing of the record-level
   * parsing logic independently of I/O concerns in [[AdifParser]].
+  *
+  * When used with dependency injection, [[ModeMappingManager.fromString]] is used
+  * as the mode resolver, making the radio→[[Mode]] mapping user-configurable.
+  * For non-DI contexts (tests, [[AdifParser]]), the primary constructor defaults
+  * to [[AdifRecordParser.defaultModeFromString]], which replicates the built-in
+  * radio-mode patterns.
   */
-class AdifRecordParser(using qsoMetadata: QsoMetadata = QsoMetadata.adifImportQsoMetadata(ContestType.ARRL)):
+@Singleton
+class AdifRecordParser(
+    getMetadata: () => QsoMetadata = () => QsoMetadata.adifImportQsoMetadata(ContestType.ARRL),
+    modeFromString: String => Mode = AdifRecordParser.defaultModeFromString
+):
   import AdifRecordParser.FieldRx
+
+  @Inject() def this(qsoMetadataManager: QsoMetadataManager, modeMappingManager: ModeMappingManager) =
+    this(() => qsoMetadataManager.qsoMetadata.value, modeMappingManager.fromString)
 
   /** Parses a single ADIF record string into an [[Option]] of [[Qso]].
     * Returns [[None]] if any required field (CALL, BAND, MODE, CLASS, ARRL_SECT) is missing or invalid.
     */
   def parseRecord(record: String): Try[Qso] =
+    val qsoMetadata = getMetadata()
     val fields = extractFields(record)
     Try {
       val callStr  = fields("CALL")
@@ -45,7 +62,7 @@ class AdifRecordParser(using qsoMetadata: QsoMetadata = QsoMetadata.adifImportQs
       val classStr = fields("CLASS").toUpperCase
       val sectStr  = fields("ARRL_SECT").toUpperCase
       val callsign = Callsign(callStr)
-      val bandMode = BandMode(bandStr, modeStr)
+      val bandMode = new BandMode(Band.fromString(bandStr), modeFromString(modeStr))
       val exchange = Exchange(FdClass(classStr), sectStr)
       val stamp    = parseStamp(fields)
       val uuid     = fields.getOrElse("APP_FDSWARM_UUID", Ids.generateId())
@@ -89,3 +106,19 @@ class AdifRecordParser(using qsoMetadata: QsoMetadata = QsoMetadata.adifImportQs
 
 object AdifRecordParser:
   private val FieldRx = """<([^:>]+):(\d+)(?::[^>]*)?>""".r
+
+  private val cwRx   = "CW.*".r
+  private val digiRx = "(?:PKT|RTTY|DI|FT|JT|JS8|WSPR|PSK|MSK|MFSK).*".r
+
+  /** Default radio-mode resolver used in non-DI contexts (file import, tests).
+    * Matches the built-in patterns from `reference.conf`.  When DI is active,
+    * [[ModeMappingManager.fromString]] replaces this so mappings are user-configurable.
+    */
+  val defaultModeFromString: String => Mode = mode =>
+    mode.trim.toUpperCase match
+      case "CW"     => Mode.CW
+      case "PH"     => Mode.PH
+      case "DIGI"   => Mode.DIGI
+      case cwRx()   => Mode.CW
+      case digiRx() => Mode.DIGI
+      case _        => Mode.PH

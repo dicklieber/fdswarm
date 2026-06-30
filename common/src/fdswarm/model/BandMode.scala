@@ -22,7 +22,7 @@ import io.circe.{Decoder, Encoder}
 import sttp.tapir.Schema
 
 /**
- * Allows storng band and mode in a compact why in a [[Qso]]
+ * Allows storing band and mode in a compact why in a [[Qso]]
  */
 case class BandMode private[fdswarm] (band: Band, mode: Mode):
   def cabMode: Mode =

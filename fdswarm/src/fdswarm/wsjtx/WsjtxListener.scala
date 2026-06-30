@@ -17,13 +17,11 @@
 
 package fdswarm.wsjtx
 
-import fdswarm.StationConfigManager
-import fdswarm.fx.contest.ContestConfigManager
+import fdswarm.QsoMetadataManager
 import fdswarm.importer.AdifRecordParser
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.QsoMetadata
 import fdswarm.store.QsoStore
-import fdswarm.util.NodeIdentityManager
 import jakarta.inject.{Inject, Singleton}
 
 import java.net.{DatagramPacket, InetAddress, InetSocketAddress, MulticastSocket}
@@ -41,18 +39,17 @@ import java.nio.{ByteBuffer, ByteOrder}
   * saving new config to apply changes immediately.
   *
   * Wire protocol (big-endian):
-  *   - uint32  magic  = 0xADBCCBDA
-  *   - uint32  schema (ignored)
-  *   - uint32  type   = 12 for ADIF_LOG_QSO
-  *   - utf8str id     (length-prefixed; 0xFFFFFFFF = null)
-  *   - utf8str adif   (length-prefixed ADIF record text)
+  *   - uint32 magic = 0xADBCCBDA
+  *   - uint32 schema (ignored)
+  *   - uint32 type = 12 for ADIF_LOG_QSO
+  *   - utf8str id (length-prefixed; 0xFFFFFFFF = null)
+  *   - utf8str adif (length-prefixed ADIF record text)
   */
 @Singleton
 class WsjtxListener @Inject() (
     wsjtxConfigManager: WsjtxConfigManager,
     qsoStore: QsoStore,
-    stationConfigManager: StationConfigManager,
-    contestConfigManager: ContestConfigManager
+    qsoMetadataManager: QsoMetadataManager
 ) extends LazyStructuredLogging():
 
   private val WsjtxMagic      = 0xADBCCBDAL
@@ -129,11 +126,7 @@ class WsjtxListener @Inject() (
         processAdif(adif)
 
   private def processAdif(adifRecord: String): Unit =
-    given QsoMetadata = QsoMetadata(
-      station = stationConfigManager.stationConfig,
-      node    = NodeIdentityManager.nodeIdentity,
-      contest = contestConfigManager.contestType
-    )
+    given QsoMetadata = qsoMetadataManager.qsoMetadata.value
     AdifRecordParser().parseRecord(adifRecord) match
       case scala.util.Success(qso) =>
         val msg = qsoStore.add(qso)

@@ -35,8 +35,6 @@ case class QsoError(record: String, exception: Exception)
   */
 class AdifParser(inputStream: InputStream, contestType: ContestType = ContestType.ARRL):
 
-  private given qsoMetadata: QsoMetadata = QsoMetadata.adifImportQsoMetadata(contestType)
-
   private val rawRecords: Seq[String] =
     val content = scala.io.Source.fromInputStream(inputStream, "UTF-8").mkString
     val eohIdx  = "(?i)<eoh>".r.findFirstMatchIn(content).map(_.end).getOrElse(0)
@@ -57,7 +55,7 @@ class AdifParser(inputStream: InputStream, contestType: ContestType = ContestTyp
     */
   def process(callback: (String, Either[QsoError, Qso]) => Unit): Unit =
     rawRecords.foreach { record =>
-      val either = AdifRecordParser().parseRecord(record).toEither.left.map { t =>
+      val either = AdifRecordParser(() => QsoMetadata.adifImportQsoMetadata(contestType)).parseRecord(record).toEither.left.map { t =>
         val ex = t match
           case e: Exception => e
           case _ => RuntimeException(t.getMessage, t)

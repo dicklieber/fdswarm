@@ -22,30 +22,24 @@ import munit.FunSuite
 
 class ModeTest extends FunSuite:
 
-  test("PKTLSB should produce DIGI"):
-    assertEquals(Mode.fromString("PKTLSB"), Mode.DIGI)
-
-  test("PKTUSB should produce DIGI"):
-    assertEquals(Mode.fromString("PKTUSB"), Mode.DIGI)
-
-  test("RTTY should produce DIGI"):
-    assertEquals(Mode.fromString("RTTY"), Mode.DIGI)
+  // Mode.fromString handles only canonical serialised values.
+  // Raw radio / WSJT-X strings (CWR, FT8, RTTY, …) are handled by
+  // ModeMappingManager.fromString (fdswarm module) — see ModeMappingManagerTest.
 
   test("CW should produce CW"):
     assertEquals(Mode.fromString("CW"), Mode.CW)
 
-  test("CWR should produce CW"):
-    assertEquals(Mode.fromString("CWR"), Mode.CW)
+  test("PH should produce PH"):
+    assertEquals(Mode.fromString("PH"), Mode.PH)
 
-  test("SSB should produce PH"):
+  test("DIGI should produce DIGI"):
+    assertEquals(Mode.fromString("DIGI"), Mode.DIGI)
+
+  test("unknown string falls back to PH"):
     assertEquals(Mode.fromString("SSB"), Mode.PH)
-
-  test("FM should produce PH"):
-    assertEquals(Mode.fromString("FM"), Mode.PH)
-
-  test("DFM should produce PH"):
-    assertEquals(Mode.fromString("DFM"), Mode.PH)
+    assertEquals(Mode.fromString("FM"),  Mode.PH)
 
   test("fromString is case-insensitive"):
-    assertEquals(Mode.fromString("pktlsb"), Mode.DIGI)
-    assertEquals(Mode.fromString("cw"), Mode.CW)
+    assertEquals(Mode.fromString("cw"),   Mode.CW)
+    assertEquals(Mode.fromString("ph"),   Mode.PH)
+    assertEquals(Mode.fromString("digi"), Mode.DIGI)

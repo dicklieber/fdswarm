@@ -17,7 +17,7 @@
 
 package fdswarm.importer
 
-import fdswarm.model.Mode
+import fdswarm.model.{Band, Mode}
 import munit.FunSuite
 
 import java.time.Instant
@@ -128,3 +128,12 @@ class AdifRecordParserTest extends FunSuite:
     val record = "<CALL:5>K9DRS<BAND:3>15M<MODE:2>CW<CLASS:2>1H<ARRL_SECT:2>IL"
     val qso    = parser.parseRecord(record).get
     assertEquals(qso.qsoMetadata.station.operator.value, "")
+  test("parse wsjt-x ADIF"):
+    val record = "<call:6>XX4XXX <gridsquare:0> <mode:3>FT8 <rst_sent:0> <rst_rcvd:0> <qso_date:8>20260626 <time_on:6>224845 <qso_date_off:8>20260626 <time_off:6>224950 <band:4>160m <freq:8>1.901397 <station_callsign:6>WA9NNN <my_gridsquare:4>EN61 <tx_pwr:2>50 <comment:22>spooltenna in backyard <contest_id:14>ARRL-FIELD-DAY <SRX_STRING:5>9B IL <class:2>9B <arrl_sect:2>IL <eor>"
+    val qso    = parser.parseRecord(record).get
+    val band = qso.bandMode.band
+    assertEquals(band, Band.Band_160m)
+    val mode = qso.bandMode.mode
+    assertEquals(mode, Mode.DIGI)
+    val station = qso.qsoMetadata.station
+    assertEquals(station.operator.value, "WA9NNN")

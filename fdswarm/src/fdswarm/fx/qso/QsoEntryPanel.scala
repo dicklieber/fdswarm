@@ -18,11 +18,10 @@
 
 package fdswarm.fx.qso
 
-import fdswarm.StationConfigManager
+import fdswarm.QsoMetadataManager
 import fdswarm.bandmodes.SelectedBandModeManager
 import java.time.Instant
 import fdswarm.fx.{CallSignField, GridColumns}
-import fdswarm.fx.contest.{ContestConfigManager, ContestType}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.*
 import fdswarm.replication.Transport
@@ -82,8 +81,7 @@ class QsoEntryPanel @Inject()(
                                qsoStore: QsoStore,
                                transport: Transport,
                                selectedBandModeStore: SelectedBandModeManager,
-                               stationManager: StationConfigManager,
-                               contestManager: ContestConfigManager,
+                               qsoMetadataManager: QsoMetadataManager,
                                callsignField: CallSignField,
                                contestClassField: ContestClassField,
                                sectionField: fdswarm.fx.sections.SectionField,
@@ -251,13 +249,7 @@ class QsoEntryPanel @Inject()(
     if !sectionField.validProperty.value then sectionField.applyUniqueMatchForCurrentInput()
     if canSubmitNow then submit()
 
-  private def qsoMetadata =
-    val contestType: ContestType = contestManager.contestConfigProperty.value.contestType
-    QsoMetadata(
-      station = stationManager.stationConfig,
-      node = NodeIdentityManager.nodeIdentity,
-      contest = contestType
-    )
+  private def qsoMetadata = qsoMetadataManager.qsoMetadata.value
 
   private def clearControls(): Unit =
     callsignField.text = ""

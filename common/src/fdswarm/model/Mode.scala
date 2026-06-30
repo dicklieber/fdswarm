@@ -28,17 +28,16 @@ enum Mode:
 
 object Mode:
 
-  private val cwRx   = "CW.*".r
-  private val digiRx = "(?:PKT|RTTY|DI).*".r
-
+  /** Maps only the canonical serialised values (CW / PH / DIGI) back to the enum.
+    * Raw radio / WSJT-X mode strings (e.g. "FT8", "CWR") must be routed through
+    * [[fdswarm.rigctl.ModeMappingManager#fromString]] in the fdswarm module.
+    */
   def fromString(mode: String): Mode =
     mode.trim.toUpperCase match
-      case "CW"     => Mode.CW
-      case "PH"     => Mode.PH
-      case "DIGI"   => Mode.DIGI
-      case cwRx()   => Mode.CW
-      case digiRx() => Mode.DIGI
-      case _        => Mode.PH
+      case "CW"   => Mode.CW
+      case "PH"   => Mode.PH
+      case "DIGI" => Mode.DIGI
+      case _      => Mode.PH
 
   given Schema[Mode] = Schema.string
   given Encoder[Mode] = Encoder.encodeString.contramap(_.toString)

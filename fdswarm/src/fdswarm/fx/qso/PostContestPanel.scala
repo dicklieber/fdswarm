@@ -18,9 +18,8 @@
 
 package fdswarm.fx.qso
 
-import fdswarm.StationConfigManager
+import fdswarm.QsoMetadataManager
 import fdswarm.fx.GridColumns
-import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.*
 import fdswarm.rigctl.RigctldPoller
@@ -49,8 +48,7 @@ import java.time.format.{DateTimeFormatter, DateTimeParseException}
 @Singleton
 class PostContestPanel @Inject()(
     rigctldPoller: RigctldPoller,
-    stationManager: StationConfigManager,
-    contestManager: ContestConfigManager
+    qsoMetadataManager: QsoMetadataManager
 ) extends LazyStructuredLogging:
 
   val PostNode: NodeIdentity = NodeIdentity(
@@ -90,7 +88,7 @@ class PostContestPanel @Inject()(
   // ── event handlers ────────────────────────────────────────────────────
   isActiveProperty.onChange { (_, _, active) =>
     if (active) {
-      operatorField.text = stationManager.stationConfig.operator.value
+      operatorField.text = qsoMetadataManager.qsoMetadata.value.station.operator.value
       dateField.text     = dateFormatter.format(LocalDate.now(ZoneOffset.UTC))
       timeField.text     = ""
       statusLabel.text   = ""
@@ -128,17 +126,14 @@ class PostContestPanel @Inject()(
 
   def operatorCallsign: Callsign = {
     val t = operatorField.text.value.trim
-    if (Callsign.isValid(t)) Callsign(t) else stationManager.stationConfig.operator
+    if (Callsign.isValid(t)) Callsign(t) else qsoMetadataManager.qsoMetadata.value.station.operator
   }
 
-  def makePostMetadata(): QsoMetadata = {
-    val contestType = contestManager.contestConfigProperty.value.contestType
-    QsoMetadata(
-      station = stationManager.stationConfig.copy(operator = operatorCallsign),
-      node    = PostNode,
-      contest = contestType
+  def makePostMetadata(): QsoMetadata =
+    qsoMetadataManager.qsoMetadata.value.copy(
+      station = qsoMetadataManager.qsoMetadata.value.station.copy(operator = operatorCallsign),
+      node    = PostNode
     )
-  }
 
   def focusDate(): Unit = {
     dateField.requestFocus()
