@@ -15,10 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package fdswarm.importer
+package fdswarm.wsjtx
 
 import fdswarm.StationConfigManager
 import fdswarm.fx.contest.ContestConfigManager
+import fdswarm.importer.AdifRecordParser
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.QsoMetadata
 import fdswarm.store.QsoStore

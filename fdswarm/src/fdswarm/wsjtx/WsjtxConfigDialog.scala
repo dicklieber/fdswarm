@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package fdswarm.importer
+package fdswarm.wsjtx
 
 import fdswarm.fx.utils.StyledDialog
 import fdswarm.fx.utils.editor.CaseClassPropertyEditor

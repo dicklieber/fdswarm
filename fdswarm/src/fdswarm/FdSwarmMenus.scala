@@ -34,8 +34,8 @@ import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
 import _root_.io.circe.parser.decode
 import _root_.io.circe.syntax.EncoderOps
 import fdswarm.fx.qso.PostContestPanel
-import fdswarm.importer.WsjtxConfigDialog
 import fdswarm.rigctl.{ModeMappingDialog, RigCtlDialog}
+import fdswarm.wsjtx.WsjtxConfigDialog
 import jakarta.inject.Inject
 import javafx.concurrent.Worker
 import javafx.scene.control.{Menu as JfxMenu, MenuItem as JfxMenuItem}
