@@ -59,7 +59,7 @@ class RigctldPoller @Inject()(
   def start(): Unit = this.synchronized {
     val cfg = rigCtlManager.config.value
     if !cfg.enabled then
-      logger.info("rigctld polling is disabled")
+      logger.debug("rigctld polling is disabled")
       return
     if maybeThread.isEmpty then
       stopRequested = false
@@ -67,7 +67,7 @@ class RigctldPoller @Inject()(
       t.setDaemon(true)
       t.start()
       maybeThread = Some(t)
-      logger.info(s"rigctld poller started, connecting to ${cfg.host}:${cfg.port} every ${cfg.pollIntervalMs}ms")
+      logger.debug(s"rigctld poller started, connecting to ${cfg.host}:${cfg.port} every ${cfg.pollIntervalMs}ms")
   }
 
   def stop(): Unit = this.synchronized {
@@ -124,11 +124,11 @@ class RigctldPoller @Inject()(
             logger.debug(s"rigctld poll: freq=$hz rigCtlMode=$rawMode contestMode=$contestMode")
             for band <- Band.fromFrequency(hz) do
               val newBandMode = BandMode(band, contestMode)
-              if newBandMode != selectedBandModeManager.selected.value then
-                logger.info(s"rigctld: band/mode changed to $newBandMode")
-                Platform.runLater {
+              Platform.runLater {
+                if newBandMode != selectedBandModeManager.selected.value then
+                  logger.debug(s"rigctld: band/mode changed to $newBandMode")
                   selectedBandModeManager.save(newBandMode)
-                }
+              }
 
           Platform.runLater {
             pollCount.value = pollCount.value + 1

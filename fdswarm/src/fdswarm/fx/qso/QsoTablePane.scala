@@ -99,13 +99,19 @@ class QsoTablePane @Inject()(qsoStore: QsoStore, userConfig: UserConfig):
   private val nodeCol = col[String]("Node", _.qsoMetadata.node.toString)
 
   table.columns ++= Seq(
-    timeCol, theirCallCol, bandCol, modeCol, rcvdCol, opCol, nodeCol
+    theirCallCol,
+    bandCol,
+    modeCol,
+    rcvdCol,
+    timeCol,
+    opCol,
+    nodeCol
   )
 
   // Optional: make “Their” callsign stand out a bit (still text-only)
   theirCallCol.styleClass += "qso-their-call"
 
-  // Optional: double click row to do something
+  // Optional: double-click row to do something
   table.onMouseClicked = e =>
     if e.clickCount == 2 then
       val sel = table.selectionModel().getSelectedItem

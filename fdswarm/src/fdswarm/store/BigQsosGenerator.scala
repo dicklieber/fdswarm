@@ -56,7 +56,8 @@ final class BigQsosGenerator @Inject()(qsoStore: QsoStore, bandModeBuilder: Band
       (callsign, index) <- generatedCallsigns
     yield
       val stamp = now.minusMillis(index * intervalMillis)
-      val randomBand = Band.values(random.nextInt(Band.values.length))
+      val contestBands = Band.values.filterNot(_ == Band.OutOfBand)
+      val randomBand = contestBands(random.nextInt(contestBands.length))
       val randomMode = Mode.values(random.nextInt(Mode.values.length))
       val bandMode = bandModeBuilder(randomBand, randomMode)
 
@@ -68,7 +69,7 @@ final class BigQsosGenerator @Inject()(qsoStore: QsoStore, bandModeBuilder: Band
         station = StationConfig(operator = Callsign(randomOperator)),
         contest = WFD,
         node = NodeIdentityManager.nodeIdentity)
-      val exchange = Exchange(FdClass(randomTransmitters, randomClassLetter), "IL")
+      val exchange = Exchange(FdClass(randomTransmitters, randomClassLetter))
       Qso(callsign = Callsign(callsign),
         exchange = exchange,
         bandMode = bandMode,

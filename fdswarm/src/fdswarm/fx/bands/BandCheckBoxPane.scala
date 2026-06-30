@@ -36,7 +36,7 @@ final class BandCheckBoxPane @Inject()(
     vgap = 6.0
 
   private val checkBoxes: Seq[BandCheckBox] =
-    Band.values.toIndexedSeq.map(BandCheckBox(_))
+    Band.values.toIndexedSeq.filterNot(_ == Band.OutOfBand).map(BandCheckBox(_))
 
   private val byBandClass: Map[BandClass, Seq[BandCheckBox]] =
     checkBoxes.groupBy(_.band.bandClass)

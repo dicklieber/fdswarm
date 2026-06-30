@@ -47,6 +47,7 @@ enum Band(val name: String, val startFrequencyHz: Long, val endFrequencyHz: Long
   case Band_9cm extends Band("9cm", 3300000000L, 3500000000L, BandClass.SHF, BandRegion.ALL)
   case Band_6cm extends Band("6cm", 5650000000L, 5925000000L, BandClass.SHF, BandRegion.ALL)
   case Band_3cm extends Band("3cm", 10000000000L, 10500000000L, BandClass.SHF, BandRegion.ALL)
+  case OutOfBand extends Band("out-of-band", Long.MinValue, Long.MaxValue, BandClass.SHF, BandRegion.ALL)
 
   override def toString: String = name
 
@@ -62,9 +63,7 @@ object Band:
     byName.get(band.trim.toLowerCase)
 
   def fromFrequency(hz: Long): Option[Band] =
-    val maybeBand = Band.values.find(b => hz >= b.startFrequencyHz && hz <= b.endFrequencyHz)
-
-    maybeBand
+    Band.values.find(b => hz >= b.startFrequencyHz && hz <= b.endFrequencyHz)
 
   given Schema[Band] = Schema.string
   given Encoder[Band] = Encoder.encodeString.contramap(_.name)
