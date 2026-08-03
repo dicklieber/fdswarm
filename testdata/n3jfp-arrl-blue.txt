@@ -1,0 +1,34 @@
+
+ Total Contacts by Band and Mode:
+
+ Band       CW   Power     Dig   Power   Phone   Power   Total       %
+ ----       --   -----   -----   -----   -----   -----   -----     ---
+  160        1               0               2               3       3
+   80        4               3               3              10      10
+   60        4               0               1               5       5
+   40        0               1               0               1       1
+   30        2               4               2               8       8
+   20        2               0               0               2       2
+   15        4               0               0               4       4
+    6        3               2               2               7       7
+    2        2               0               1               3       3
+ 1.25        4               2               1               7       7
+   70        3               1               3               7       7
+   33        0               0               1               1       1
+   23        4               2               2               8       8
+   13        5               2               4              11      11
+    9        2               2               0               4       4
+  6cm        2               3               4               9       9
+    3        0               2               4               6       6
+            --   -----   -----   -----   -----   -----   -----     ---
+ Total      44              26              32             102     100
+
+
+Click the link at the lower left below to proceed to ARRL's on line submittal form.
+
+On ARRL's form, manually type in the totals above, along with the maximum power you ran on each band.  Remember to add any GOTA Station totals on the web form separately from these totals.
+
+Then upload the dupe file you just created, by clicking the button on ARRL's form to the right.
+
+You can create a Cabrillo log file (click View Legacy Form from the previous form), but Cabrillo log files are not required for Field Day.  The .dup file this software just created is the only log file that ARRL requires you to submit for Field Day.
+

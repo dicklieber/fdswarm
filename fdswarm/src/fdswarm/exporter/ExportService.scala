@@ -31,13 +31,16 @@ final class ExportService @Inject()(
                                      contestManager: ContestConfigManager,
                                      stationStore: StationStore,
                                      val adifExporter: AdifExporter,
+                                     val dupeSheetExporter: DupeSheetExporter,
                                      cabrilloHeaderStore: CabrilloHeaderStore
                                    ):
 
   enum ExportFormat(val extension: String, val description: String):
     case CABRILLO extends ExportFormat("cbr", "Cabrillo Files (*.cbr)")
     case ADIF extends ExportFormat("adi", "ADIF Files (*.adi)")
+    case DUP extends ExportFormat("dup", "Dupe Sheet Files (*.dup)")
     case JSON extends ExportFormat("json", "JSON Files (*.json)")
+    case SUMMARY extends ExportFormat("txt", "Summary Files (*.txt)")
     case ZIP  extends ExportFormat("zip", "Zip Files (*.zip)")
 
     override def toString: String = description
@@ -48,6 +51,13 @@ final class ExportService @Inject()(
         val qsos = qsoStore.all
         val adif = adifExporter.exportQsos(qsos)
         os.write.over(path, adif)
+      case ExportFormat.DUP =>
+        val qsos = qsoStore.all
+        val station = stationStore.station.value
+        val header = cabrilloHeaderStore.header.value
+        val callUsed = if header.callsign.nonEmpty then header.callsign else station.operator.value
+        val dupSheet = dupeSheetExporter.exportQsos(qsos, callUsed, header.stationClass, header.stationSection)
+        os.write.over(path, dupSheet)
       case ExportFormat.CABRILLO =>
         val qsos = qsoStore.all
         val station = stationStore.station.value
@@ -60,5 +70,9 @@ final class ExportService @Inject()(
         val qsos = qsoStore.all
         val json = JsonExporter.exportQsos(qsos)
         os.write.over(path, json)
+      case ExportFormat.SUMMARY =>
+        val qsos = qsoStore.all
+        val summary = SummaryExporter.exportQsos(qsos)
+        os.write.over(path, summary)
       case ExportFormat.ZIP =>
         ZipExporter.zipDirectory(fileHelper.directory, path)
