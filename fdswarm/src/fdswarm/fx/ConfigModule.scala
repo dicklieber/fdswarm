@@ -48,11 +48,19 @@ class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModu
 
     bind[fdswarm.util.NodeIdentityManager].asEagerSingleton()
     bind[fdswarm.replication.StatusProcessor].asEagerSingleton()
+    bind[fdswarm.store.QsosSource].to[fdswarm.store.QsoStore]
 
-    val pkgs = Seq("fdswarm.api", "fdswarm.grafana")
+    val pkgs = Seq("fdswarm.api", "fdswarm.grafana", "fdswarm.exporter")
 
     // unnamed set (inject with java.util.Set[ApiEndpoints])
     AutoBind.bindAllImplementationsOf[ApiEndpoints](
+      binder = binder(),
+      packagesOnly = pkgs,
+      named = None,
+      asSingleton = true
+    )
+
+    AutoBind.bindAllImplementationsOf[fdswarm.exporter.Exporter](
       binder = binder(),
       packagesOnly = pkgs,
       named = None,

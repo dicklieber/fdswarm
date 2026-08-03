@@ -47,7 +47,7 @@ class QsoStore @Inject() (
     localNodeStatus: LocalNodeStatus,
     contestScoringService: ContestScoringService,
     nodeStatusDispatcher: NodeStatusDispatcher
-) extends StatsSource(Locus.Qso) with LazyStructuredLogging():
+) extends StatsSource(Locus.Qso) with QsosSource with LazyStructuredLogging():
 
   val qsoCollection: ObservableBuffer[Qso] = new ObservableBuffer[Qso]()
   protected val map: TrieMap[Id, Qso] = new TrieMap

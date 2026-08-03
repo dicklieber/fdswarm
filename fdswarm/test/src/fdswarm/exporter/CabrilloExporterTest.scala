@@ -26,6 +26,7 @@ import munit.FunSuite
 import java.time.Instant
 
 class CabrilloExporterTest extends FunSuite:
+  val exporter = new CabrilloExporter(null, null, null, null)
 
   test("exportQsos creates a valid Cabrillo format"):
     val station = StationConfig(operator = Callsign("W1AW"), rig = "1A", antenna = "Wire")
@@ -44,7 +45,7 @@ class CabrilloExporterTest extends FunSuite:
       stationClass = "1A",
       stationSection = "CT"
     )
-    val result = CabrilloExporter.exportQsos(qsos, station, ContestType.WFD, header)
+    val result = exporter.exportQsos(qsos, station, ContestType.WFD, header)
     
     assert(result.contains("START-OF-LOG: 3.0"))
     assert(result.contains("CALLSIGN: W1AW"))
@@ -55,8 +56,8 @@ class CabrilloExporterTest extends FunSuite:
   test("mapContest maps correctly"):
     val station = StationConfig(operator = Callsign("W1AW"))
     val header = CabrilloHeader()
-    val resultWfd = CabrilloExporter.exportQsos(Seq.empty, station, ContestType.WFD, header)
+    val resultWfd = exporter.exportQsos(Seq.empty, station, ContestType.WFD, header)
     assert(resultWfd.contains("CONTEST: WFD"))
     
-    val resultArrl = CabrilloExporter.exportQsos(Seq.empty, station, ContestType.ARRL, header)
+    val resultArrl = exporter.exportQsos(Seq.empty, station, ContestType.ARRL, header)
     assert(resultArrl.contains("CONTEST: ARRL-FIELD-DAY"))

@@ -30,7 +30,7 @@ object Mode:
 
   /** Maps only the canonical serialised values (CW / PH / DIGI) back to the enum.
     * Raw radio / WSJT-X mode strings (e.g. "FT8", "CWR") must be routed through
-    * [[fdswarm.rigctl.ModeMappingManager#fromString]] in the fdswarm module.
+    * `fdswarm.rigctl.ModeMappingManager#fromString` in the fdswarm module.
     */
   def fromString(mode: String): Mode =
     mode.trim.toUpperCase match

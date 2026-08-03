@@ -18,14 +18,34 @@
 
 package fdswarm.exporter
 
-import fdswarm.fx.contest.ContestType
-import fdswarm.fx.station.StationConfig
+import fdswarm.fx.contest.{ContestConfig, ContestConfigManager, ContestType}
+import fdswarm.fx.station.{StationConfig, StationStore}
 import fdswarm.model.Qso
+import fdswarm.store.QsosSource
+import jakarta.inject.{Inject, Singleton}
 
+import java.io.OutputStream
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-object CabrilloExporter:
+@Singleton
+class CabrilloExporter @Inject()(
+    qsosSource: QsosSource,
+    stationStore: StationStore,
+    contestManager: ContestConfigManager,
+    cabrilloHeaderStore: CabrilloHeaderStore
+) extends Exporter:
+
+  override def menu(): (String, String) = ("cbr", "Cabrillo Files (*.cbr)")
+
+  override def doExport(outputStream: OutputStream): Unit =
+    val qsos = qsosSource.all
+    val station = stationStore.station.value
+    val config: ContestConfig = contestManager.contestConfigProperty.value
+    val contest: ContestType = config.contestType
+    val header = cabrilloHeaderStore.header.value
+    val cabrillo = exportQsos(qsos, station, contest, header)
+    outputStream.write(cabrillo.getBytes("UTF-8"))
 
   def exportQsos(qsos: Seq[Qso], station: StationConfig, contest: ContestType, header: CabrilloHeader): String =
     val sb = StringBuilder()

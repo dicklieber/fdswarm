@@ -18,7 +18,7 @@
 
 package fdswarm.fx.tools
 
-import fdswarm.exporter.ExportService
+import fdswarm.exporter.{CabrilloExporter, ExportService, Exporter}
 import fdswarm.fx.UserConfig
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.util.FilenameStamp
@@ -37,8 +37,6 @@ final class ExportDialog @Inject()(
                                     userConfig: UserConfig
                                   ) extends LazyStructuredLogging:
 
-  import exportService.ExportFormat
-
   def show(ownerWindow: Window): Unit =
     val initialFilename = filenameStamp.build()
     val lastExportDir = userConfig.getProperty[scalafx.beans.property.StringProperty]("lastExportDirectory")
@@ -48,8 +46,9 @@ final class ExportDialog @Inject()(
       promptText = "Filename (without extension)"
       prefWidth = 350
 
-    val formatCombo = new ComboBox[ExportFormat](ExportFormat.values.toIndexedSeq):
-      value = ExportFormat.CABRILLO
+    val exporters = exportService.availableExporters
+    val formatCombo = new ComboBox[Exporter](exporters):
+      value = exporters.find(_.isInstanceOf[CabrilloExporter]).getOrElse(exporters.headOption.orNull)
 
     val savedExportDir = lastExportDir.value
     val initialDir = if savedExportDir.nonEmpty then savedExportDir else System.getProperty("user.home")
@@ -82,12 +81,12 @@ final class ExportDialog @Inject()(
     dialog.dialogPane().setPrefWidth(550)
 
     val headerButton = new Button("Cabrillo Header..."):
-      disable = formatCombo.value.value != ExportFormat.CABRILLO
+      disable = !formatCombo.value.value.isInstanceOf[CabrilloExporter]
       onAction = _ => cabrilloHeaderDialog.show(ownerWindow)
 
     // Enable header button only when Cabrillo format is selected
     formatCombo.value.onChange { (_, _, newFmt) =>
-      headerButton.disable = newFmt != ExportFormat.CABRILLO
+      headerButton.disable = !newFmt.isInstanceOf[CabrilloExporter]
     }
 
     val content = new GridPane:
@@ -112,12 +111,12 @@ final class ExportDialog @Inject()(
     val result = dialog.showAndWait()
     if result.contains(exportButtonType) then
       val baseName = filenameField.text.value.trim
-      val format = formatCombo.value.value
+      val exporter = formatCombo.value.value
       val dir = os.Path(directoryField.text.value)
-      val fullPath = dir / s"$baseName.${format.extension}"
+      val fullPath = dir / s"$baseName.${exporter.menu()._1}"
       
       try
-        exportService.executeExport(fullPath, format)
+        exportService.executeExport(fullPath, exporter)
         lastExportDir.value = dir.toString
         val alert = new Alert(Alert.AlertType.Information):
           initOwner(ownerWindow)

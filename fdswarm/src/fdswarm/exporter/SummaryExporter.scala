@@ -19,8 +19,19 @@
 package fdswarm.exporter
 
 import fdswarm.model.{Band, Mode, Qso}
+import fdswarm.store.QsosSource
+import jakarta.inject.{Inject, Singleton}
 
-object SummaryExporter:
+import java.io.OutputStream
+
+@Singleton
+class SummaryExporter @Inject()(qsosSource: QsosSource) extends Exporter:
+
+  override def menu(): (String, String) = ("txt", "Summary Files (*.txt)")
+
+  override def doExport(outputStream: OutputStream): Unit =
+    val summary = exportQsos(qsosSource.all)
+    outputStream.write(summary.getBytes("UTF-8"))
 
   def exportQsos(qsos: Seq[Qso]): String =
     val sb = StringBuilder()

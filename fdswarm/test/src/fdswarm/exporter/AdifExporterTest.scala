@@ -33,7 +33,7 @@ class AdifExporterTest extends TempDirFileHelperSuite :
   val stationJson = station.asJson.noSpaces
   os.write.over(fileHelper.directory / "station.json", stationJson)
   val stationManager = new StationConfigManager(fileHelper, MockStartupInfo)
-  val exporter = new AdifExporter(stationManager)
+  val exporter = new AdifExporter(stationManager, null)
 
   test("AdifExporter should generate correct ADIF"):
     val bandMode = BandMode("40M", "CW")

@@ -19,8 +19,20 @@
 package fdswarm.exporter
 
 import fdswarm.model.Qso
+import fdswarm.store.QsosSource
 import io.circe.syntax.*
+import jakarta.inject.{Inject, Singleton}
 
-object JsonExporter:
+import java.io.OutputStream
+
+@Singleton
+class JsonExporter @Inject()(qsosSource: QsosSource) extends Exporter:
+
+  override def menu(): (String, String) = ("json", "JSON Files (*.json)")
+
+  override def doExport(outputStream: OutputStream): Unit =
+    val json = exportQsos(qsosSource.all)
+    outputStream.write(json.getBytes("UTF-8"))
+
   def exportQsos(qsos: Seq[Qso]): String =
     qsos.asJson.spaces2

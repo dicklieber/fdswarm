@@ -18,7 +18,7 @@
 
 package fdswarm.fx.tools
 
-import fdswarm.exporter.ExportService
+import fdswarm.exporter.{CabrilloExporter, ExportService}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.Callsign
 import fdswarm.store.QsoStore
@@ -38,6 +38,7 @@ class SummaryDialog @Inject()(
     qsoStore: QsoStore,
     cabrilloHeaderDialog: CabrilloHeaderDialog,
     exportService: ExportService,
+    cabrilloExporter: CabrilloExporter,
     filenameStamp: FilenameStamp
 ) extends LazyStructuredLogging:
 
@@ -88,7 +89,7 @@ class SummaryDialog @Inject()(
         val selectedFile = fileChooser.showSaveDialog(ownerWindow)
         if selectedFile != null then
           try
-            exportService.executeExport(os.Path(selectedFile.getAbsolutePath), exportService.ExportFormat.CABRILLO)
+            exportService.executeExport(os.Path(selectedFile.getAbsolutePath), cabrilloExporter)
             new Alert(Alert.AlertType.Information) {
               initOwner(ownerWindow)
               title = "Export Success"

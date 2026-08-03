@@ -18,14 +18,23 @@
 
 package fdswarm.exporter
 
+import fdswarm.io.FileHelper
+import jakarta.inject.{Inject, Singleton}
 import os.Path
 
-import java.io.{BufferedInputStream, FileInputStream, FileOutputStream}
+import java.io.{BufferedInputStream, FileInputStream, OutputStream}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
-object ZipExporter:
-  def zipDirectory(sourceDirectory: Path, zipFile: Path): Unit =
-    val out = new ZipOutputStream(new FileOutputStream(zipFile.toIO))
+@Singleton
+class ZipExporter @Inject()(fileHelper: FileHelper) extends Exporter:
+
+  override def menu(): (String, String) = ("zip", "Zip Files (*.zip)")
+
+  override def doExport(outputStream: OutputStream): Unit =
+    zipDirectoryToStream(fileHelper.directory, outputStream)
+
+  def zipDirectoryToStream(sourceDirectory: Path, outputStream: OutputStream): Unit =
+    val out = new ZipOutputStream(outputStream)
     try
       val files = os.list(sourceDirectory)
       files.foreach { path =>
@@ -43,4 +52,9 @@ object ZipExporter:
           out.closeEntry()
       }
     finally
-      out.close()
+      out.finish()
+
+  def zipDirectory(sourceDirectory: Path, zipFile: Path): Unit =
+    val fos = new java.io.FileOutputStream(zipFile.toIO)
+    try zipDirectoryToStream(sourceDirectory, fos)
+    finally fos.close()

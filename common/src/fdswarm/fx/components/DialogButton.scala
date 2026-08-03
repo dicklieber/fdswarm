@@ -39,7 +39,7 @@ enum ButtonVariant(val cssClass: String, val iconColor: Color):
  * Factory for Bootstrap 5-style labelled icon buttons.
  *
  * Styling is CSS-driven; the scene must have `app.css` applied via
- * [[fdswarm.fx.utils.UiStyles]] for the variant classes to take effect.
+ * `fdswarm.fx.utils.UiStyles` for the variant classes to take effect.
  *
  * Usage:
  * {{{
