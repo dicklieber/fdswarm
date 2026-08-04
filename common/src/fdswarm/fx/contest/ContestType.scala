@@ -24,9 +24,10 @@ import io.circe.{Codec, Decoder, Encoder}
 import java.time.*
 
 enum ContestType(
-    val name: String,
-    val compute: Int => ContestDates,
-    val allowChosing: Boolean = true)
+                  val name: String,
+                  val compute: Int => ContestDates,
+                  val cabrilloContestName: String,
+                  val allowChosing: Boolean = true)
     derives sttp.tapir.Schema:
   /** @param zdt
     *   lets plugin in a differnet date, for testing
@@ -35,14 +36,19 @@ enum ContestType(
   def dates(
       zdt: ZonedDateTime = ZonedDateTime.now()
     ): ContestDates = compute(zdt.getYear)
-  case NONE extends ContestType("None", ContestDateCalculator.none, false)
+  case NONE extends ContestType("None", ContestDateCalculator.none, "", false)
 
   case WFD
-      extends ContestType("Winter Field Day", ContestDateCalculator.lastFull)
+      extends ContestType(
+        "Winter Field Day",
+        ContestDateCalculator.lastFull,
+        "WFD"
+      )
   case ARRL
       extends ContestType(
         "ARRL Field Day",
-        ContestDateCalculator.forthFullWeekend
+        ContestDateCalculator.forthFullWeekend,
+        "ARRL-FD"
       )
 
 object ContestType:

@@ -47,7 +47,7 @@ class CabrilloExporter @Inject()(
     sb.append("START-OF-LOG: 3.0\n")
     val callsign = config.ourCallsign.toString
     sb.append(s"CALLSIGN: $callsign\n")
-    val contestStr = mapContest(config.contestType)
+    val contestStr = config.contestType.cabrilloContestName
     sb.append(s"CONTEST: $contestStr\n")
     if config.club.nonEmpty then sb.append(s"CLUB: ${config.club}\n")
     val location = if config.location.nonEmpty then config.location else config.ourSection
@@ -68,11 +68,6 @@ class CabrilloExporter @Inject()(
   def qsoLines(qsos: Seq[Qso], config: ContestConfig): Seq[String] =
     qsos.sortBy(_.stamp).map(toCabrilloRecord(_, config))
 
-  private def mapContest(contest: ContestType): String =
-    contest match
-      case ContestType.WFD => "WFDA-CONTEST"
-      case ContestType.ARRL => "ARRL-FIELD-DAY"
-      case _ => throw new IllegalArgumentException(s"Unknown contest type: $contest")
 
   private def toCabrilloRecord(qso: Qso, config: ContestConfig): String =
     val freq = fdswarm.model.BandMode.bandToFreq(qso.bandMode.band)

@@ -47,11 +47,11 @@ class CabrilloExporterTest extends FunSuite:
     
     assert(result.contains("START-OF-LOG: 3.0"))
     assert(result.contains("CALLSIGN: W1AW"))
-    assert(result.contains("CONTEST: WFDA-CONTEST")) // mapContest maps WFD to WFDA-CONTEST
+    assert(result.contains("CONTEST: WFDA-CONTEST")) // ContestType.WFD field cabrilloFieldName is WFDA-CONTEST
     assert(result.contains("QSO: 14035 CW 2026-02-25 1400 W1AW         1A  CT  K1ABC        1O  CT "))
     assert(result.contains("END-OF-LOG:"))
 
-  test("mapContest maps correctly"):
+  test("cabrilloFieldName is used correctly"):
     val resultWfd = exporter.exportQsos(Seq.empty, testConfig)
     assert(resultWfd.contains("CONTEST: WFDA-CONTEST"))
     
