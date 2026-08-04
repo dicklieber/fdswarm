@@ -18,6 +18,7 @@
 
 package fdswarm.exporter
 
+import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.station.StationStore
 import fdswarm.model.{Mode, Qso}
 import fdswarm.store.QsosSource
@@ -29,7 +30,7 @@ import java.io.OutputStream
 class DupeSheetExporter @Inject()(
     qsosSource: QsosSource,
     stationStore: StationStore,
-    cabrilloHeaderStore: CabrilloHeaderStore
+    contestManager: ContestConfigManager
 ) extends Exporter:
 
   override def menu(): (String, String) = ("dup", "Dupe Sheet Files (*.dup)")
@@ -37,9 +38,11 @@ class DupeSheetExporter @Inject()(
   override def doExport(outputStream: OutputStream): Unit =
     val qsos = qsosSource.all
     val station = stationStore.station.value
-    val header = cabrilloHeaderStore.header.value
-    val callUsed = if header.callsign.nonEmpty then header.callsign else station.operator.value
-    val dupSheet = exportQsos(qsos, callUsed, header.stationClass, header.stationSection)
+    val config = contestManager.contestConfigProperty.value
+    val callUsed = config.ourCallsign.toString
+    val mySect = config.ourSection
+    val myCls = s"${config.transmitters}${config.ourClass}"
+    val dupSheet = exportQsos(qsos, callUsed, myCls, mySect)
     outputStream.write(dupSheet.getBytes("UTF-8"))
 
   def exportQsos(qsos: Seq[Qso], callUsed: String, stationClass: String, arrlSection: String): String =

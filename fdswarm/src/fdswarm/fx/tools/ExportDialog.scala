@@ -33,7 +33,6 @@ import scalafx.stage.{DirectoryChooser, Window}
 final class ExportDialog @Inject()(
                                     exportService: ExportService,
                                     filenameStamp: FilenameStamp,
-                                    cabrilloHeaderDialog: CabrilloHeaderDialog,
                                     userConfig: UserConfig
                                   ) extends LazyStructuredLogging:
 
@@ -80,15 +79,6 @@ final class ExportDialog @Inject()(
     // Set a good width for the dialog
     dialog.dialogPane().setPrefWidth(550)
 
-    val headerButton = new Button("Cabrillo Header..."):
-      disable = !formatCombo.value.value.isInstanceOf[CabrilloExporter]
-      onAction = _ => cabrilloHeaderDialog.show(ownerWindow)
-
-    // Enable header button only when Cabrillo format is selected
-    formatCombo.value.onChange { (_, _, newFmt) =>
-      headerButton.disable = !newFmt.isInstanceOf[CabrilloExporter]
-    }
-
     val content = new GridPane:
       hgap = 10
       vgap = 10
@@ -99,7 +89,6 @@ final class ExportDialog @Inject()(
 
       add(new Label("Format:"), 0, 1)
       add(formatCombo, 1, 1)
-      add(headerButton, 2, 1)
 
       add(new Label("To Folder:"), 0, 2)
       val folderBox = new HBox(5, directoryField, browseButton)

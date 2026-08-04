@@ -18,19 +18,22 @@
 
 package fdswarm.exporter
 
-import fdswarm.fx.contest.ContestType
-import fdswarm.fx.station.StationConfig
+import fdswarm.fx.contest.{ContestConfig, ContestConfigManager, ContestType}
 import fdswarm.model.*
 import munit.FunSuite
-
 import java.time.Instant
 
 class CabrilloExporterTest extends FunSuite:
-  val exporter = new CabrilloExporter(null, null, null, null)
+  val testConfig = ContestConfig(
+    contestType = ContestType.WFD,
+    ourCallsign = Callsign("W1AW"),
+    transmitters = 1,
+    ourClass = "A",
+    ourSection = "CT"
+  )
+  val exporter = new CabrilloExporter(null, null)
 
   test("exportQsos creates a valid Cabrillo format"):
-    val station = StationConfig(operator = Callsign("W1AW"), rig = "1A", antenna = "Wire")
-    
     val qso1 = Qso(
       callsign = Callsign("K1ABC"),
       exchange = Exchange(FdClass("1O"), "CT"),
@@ -40,24 +43,18 @@ class CabrilloExporterTest extends FunSuite:
     )
 
     val qsos = Seq(qso1)
-    val header = CabrilloHeader(
-      callsign = "W1AW",
-      stationClass = "1A",
-      stationSection = "CT"
-    )
-    val result = exporter.exportQsos(qsos, station, ContestType.WFD, header)
+    val result = exporter.exportQsos(qsos, testConfig)
     
     assert(result.contains("START-OF-LOG: 3.0"))
     assert(result.contains("CALLSIGN: W1AW"))
-    assert(result.contains("CONTEST: WFD"))
+    assert(result.contains("CONTEST: WFDA-CONTEST")) // mapContest maps WFD to WFDA-CONTEST
     assert(result.contains("QSO: 14035 CW 2026-02-25 1400 W1AW         1A  CT  K1ABC        1O  CT "))
     assert(result.contains("END-OF-LOG:"))
 
   test("mapContest maps correctly"):
-    val station = StationConfig(operator = Callsign("W1AW"))
-    val header = CabrilloHeader()
-    val resultWfd = exporter.exportQsos(Seq.empty, station, ContestType.WFD, header)
-    assert(resultWfd.contains("CONTEST: WFD"))
+    val resultWfd = exporter.exportQsos(Seq.empty, testConfig)
+    assert(resultWfd.contains("CONTEST: WFDA-CONTEST"))
     
-    val resultArrl = exporter.exportQsos(Seq.empty, station, ContestType.ARRL, header)
+    val arrlConfig = testConfig.copy(contestType = ContestType.ARRL)
+    val resultArrl = exporter.exportQsos(Seq.empty, arrlConfig)
     assert(resultArrl.contains("CONTEST: ARRL-FIELD-DAY"))

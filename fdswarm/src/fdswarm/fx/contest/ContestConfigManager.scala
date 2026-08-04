@@ -43,6 +43,8 @@ final class ContestConfigManager @Inject() (
       handleContestConfigUpdate(newConfig = newConfig))
 
   override def ourSection: String = contestConfigProperty.value.ourSection
+  override def club: String = contestConfigProperty.value.club
+  override def location: String = contestConfigProperty.value.location
 
   override def toolTip: Node = contestConfigProperty.value.toolTip
 

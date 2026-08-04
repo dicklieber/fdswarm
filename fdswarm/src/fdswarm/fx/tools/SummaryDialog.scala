@@ -36,7 +36,6 @@ import scalafx.stage.Window
 @Singleton
 class SummaryDialog @Inject()(
     qsoStore: QsoStore,
-    cabrilloHeaderDialog: CabrilloHeaderDialog,
     exportService: ExportService,
     cabrilloExporter: CabrilloExporter,
     filenameStamp: FilenameStamp
@@ -74,12 +73,6 @@ class SummaryDialog @Inject()(
 
     val saveCabrilloButton = new Button("Save Cabrillo"):
       onAction = _ =>
-        cabrilloHeaderDialog.show(ownerWindow)
-        // After header dialog is closed (it's modal and saves to store),
-        // we show the export logic which prompts for file.
-        // We can reuse parts of ExportDialog logic or just show the ExportDialog.
-        // But the requirement says "on save invoke the export, cabrilo mechanism that prompts for output file and saves".
-        
         val initialFilename = filenameStamp.build()
         val fileChooser = new javafx.stage.FileChooser()
         fileChooser.setTitle("Save Cabrillo File")

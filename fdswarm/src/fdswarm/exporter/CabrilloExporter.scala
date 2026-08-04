@@ -19,7 +19,6 @@
 package fdswarm.exporter
 
 import fdswarm.fx.contest.{ContestConfig, ContestConfigManager, ContestType}
-import fdswarm.fx.station.{StationConfig, StationStore}
 import fdswarm.model.Qso
 import fdswarm.store.QsosSource
 import jakarta.inject.{Inject, Singleton}
@@ -31,58 +30,32 @@ import java.time.format.DateTimeFormatter
 @Singleton
 class CabrilloExporter @Inject()(
     qsosSource: QsosSource,
-    stationStore: StationStore,
-    contestManager: ContestConfigManager,
-    cabrilloHeaderStore: CabrilloHeaderStore
+    contestManager: ContestConfigManager
 ) extends Exporter:
 
   override def menu(): (String, String) = ("cbr", "Cabrillo Files (*.cbr)")
 
   override def doExport(outputStream: OutputStream): Unit =
     val qsos = qsosSource.all
-    val station = stationStore.station.value
     val config: ContestConfig = contestManager.contestConfigProperty.value
-    val contest: ContestType = config.contestType
-    val header = cabrilloHeaderStore.header.value
-    val cabrillo = exportQsos(qsos, station, contest, header)
+    val cabrillo = exportQsos(qsos, config)
     outputStream.write(cabrillo.getBytes("UTF-8"))
 
-  def exportQsos(qsos: Seq[Qso], station: StationConfig, contest: ContestType, header: CabrilloHeader): String =
+  def exportQsos(qsos: Seq[Qso], config: ContestConfig): String =
     val sb = StringBuilder()
     // Header per Cabrillo v3
     sb.append("START-OF-LOG: 3.0\n")
-    val callsign = if header.callsign.nonEmpty then header.callsign else station.operator.value
+    val callsign = config.ourCallsign.toString
     sb.append(s"CALLSIGN: $callsign\n")
-    val contestStr = if header.contest.nonEmpty then header.contest else mapContest(contest)
+    val contestStr = mapContest(config.contestType)
     sb.append(s"CONTEST: $contestStr\n")
-    sb.append(s"CATEGORY-OPERATOR: ${header.categoryOperator}\n")
-    sb.append(s"CATEGORY-ASSISTED: ${header.categoryAssisted}\n")
-    sb.append(s"CATEGORY-BAND: ${header.categoryBand}\n")
-    sb.append(s"CATEGORY-MODE: ${header.categoryMode}\n")
-    header.categoryOperatorAge match
-      case CategoryOperatorAge.NONE =>
-      case other => sb.append(s"CATEGORY-OPERATOR-AGE: $other\n")
-    sb.append(s"CATEGORY-POWER: ${header.categoryPower}\n")
-    sb.append(s"CATEGORY-STATION: ${header.categoryStation}\n")
-    sb.append(s"CATEGORY-TRANSMITTER: ${header.categoryTransmitter}\n")
-    header.categoryOverlay match
-      case CategoryOverlay.NONE =>
-      case other => sb.append(s"CATEGORY-OVERLAY: $other\n")
-    header.claimedScore.foreach(s => sb.append(s"CLAIMED-SCORE: $s\n"))
-    if header.club.nonEmpty then sb.append(s"CLUB: ${header.club}\n")
-    if header.operators.nonEmpty then sb.append(s"OPERATORS: ${header.operators}\n")
-    if header.name.nonEmpty then sb.append(s"NAME: ${header.name}\n")
-    if header.address.nonEmpty then sb.append(s"ADDRESS: ${header.address}\n")
-    if header.addressCity.nonEmpty then sb.append(s"ADDRESS-CITY: ${header.addressCity}\n")
-    if header.addressStateProvince.nonEmpty then sb.append(s"ADDRESS-STATE-PROVINCE: ${header.addressStateProvince}\n")
-    if header.addressPostalCode.nonEmpty then sb.append(s"ADDRESS-POSTALCODE: ${header.addressPostalCode}\n")
-    if header.addressCountry.nonEmpty then sb.append(s"ADDRESS-COUNTRY: ${header.addressCountry}\n")
-    if header.soapbox.nonEmpty then sb.append(s"SOAPBOX: ${header.soapbox}\n")
-    sb.append("CREATED-BY: FdSwarm\n")
+    if config.club.nonEmpty then sb.append(s"CLUB: ${config.club}\n")
+    val location = if config.location.nonEmpty then config.location else config.ourSection
+    sb.append(s"LOCATION: $location\n")
     
     val sortedQsos = qsos.sortBy(_.stamp)
     sortedQsos.foreach { qso =>
-      sb.append(toCabrilloRecord(qso, header))
+      sb.append(toCabrilloRecord(qso, config))
       sb.append("\n")
     }
     
@@ -92,8 +65,8 @@ class CabrilloExporter @Inject()(
   private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC)
   private val timeFormatter = DateTimeFormatter.ofPattern("HHmm").withZone(ZoneOffset.UTC)
 
-  def qsoLines(qsos: Seq[Qso], header: CabrilloHeader): Seq[String] =
-    qsos.sortBy(_.stamp).map(toCabrilloRecord(_, header))
+  def qsoLines(qsos: Seq[Qso], config: ContestConfig): Seq[String] =
+    qsos.sortBy(_.stamp).map(toCabrilloRecord(_, config))
 
   private def mapContest(contest: ContestType): String =
     contest match
@@ -101,15 +74,15 @@ class CabrilloExporter @Inject()(
       case ContestType.ARRL => "ARRL-FIELD-DAY"
       case _ => throw new IllegalArgumentException(s"Unknown contest type: $contest")
 
-  private def toCabrilloRecord(qso: Qso, header: CabrilloHeader): String =
+  private def toCabrilloRecord(qso: Qso, config: ContestConfig): String =
     val freq = fdswarm.model.BandMode.bandToFreq(qso.bandMode.band)
     val mode = qso.bandMode.cabMode
     val date = dateFormatter.format(qso.stamp)
     val time = timeFormatter.format(qso.stamp)
-    val myCall = if header.callsign.nonEmpty then header.callsign else qso.qsoMetadata.station.operator.value
-    // Use configured station class/section from header, or empty if not set
-    val mySect = header.stationSection
-    val myCls = header.stationClass
+    val myCall = config.ourCallsign.toString
+    // Use configured station class/section from ContestConfig
+    val mySect = config.ourSection
+    val myCls = s"${config.transmitters}${config.ourClass}"
 
     val hisCall = qso.callsign.value
     val hisClass = qso.exchange.fdClass.toString

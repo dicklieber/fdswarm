@@ -35,6 +35,8 @@ trait ContestConfigFields:
   def transmitters: Int
   def ourClass: String
   def ourSection: String
+  def club: String
+  def location: String
   def toolTip: Node
 
 /**
@@ -49,7 +51,9 @@ case class ContestConfig(
     ourCallsign: Callsign,
     transmitters: Int = 1,
     ourClass: String,
-    ourSection: String)
+    ourSection: String,
+    club: String = "",
+    location: String = "")
     extends ContestConfigFields
     derives Codec.AsObject, sttp.tapir.Schema:
   require(ourClass.nonEmpty, "ourClass must not be empty")
@@ -69,7 +73,9 @@ case class ContestConfig(
       "ourSection" -> ContestConfig.withDetails(
         ourSection,
         ContestConfig.sectionName(ourSection)
-      )
+      ),
+      "club" -> club,
+      "location" -> location
     )
 
   def weAre(usePhonetic: Boolean): String =
@@ -91,7 +97,9 @@ object ContestConfig:
     ourCallsign = Callsign(""),
     transmitters = 1,
     ourClass = "-",
-    ourSection = "-"
+    ourSection = "-",
+    club = "",
+    location = ""
   )
 
   private[contest] def withDetails(
