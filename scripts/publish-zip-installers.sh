@@ -5,7 +5,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd "$script_dir/.." && pwd)"
 runtimes_dir="$repo_dir/fdswarm-runtimes"
-work_dir="$repo_dir/release/zip-installers"
+work_dir="$repo_dir/out/release/zip-installers"
 latest_tag=""
 keep_work=false
 
@@ -29,8 +29,9 @@ fdswarm-runtimes, and uploads the ZIPs to the matching GitHub release.
 Options:
   --tag TAG           Download fdswarm.jar from this release instead of latest.
   --runtimes-dir DIR  Runtime directory. Default: fdswarm-runtimes.
-  --work-dir DIR      Working/output directory. Default: release/zip-installers.
-  --keep-work         Keep staging directories after ZIP creation.
+  --work-dir DIR      Working/output directory. Default: out/release/zip-installers.
+  --keep-work         Keep the downloaded JAR, staging directories, and ZIPs
+                      after uploading.
   -h, --help          Show this help.
 EOF
 }
@@ -102,6 +103,7 @@ jar_path="$download_dir/fdswarm.jar"
 
 rm -rf "$download_dir" "$artifacts_dir" "$stage_root"
 mkdir -p "$download_dir" "$artifacts_dir" "$stage_root"
+trap 'rm -rf "$stage_root"' EXIT
 
 echo "Downloading fdswarm.jar from GitHub release $latest_tag..."
 gh release download "$latest_tag" --pattern "fdswarm.jar" --dir "$download_dir" --clobber
@@ -249,6 +251,7 @@ build_zip() {
   fi
 
   (cd "$stage_dir" && zip -qr "$zip_path" "FdSwarm")
+  rm -rf "$stage_dir"
   echo "Built $zip_path"
 }
 
@@ -264,7 +267,8 @@ for artifact in "$artifacts_dir"/*.zip; do
 done
 
 if [[ "$keep_work" != true ]]; then
-  rm -rf "$stage_root"
+  trap - EXIT
+  rm -rf "$download_dir" "$artifacts_dir" "$stage_root"
 fi
 
 echo "Published ZIP installers for $release_tag"

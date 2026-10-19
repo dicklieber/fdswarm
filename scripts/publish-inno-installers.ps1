@@ -25,7 +25,7 @@ if (-not $RuntimesDir) {
   $RuntimesDir = Join-Path $RepoDir 'fdswarm-runtimes'
 }
 if (-not $WorkDir) {
-  $WorkDir = Join-Path $RepoDir 'release/inno-installers'
+  $WorkDir = Join-Path $RepoDir 'out/release/inno-installers'
 }
 
 function Fail {
@@ -533,7 +533,7 @@ foreach ($Artifact in (Get-ChildItem -LiteralPath $ArtifactsDir -Filter '*.exe')
 }
 
 if (-not $KeepWork) {
-  Remove-Item -LiteralPath $StageRoot -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $DownloadDir, $ArtifactsDir, $StageRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "Published Inno installers for $ReleaseTag"

@@ -107,7 +107,7 @@ To publish the generated MSI files to the macOS web root, set
 script creates `/Library/WebServer/Documents/fdswarm` on the target and copies
 the MSI files there with `scp`. Set `FDSWARM_MSI_DIR` to publish somewhere else,
 or `FDSWARM_SKIP_MSI_PUBLISH=1` to leave the files only under
-`release/artifacts`.
+`out/release/artifacts`.
 
 The PKG is written to:
 
@@ -127,7 +127,7 @@ $env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
 The MSI files are written to:
 
 ```text
-release/artifacts/FdSwarm-<version>-windows-x64.msi
+out/release/artifacts/FdSwarm-<version>-windows-x64.msi
 ```
 
 To publish Windows `.exe` installers with Inno Setup for both Windows x64 and
@@ -143,8 +143,8 @@ Windows runtimes under `fdswarm-runtimes`, and upload to the matching
 `v<version>` GitHub release. The installers are written to:
 
 ```text
-release/inno-installers/artifacts/FdSwarm-<version>-windows-x64-setup.exe
-release/inno-installers/artifacts/FdSwarm-<version>-windows-arm64-setup.exe
+out/release/inno-installers/artifacts/FdSwarm-<version>-windows-x64-setup.exe
+out/release/inno-installers/artifacts/FdSwarm-<version>-windows-arm64-setup.exe
 ```
 
 To Authenticode-sign the Windows installer artifacts, pass a certificate
@@ -175,8 +175,8 @@ a local Launch4j copy under `out/fdswarm/launch4j.dest/tools`.
 The Launch4j ZIP files are written to:
 
 ```text
-release/artifacts/FdSwarm-<version>-windows-x64-launch4j.zip
-release/artifacts/FdSwarm-<version>-windows-arm64-launch4j.zip
+out/release/artifacts/FdSwarm-<version>-windows-x64-launch4j.zip
+out/release/artifacts/FdSwarm-<version>-windows-arm64-launch4j.zip
 ```
 
 The generated Launch4j ZIP files are also copied to:

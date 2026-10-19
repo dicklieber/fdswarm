@@ -14,7 +14,11 @@
       "Bash(./mill resolve:*)",
       "Bash(grep -l \"extends.*Dialog\\\\|class.*Dialog\" /Users/dlieber/devlocal/github/fdswarm/fdswarm/src/fdswarm/fx/tools/*.scala)",
       "Bash(find /Users/dlieber/devlocal/github/fdswarm -name \"*.scala\" -type f -exec grep -l \"FileHelper.*save\\\\|save.*FileHelper\" {})",
-      "Bash(chmod +x /Users/dlieber/devlocal/github/fdswarm/run-fdswarm.sh)"
+      "Bash(chmod +x /Users/dlieber/devlocal/github/fdswarm/run-fdswarm.sh)",
+      "Bash(git check-ignore *)",
+      "Bash(python3 -)",
+      "Bash(bash -n scripts/release-zips.sh)",
+      "Bash(bash -n scripts/publish-zip-installers.sh)"
     ]
   }
 }

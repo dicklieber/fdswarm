@@ -11,24 +11,30 @@ main_class="fdswarm.FdSwarm"
 main_jar_name="fdswarm.jar"
 assembly_jar="$repo_dir/out/fdswarm/assembly.dest/$main_jar_name"
 work_dir="$repo_dir/out/fdswarm/dist-all.dest"
-artifacts_dir="$repo_dir/release/artifacts"
+artifacts_dir="$repo_dir/out/release/artifacts"
 runtime_root="${FDSWARM_RUNTIMES_DIR:-$repo_dir/fdswarm-runtimes}"
 publish=true
 tag=""
 skip_verify_docs=false
+keep_artifacts=false
 
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/release-zips.sh [--no-publish] [--tag TAG] [--skip-verify-docs]
+  scripts/release-zips.sh [--no-publish] [--tag TAG] [--skip-verify-docs] [--keep-artifacts]
 
 Builds ZIP distributions for each runtime found under fdswarm-runtimes from:
   out/fdswarm/assembly.dest/fdswarm.jar
+
+ZIPs are written to out/release/artifacts. Staging directories are always
+removed. After a successful publish the ZIPs are removed too, unless
+--keep-artifacts is given; with --no-publish they are kept.
 
 Options:
   --no-publish        Build ZIPs without uploading them to GitHub.
   --tag TAG           GitHub release tag. Defaults to v<jar Implementation-Version>.
   --skip-verify-docs  Do not require FDSwarmDocs/index.html in the JAR.
+  --keep-artifacts    Keep the ZIPs after publishing them.
   -h, --help          Show this help.
 EOF
 }
@@ -60,6 +66,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-verify-docs)
       skip_verify_docs=true
+      shift
+      ;;
+    --keep-artifacts)
+      keep_artifacts=true
       shift
       ;;
     -h|--help)
@@ -219,6 +229,7 @@ build_zip_dist() {
   stage_application_conf "$stage"
   write_launchers "$stage" "$platform"
   zip_stage "$stage_root" "$app_name" "$zip_path"
+  rm -rf "$stage_root"
 
   echo "ZIP: $zip_path"
   built_zips+=("$zip_path")
@@ -257,7 +268,10 @@ if [[ -z "$tag" ]]; then
   tag="v$jar_version"
 fi
 
+# Start from an empty artifacts directory so ZIPs from older versions don't pile up.
+rm -rf "$artifacts_dir"
 mkdir -p "$work_dir" "$artifacts_dir"
+trap 'rm -rf "$work_dir"/stage-*' EXIT
 
 echo "Building ZIP distributions"
 echo "JAR: $assembly_jar"
@@ -279,4 +293,9 @@ if [[ "$publish" == true ]]; then
   for zip_path in "${built_zips[@]}"; do
     publish_zip "$zip_path"
   done
+
+  if [[ "$keep_artifacts" == false ]]; then
+    rm -rf "$artifacts_dir"
+    echo "Removed published ZIPs from $artifacts_dir"
+  fi
 fi
