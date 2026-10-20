@@ -13,8 +13,7 @@ class ContestChooser(contestTypes: ContestTypes) extends CustomFieldEditor:
   override def isValid: Boolean =
     contestTypeProperty.exists(
       contestType =>
-        contestType.value != null &&
-          contestType.value != ContestType.NONE
+        contestType.value != null
     )
 
   override def editor(fieldProperty: Any): Node =
@@ -29,7 +28,7 @@ class ContestChooser(contestTypes: ContestTypes) extends CustomFieldEditor:
         val buttons: Seq[(ContestType, RadioButton)] =
           contestTypes.values.filter(_.allowChosing).toSeq.map { contestType =>
             val button = new RadioButton:
-              text = contestType.name
+              text = contestType.displayName
               toggleGroup = tg
               minWidth = Region.USE_PREF_SIZE
               textOverrun = OverrunStyle.Clip

@@ -26,19 +26,19 @@ import scalafx.scene.layout.GridPane
 class ContestConfigTest extends FunSuite:
 
   test("exchange formats transmitters class section") {
-    val config = ContestConfig(ContestType.WFD, Callsign("W1AW"), 2, "O", "CT")
+    val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 2, "O", "CT")
     assertEquals(config.exchange, "2O CT")
   }
 
   test("weAre formats with phonetics") {
-    val config = ContestConfig(ContestType.WFD, Callsign("W1AW"), 2, "O", "CT")
+    val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 2, "O", "CT")
     val weAre = config.weAre(true)
     assertEquals(weAre, "We are Whiskey One Alpha Whiskey 2 Oscar Charlie Tango")
   }
 
   test("weAre handles null callsign without throwing") {
     val config = ContestConfig(
-      contestType = ContestType.WFD,
+      contestType = ContestTypes.configured("WFD"),
       ourCallsign = null,
       transmitters = 2,
       ourClass = "O",
@@ -54,18 +54,30 @@ class ContestConfigTest extends FunSuite:
   }
 
   test("exchange single transmitter") {
-    val config = ContestConfig(ContestType.ARRL, Callsign("K1ABC"), 1, "1A", "NH")
+    val config = ContestConfig(ContestTypes.configured("ARRL"), Callsign("K1ABC"), 1, "1A", "NH")
     assertEquals(config.exchange, "11A NH")
   }
 
 
 
   test("ContestConfig implements ContestConfigFields") {
-    val config: ContestConfigFields = ContestConfig(ContestType.WFD, Callsign("W1AW"), 2, "O", "CT")
-    assertEquals(config.contestType, ContestType.WFD)
+    val config: ContestConfigFields = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 2, "O", "CT")
+    assertEquals(config.contestType, ContestTypes.configured("WFD"))
     assertEquals(config.ourCallsign, Callsign("W1AW"))
     assertEquals(config.transmitters, 2)
     assertEquals(config.ourClass, "O")
     assertEquals(config.ourSection, "CT")
   }
 
+
+  test("ContestConfig rejects a contest not in the configured definitions"):
+    val unknown = ContestTypes.configured("WFD").copy(name = "Unknown")
+    intercept[IllegalArgumentException] {
+      ContestConfig(unknown, Callsign("W1AW"), 1, "O", "CT")
+    }
+
+  test("ContestConfig rejects a modified definition with an existing name"):
+    val modified = ContestTypes.configured("WFD").copy(cabrilloContestName = "Other")
+    intercept[IllegalArgumentException] {
+      ContestConfig(modified, Callsign("W1AW"), 1, "O", "CT")
+    }

@@ -59,7 +59,7 @@ class ContestConfigMismatchUi @Inject() (swarmData: SwarmData,
           syncButton.onMouseEntered = _ => syncButton.style = hoverStyle
           syncButton.onMouseExited = _ => syncButton.style = baseStyle
           syncButton.onAction = _ =>
-            swarmData.nodeMap.get(nodeIdentity).map(_.statusMessage.contestConfig).foreach(contestConfig =>
+            swarmData.nodeMap.get(nodeIdentity).flatMap(_.statusMessage.contestConfig).foreach(contestConfig =>
               // Need to update ourself as we don't handle UDPMessges from ourself.
               contestConfigManager.setConfig(contestConfig)
               val payload = contestConfig.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)

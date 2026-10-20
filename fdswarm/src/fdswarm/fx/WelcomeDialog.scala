@@ -21,7 +21,6 @@ package fdswarm.fx
 import com.organization.BuildInfo.{appName, displayVersion}
 import fdswarm.StationConfigManager
 import fdswarm.contestStart.ContestStartManager
-import fdswarm.fx.contest.ContestType.NONE
 import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
 import fdswarm.fx.discovery.ContestConfigDialog
 import fdswarm.fx.station.StationEditor
@@ -139,12 +138,12 @@ final class WelcomeDialog @Inject() (
 
     def rebuildGridPane(): GridPane =
       val contestConfig = contestConfigManager.contestConfigProperty.value
-      val contestType =
-        if contestConfig.contestType == NONE then "Not defined"
-        else s"${contestConfig.ourCallsign} ${contestConfig.transmitters}${contestConfig.ourClass} ${contestConfig.ourSection}"
+      val contestType = contestConfig.map { config =>
+        s"${config.ourCallsign} ${config.transmitters}${config.ourClass} ${config.ourSection}"
+      }.getOrElse("Not defined")
       val contestStarted = contestStartManager.contestStart.value.toString
       val contestLabel = label(contestType)
-      contestLabel.tooltip = Tooltip(contestTooltipText(contestConfig))
+      contestLabel.tooltip = Tooltip(contestConfig.map(contestTooltipText).getOrElse("No contest configured"))
       val stationConfig = stationConfigManager.stationConfig
       val stationButton = new Button("Station"):
         minWidth = Region.USE_PREF_SIZE
@@ -178,7 +177,7 @@ final class WelcomeDialog @Inject() (
         add(gridCell(label(""), 0, 2), 2, 0)
 
         add(gridCell(label("Contest"), 1, 0, rowSpan = 2), 0, 1, 1, 2)
-        add(gridCell(label(contestConfig.contestType.toString), 1, 1), 1, 1)
+        add(gridCell(label(contestConfig.map(_.contestType.toString).getOrElse("Not defined")), 1, 1), 1, 1)
         add(gridCell(setupContestButton, 1, 2, rowSpan = 2), 2, 1, 1, 2)
 
         add(gridCell(contestLabel, 2, 1), 1, 2)
@@ -199,7 +198,7 @@ final class WelcomeDialog @Inject() (
 
     dialog.showAndWait()
   def isContestGoing: Boolean =
-    contestConfigManager.contestType != NONE && contestStartManager.contestStart.value.isStarted
+    contestConfigManager.hasConfiguration.value && contestStartManager.contestStart.value.isStarted
 
   private def contestTooltipText(contestConfig: ContestConfig): String =
     Seq(

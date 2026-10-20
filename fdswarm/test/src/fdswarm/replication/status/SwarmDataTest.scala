@@ -18,6 +18,8 @@
 
 package fdswarm.replication.status
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.fx.contest.{ContestConfig, ContestType}
 import fdswarm.model.{BandMode, BandModeOperator, Callsign}
 import fdswarm.replication.{StoreStats, NodeStatus, StatusMessage}
@@ -81,7 +83,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "alpha",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -91,7 +93,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "beta",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -111,7 +113,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "alpha",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -121,7 +123,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "beta",
           contestConfig = contestConfig(
-            contestType = ContestType.ARRL,
+            contestType = ContestTypes.configured("ARRL"),
             callsign = "W9BBB",
             transmitters = 2,
             stationClass = "A",
@@ -131,7 +133,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "gamma",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -189,7 +191,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "alpha",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -201,7 +203,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "beta",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -246,7 +248,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "alpha",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -258,7 +260,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "beta",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -270,7 +272,7 @@ class SwarmDataTest extends FunSuite:
         nodeStatus(
           hostName = "gamma",
           contestConfig = contestConfig(
-            contestType = ContestType.WFD,
+            contestType = ContestTypes.configured("WFD"),
             callsign = "W9AAA",
             transmitters = 1,
             stationClass = "A",
@@ -324,7 +326,7 @@ class SwarmDataTest extends FunSuite:
     val remoteLookingStatus = nodeStatus(
       hostName = "udp-source",
       contestConfig = contestConfig(
-        contestType = ContestType.WFD,
+        contestType = ContestTypes.configured("WFD"),
         callsign = "W9AAA",
         transmitters = 1,
         stationClass = "A",
@@ -375,7 +377,7 @@ class SwarmDataTest extends FunSuite:
           operator = Callsign("N0CALL"),
           bandMode = BandMode("20M SSB")
         ),
-        contestConfig = contestConfig,
+        contestConfig = Some(contestConfig),
         contestStart = Instant.parse("2026-01-01T00:00:00Z"),
         metrics = Seq.empty
       ),

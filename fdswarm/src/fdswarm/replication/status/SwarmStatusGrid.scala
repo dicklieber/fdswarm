@@ -56,7 +56,7 @@ class SwarmStatusGrid(
       }
     }*)
     builder("Host", allNodes.map(_.nodeIdentity.hostIp)*)
-    builder("Contest", allNodes.map(_.statusMessage.contestConfig.display)*)
+    builder("Contest", allNodes.map(_.statusMessage.contestConfig.map(_.display).getOrElse("Not configured"))*)
     builder("Age", allNodes.map { receivedNodeStatus =>
       if (receivedNodeStatus.nodeIdentity.instanceId == ourInstanceId) {
         new scalafx.scene.control.Label {

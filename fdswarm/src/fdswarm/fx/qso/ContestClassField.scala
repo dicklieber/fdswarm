@@ -31,10 +31,9 @@ class ContestClassField @Inject() (
 ) extends TextField
     with NextField:
   private def classChars: String =
-    contestCatalog
-      .getChars(
-        contestManager.contestType
-      )
+    contestManager.contestConfigProperty.value
+      .map(config => contestCatalog.getChars(config.contestType))
+      .getOrElse("")
       .toUpperCase
 
   private def typingPattern: String =
@@ -52,10 +51,10 @@ class ContestClassField @Inject() (
       None
 
   private def showHelp(): Unit =
-    val contest: Option[ContestDefinition] = contestCatalog.getContest(contestManager.contestType)
+    val contest: Option[ContestDefinition] = contestManager.contestConfigProperty.value.flatMap(config => contestCatalog.getContest(config.contestType))
     contest.foreach { contest =>
       val items = contest.classChoices.map(contestClassChar => (contestClassChar.ch, contestClassChar.description))
-      dupPanel.show(s"${contestManager.contestType.name} Classes", items)
+      dupPanel.show(s"${contestManager.contestType.displayName} Classes", items)
     }
 
   focused.onChange { (_, _, newValue) =>

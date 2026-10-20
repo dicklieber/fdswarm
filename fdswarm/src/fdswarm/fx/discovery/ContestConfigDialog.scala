@@ -30,7 +30,9 @@ class ContestConfigDialog @Inject() (
     extends StyledDialog[ButtonType]:
 
   private val configEditor: CaseClassPropertyEditor[ContestConfig] =
-    new CaseClassPropertyEditor(contestManager.contestConfigProperty.value)
+    new CaseClassPropertyEditor(contestManager.contestConfigProperty.value.getOrElse(
+      ContestConfig(contestTypes.values.head, fdswarm.model.Callsign(""), 1, "-", "-")
+    ))
 
   configEditor.setCustomEditor("contestType", new ContestChooser(contestTypes))
   configEditor.setCustomEditor("transmitters", new IntSpinner())

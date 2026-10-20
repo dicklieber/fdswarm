@@ -18,7 +18,6 @@
 package fdswarm.importer
 
 import fdswarm.QsoMetadataManager
-import fdswarm.fx.contest.ContestType
 import fdswarm.model.*
 import fdswarm.rigctl.ModeMappingManager
 import fdswarm.util.Ids
@@ -41,13 +40,13 @@ import scala.util.Try
   */
 @Singleton
 class AdifRecordParser(
-    getMetadata: () => QsoMetadata = () => QsoMetadata.adifImportQsoMetadata(ContestType.ARRL),
+    getMetadata: () => QsoMetadata,
     modeFromString: String => Mode = AdifRecordParser.defaultModeFromString
 ):
   import AdifRecordParser.FieldRx
 
   @Inject() def this(qsoMetadataManager: QsoMetadataManager, modeMappingManager: ModeMappingManager) =
-    this(() => qsoMetadataManager.qsoMetadata.value, modeMappingManager.fromString)
+    this(() => qsoMetadataManager.current, modeMappingManager.fromString)
 
   /** Parses a single ADIF record string into an [[Option]] of [[Qso]].
     * Returns [[None]] if any required field (CALL, BAND, MODE, CLASS, ARRL_SECT) is missing or invalid.

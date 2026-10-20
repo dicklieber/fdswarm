@@ -18,6 +18,8 @@
 
 package fdswarm.store
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.fx.contest.ContestType
 import fdswarm.fx.station.StationConfig
 import fdswarm.model.{BandMode, Callsign, Exchange, FdClass, Qso, QsoMetadata}
@@ -80,7 +82,7 @@ class QsoStoreTest extends FunSuite:
       qsoMetadata = QsoMetadata(
         station = StationConfig(),
         node = node,
-        contest = ContestType.WFD
+        contest = ContestTypes.configured("WFD")
       )
     )
 

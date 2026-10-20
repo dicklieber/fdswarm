@@ -204,7 +204,7 @@ class QsoSearchPane @Inject()(
   def buildUi(): Unit =
     if uiBuilt then return
     updateClassChoices(
-      contestManager.contestConfigProperty.value.contestType
+      contestManager.contestConfigProperty.value.map(_.contestType)
     )
     updateQsoChoiceFilters()
 
@@ -252,28 +252,21 @@ class QsoSearchPane @Inject()(
   contestManager.contestConfigProperty.onChange(
     (_, _, newConfig) =>
       updateClassChoices(
-        newConfig.contestType
+        newConfig.map(_.contestType)
       )
   )
 
   private def updateClassChoices(
-                                  contestType: ContestType
+                                  contestType: Option[ContestType]
                                 ): Unit =
-    if contestType == ContestType.NONE then
-      classFilter.setChoices()
-      classFilter.value = None
-      return
-
-    contestCatalog.getContest(
-      contestType
-    ) match
+    contestType.flatMap(contestCatalog.getContest) match
       case Some(contestDefinition) =>
         val classChoices: Seq[ClassChoice] = contestDefinition.classChoices
         classFilter.setChoices(classChoices*)
       case None =>
-        logger.warn(
-          s"Missing contest definition for $contestType; clearing class choices"
-        )
+        contestType.foreach { value =>
+          logger.warn(s"Missing contest definition for $value; clearing class choices")
+        }
         classFilter.setChoices()
         classFilter.value = None
 

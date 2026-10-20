@@ -31,9 +31,9 @@ case class QsoError(record: String, exception: Exception)
   * full list of extracted fields and fallback behaviour.
   *
   * @param inputStream the ADIF file content
-  * @param contestType contest type to embed; defaults to [[ContestType.ARRL]]
+  * @param contestType configured contest type to embed
   */
-class AdifParser(inputStream: InputStream, contestType: ContestType = ContestType.ARRL):
+class AdifParser(inputStream: InputStream, contestType: ContestType):
 
   private val rawRecords: Seq[String] =
     val content = scala.io.Source.fromInputStream(inputStream, "UTF-8").mkString

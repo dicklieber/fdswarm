@@ -10,24 +10,29 @@ import scala.jdk.CollectionConverters.*
 final class ContestTypes @Inject()(config: Config):
   val values: Seq[ContestType] = config.getConfigList("fdswarm.contests").asScala.toSeq.map { contest =>
     ContestType(
-      id = contest.getString("name"),
-      name = contest.getString("displayName"),
-      compute = ContestDateRule(Some(contest.getConfig("dates"))),
+      name = contest.getString("name"),
+      displayName = contest.getString("displayName"),
+      compute = ContestDateRule(contest.getConfig("dates")),
       cabrilloContestName = contest.getString("cabrilloContestName"),
       allowChosing = !contest.hasPath("allowChosing") || contest.getBoolean("allowChosing")
     )
   }
-  require(values.forall(ct => ct.id.nonEmpty && ct.id != "NONE"), "Contest IDs must be nonempty and cannot be NONE")
-  require(values.map(_.id).distinct.size == values.size, "Duplicate contest IDs")
+  require(values.forall(ct => ct.name.nonEmpty), "Contest names must be nonempty")
+  require(values.map(_.name).distinct.size == values.size, "Duplicate contest names")
+  require(values.nonEmpty, "At least one contest must be configured")
   // Validate the date rules at startup, rather than when a UI first displays them.
   values.foreach(_.compute(2027))
 
-  private val byId = (values :+ ContestType.NONE).map(ct => ct.id -> ct).toMap
-  def get(id: String): Option[ContestType] = byId.get(id)
-  def apply(id: String): ContestType =
-    get(id).getOrElse(throw new IllegalArgumentException(s"Unknown contest: $id"))
+  private val byName = values.map(ct => ct.name -> ct).toMap
+  def get(name: String): Option[ContestType] = byName.get(name)
+  def apply(name: String): ContestType =
+    get(name).getOrElse(throw new IllegalArgumentException(s"Unknown contest: $name"))
 
   val codec: Codec[ContestType] = Codec.from(
-    Decoder.decodeString.emap(id => get(id).toRight(s"Invalid ContestType: $id")),
-    Encoder.encodeString.contramap(_.id)
+    Decoder.decodeString.emap(name => get(name).toRight(s"Invalid ContestType: $name")),
+    Encoder.encodeString.contramap(_.name)
   )
+
+object ContestTypes:
+  /** Shared with dependency injection so derived codecs use the actual application definitions. */
+  lazy val configured: ContestTypes = new ContestTypes(fdswarm.ApplicationConfig.value)

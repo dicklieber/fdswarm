@@ -165,7 +165,9 @@ class QsoEntryPanel @Inject()(
 
   private lazy val canSubmitBinding: scalafx.beans.binding.BooleanBinding =
     Bindings.createBooleanBinding(
-      () => callsignValidProperty.value && contestClassValidProperty.value,
+      () => qsoMetadataManager.qsoMetadata.value.isDefined &&
+        callsignValidProperty.value && contestClassValidProperty.value,
+      qsoMetadataManager.qsoMetadata,
       callsignValidProperty,
       contestClassValidProperty
     )
@@ -249,7 +251,7 @@ class QsoEntryPanel @Inject()(
     if !sectionField.validProperty.value then sectionField.applyUniqueMatchForCurrentInput()
     if canSubmitNow then submit()
 
-  private def qsoMetadata = qsoMetadataManager.qsoMetadata.value
+  private def qsoMetadata = qsoMetadataManager.current
 
   private def clearControls(): Unit =
     callsignField.text = ""
@@ -259,6 +261,7 @@ class QsoEntryPanel @Inject()(
     else callsignField.requestFocus()
 
   private def canSubmitNow: Boolean =
-    callsignField.validProperty.value &&
+    qsoMetadataManager.qsoMetadata.value.isDefined &&
+      callsignField.validProperty.value &&
       contestClassField.validProperty.value &&
       sectionField.validProperty.value

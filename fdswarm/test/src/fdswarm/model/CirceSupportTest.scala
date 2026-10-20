@@ -38,20 +38,21 @@ class CirceSupportTest extends FunSuite:
     assertEquals(decoded, band)
 
   test("ContestConfig round trip"):
-    val config = ContestConfig(ContestType.WFD, Callsign("W1AW"), 1, "O", "CT")
+    val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 1, "O", "CT")
     val json = config.asJson.noSpaces
+    assertEquals(config.asJson.hcursor.get[String]("contestType"), Right(config.contestType.name))
     val decoded = decode[ContestConfig](json).toOption.get
     // ZonedDateTime might lose some precision or change format slightly, but should be equivalent
     assertEquals(decoded.contestType, config.contestType)
-    assertEquals(decoded.contestType.name, "Winter Field Day")
+    assertEquals(decoded.contestType.displayName, "Winter Field Day")
     assertEquals(decoded.ourCallsign, config.ourCallsign)
     assertEquals(decoded.transmitters, config.transmitters)
     assertEquals(decoded.ourClass, config.ourClass)
     assertEquals(decoded.ourSection, config.ourSection)
 
-  test("ContestType name field"):
-    assertEquals(ContestType.WFD.name, "Winter Field Day")
-    assertEquals(ContestType.ARRL.name, "ARRL Field Day")
+  test("ContestType displayName field"):
+    assertEquals(ContestTypes.configured("WFD").displayName, "Winter Field Day")
+    assertEquals(ContestTypes.configured("ARRL").displayName, "ARRL Field Day")
 
   test("Exchange round trip"):
     val exchange = Exchange(FdClass(2, 'A'))
@@ -70,10 +71,10 @@ class CirceSupportTest extends FunSuite:
   test("StatusMessage round trip"):
     val hostAndPort = NodeIdentity.mockNodeIdentity
     val bno = BandModeOperator(Callsign("WA9NNN"), BandMode("40M", "CW"), Instant.parse("2026-03-16T15:00:00Z"))
-    val config = ContestConfig(ContestType.ARRL, Callsign("WA9NNN"), 1, "A", "IL")
+    val config = ContestConfig(ContestTypes.configured("ARRL"), Callsign("WA9NNN"), 1, "A", "IL")
     val status = StatusMessage(storeStats = fdswarm.replication.StoreStats(),
       bandNodeOperator = bno,
-      contestConfig = config,
+      contestConfig = Some(config),
       contestStart = Instant.parse("2026-03-16T15:00:00Z"),
       metrics = Seq.empty)
     val json = status.asJson.noSpaces
@@ -81,9 +82,19 @@ class CirceSupportTest extends FunSuite:
     assertEquals(decoded, status)
 
   test("Node round trip"):
-    val config = ContestConfig(ContestType.ARRL, Callsign("W1AW"), 1, "O", "CT")
+    val config = ContestConfig(ContestTypes.configured("ARRL"), Callsign("W1AW"), 1, "O", "CT")
     val node = Node(URI.create("http://localhost:8080").toURL, config, Callsign("WA9NNN"))
     val json = node.asJson.noSpaces
     val decoded = decode[Node](json).toOption.get
     assertEquals(decoded.url.toString, node.url.toString)
     assertEquals(decoded.ourStation, node.ourStation)
+
+  test("contest configuration can be absent without a placeholder type"):
+    assertEquals(decode[Option[ContestConfig]]("null"), Right(None))
+    val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 1, "O", "CT")
+    assertEquals(decode[Option[ContestConfig]](config.asJson.noSpaces), Right(Some(config)))
+
+  test("ContestConfig rejects unknown contest names when decoding"):
+    val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 1, "O", "CT")
+    val json = config.asJson.mapObject(_.add("contestType", io.circe.Json.fromString("Unknown")))
+    assert(decode[ContestConfig](json.noSpaces).isLeft)

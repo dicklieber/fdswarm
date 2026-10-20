@@ -43,9 +43,9 @@ case class QsoMetadata(station: StationConfig,
     copy(station = station.copy(operator = operator))
 
 object QsoMetadata:
-  val testQsoMetadata: QsoMetadata = QsoMetadata(station = StationConfig(),
+  def testQsoMetadata: QsoMetadata = QsoMetadata(station = StationConfig(),
     node = NodeIdentity(hostIp = "44.0.0.1", port = 8888, hostName = "testHost", instanceId = "qO-"),
-    contest = ContestType.WFD)
+    contest = fdswarm.fx.contest.ContestTypes.configured("WFD"))
   def adifImportQsoMetadata(contestType: ContestType): QsoMetadata = QsoMetadata(station = StationConfig(),
     node = NodeIdentity.adifImportIdentity,
     contest = contestType)

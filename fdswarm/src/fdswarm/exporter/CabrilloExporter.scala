@@ -37,7 +37,7 @@ class CabrilloExporter @Inject()(
 
   override def doExport(outputStream: OutputStream): Unit =
     val qsos = qsosSource.all
-    val config: ContestConfig = contestManager.contestConfigProperty.value
+    val config: ContestConfig = contestManager.current
     val cabrillo = exportQsos(qsos, config)
     outputStream.write(cabrillo.getBytes("UTF-8"))
 

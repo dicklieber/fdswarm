@@ -88,7 +88,7 @@ class PostContestPanel @Inject()(
   // ── event handlers ────────────────────────────────────────────────────
   isActiveProperty.onChange { (_, _, active) =>
     if (active) {
-      operatorField.text = qsoMetadataManager.qsoMetadata.value.station.operator.value
+      operatorField.text = qsoMetadataManager.qsoMetadata.value.map(_.station.operator.value).getOrElse("")
       dateField.text     = dateFormatter.format(LocalDate.now(ZoneOffset.UTC))
       timeField.text     = ""
       statusLabel.text   = ""
@@ -126,12 +126,12 @@ class PostContestPanel @Inject()(
 
   def operatorCallsign: Callsign = {
     val t = operatorField.text.value.trim
-    if (Callsign.isValid(t)) Callsign(t) else qsoMetadataManager.qsoMetadata.value.station.operator
+    if (Callsign.isValid(t)) Callsign(t) else qsoMetadataManager.current.station.operator
   }
 
   def makePostMetadata(): QsoMetadata =
-    qsoMetadataManager.qsoMetadata.value.copy(
-      station = qsoMetadataManager.qsoMetadata.value.station.copy(operator = operatorCallsign),
+    qsoMetadataManager.current.copy(
+      station = qsoMetadataManager.current.station.copy(operator = operatorCallsign),
       node    = PostNode
     )
 

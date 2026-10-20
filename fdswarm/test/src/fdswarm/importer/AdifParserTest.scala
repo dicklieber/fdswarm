@@ -17,6 +17,8 @@
 
 package fdswarm.importer
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.model.Mode
 import munit.FunSuite
 
@@ -27,11 +29,11 @@ class AdifParserTest extends FunSuite:
   private val testFile = os.pwd / "testdata" / "ARRL-FD-N3FJP-export.adi"
 
   test("AdifParser reads two QSOs from N3FJP export"):
-    val qsos = AdifParser(os.read.inputStream(testFile)).qsos
+    val qsos = AdifParser(os.read.inputStream(testFile), ContestTypes.configured("ARRL")).qsos
     assertEquals(qsos.length, 2)
 
   test("AdifParser parses first QSO correctly"):
-    val qso = AdifParser(os.read.inputStream(testFile)).qsos.head.toOption.get
+    val qso = AdifParser(os.read.inputStream(testFile), ContestTypes.configured("ARRL")).qsos.head.toOption.get
 
     assertEquals(qso.callsign.value, "K9DRS")
     assertEquals(qso.bandMode.band.name, "15m")
@@ -43,7 +45,7 @@ class AdifParserTest extends FunSuite:
     assertEquals(qso.stamp, Instant.parse("2026-06-26T15:13:09Z"))
 
   test("AdifParser parses second QSO correctly"):
-    val qso = AdifParser(os.read.inputStream(testFile)).qsos(1).toOption.get
+    val qso = AdifParser(os.read.inputStream(testFile), ContestTypes.configured("ARRL")).qsos(1).toOption.get
 
     assertEquals(qso.callsign.value, "WA9DEW")
     assertEquals(qso.bandMode.band.name, "15m")
@@ -57,11 +59,11 @@ class AdifParserTest extends FunSuite:
   private val wsjtFile = os.pwd / "testdata" / "wsjt.adi"
 
   test("AdifParser reads three QSOs from WSJT-X export"):
-    val qsos = AdifParser(os.read.inputStream(wsjtFile)).qsos
+    val qsos = AdifParser(os.read.inputStream(wsjtFile), ContestTypes.configured("ARRL")).qsos
     assertEquals(qsos.length, 3)
 
   test("AdifParser parses first WSJT-X QSO correctly"):
-    val qso = AdifParser(os.read.inputStream(wsjtFile)).qsos.head.toOption.get
+    val qso = AdifParser(os.read.inputStream(wsjtFile), ContestTypes.configured("ARRL")).qsos.head.toOption.get
 
     assertEquals(qso.callsign.value, "XX4XXX")
     assertEquals(qso.bandMode.band.name, "160m")
@@ -73,7 +75,7 @@ class AdifParserTest extends FunSuite:
     assertEquals(qso.stamp, Instant.parse("2026-06-26T22:48:45Z"))
 
   test("AdifParser parses WSJT-X QSO with lowercase class and section"):
-    val qso = AdifParser(os.read.inputStream(wsjtFile)).qsos(2).toOption.get
+    val qso = AdifParser(os.read.inputStream(wsjtFile), ContestTypes.configured("ARRL")).qsos(2).toOption.get
 
     assertEquals(qso.callsign.value, "XX4XXY")
     assertEquals(qso.exchange.fdClass.transmitters, 3)

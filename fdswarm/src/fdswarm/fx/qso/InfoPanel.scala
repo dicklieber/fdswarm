@@ -62,8 +62,8 @@ class InfoPanel @Inject()(
       contestConfigListenerRegistered = true
 
   private def classChoices: Seq[ClassChoice] =
-    contestCatalog
-      .getContest(contestManager.contestType)
+    contestManager.contestConfigProperty.value
+      .flatMap(config => contestCatalog.getContest(config.contestType))
       .map(_.classChoices)
       .getOrElse(Seq.empty)
 

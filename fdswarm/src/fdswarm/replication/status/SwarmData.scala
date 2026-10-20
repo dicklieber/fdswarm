@@ -459,12 +459,12 @@ class SwarmData @Inject() (
       NodeDataField.Mode -> bno.bandMode.mode.toString,
       NodeDataField.BandMode -> bno.bandMode.toString,
       NodeDataField.BandModeStamp -> stampFormatter.format(bno.stamp),
-      NodeDataField.ContestType -> contest.contestType.toString,
-      NodeDataField.ContestCallsign -> contest.ourCallsign.toString,
-      NodeDataField.ContestTransmitters -> contest.transmitters.toString,
-      NodeDataField.ContestClass -> contest.ourClass,
-      NodeDataField.ContestSection -> contest.ourSection,
-      NodeDataField.Exchange -> contest.exchange,
+      NodeDataField.ContestType -> contest.map(_.contestType.toString).getOrElse(""),
+      NodeDataField.ContestCallsign -> contest.map(_.ourCallsign.toString).getOrElse(""),
+      NodeDataField.ContestTransmitters -> contest.map(_.transmitters.toString).getOrElse(""),
+      NodeDataField.ContestClass -> contest.map(_.ourClass).getOrElse(""),
+      NodeDataField.ContestSection -> contest.map(_.ourSection).getOrElse(""),
+      NodeDataField.Exchange -> contest.map(_.exchange).getOrElse(""),
       NodeDataField.Host -> nodeStatus.nodeIdentity.toString,
       NodeDataField.ContestStart -> stampFormatter.format(
         nodeStatus.statusMessage.contestStart
@@ -565,17 +565,17 @@ object SwarmData:
       case NodeDataField.Hash =>
         Some(nodeStatus.statusMessage.storeStats.hash)
       case NodeDataField.ContestType =>
-        Some(nodeStatus.statusMessage.contestConfig.contestType.toString)
+        nodeStatus.statusMessage.contestConfig.map(_.contestType.toString)
       case NodeDataField.ContestCallsign =>
-        Some(nodeStatus.statusMessage.contestConfig.ourCallsign.toString)
+        nodeStatus.statusMessage.contestConfig.map(_.ourCallsign.toString)
       case NodeDataField.ContestTransmitters =>
-        Some(nodeStatus.statusMessage.contestConfig.transmitters.toString)
+        nodeStatus.statusMessage.contestConfig.map(_.transmitters.toString)
       case NodeDataField.ContestClass =>
-        Some(nodeStatus.statusMessage.contestConfig.ourClass)
+        nodeStatus.statusMessage.contestConfig.map(_.ourClass)
       case NodeDataField.ContestSection =>
-        Some(nodeStatus.statusMessage.contestConfig.ourSection)
+        nodeStatus.statusMessage.contestConfig.map(_.ourSection)
       case NodeDataField.Exchange =>
-        Some(nodeStatus.statusMessage.contestConfig.exchange)
+        nodeStatus.statusMessage.contestConfig.map(_.exchange)
       case NodeDataField.ContestStart =>
         Some(nodeStatus.statusMessage.contestStart.toString)
       case _ =>

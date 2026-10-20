@@ -126,8 +126,10 @@ class WsjtxListener @Inject() (
         processAdif(adif)
 
   private def processAdif(adifRecord: String): Unit =
-    given QsoMetadata = qsoMetadataManager.qsoMetadata.value
-    AdifRecordParser().parseRecord(adifRecord) match
+    if qsoMetadataManager.qsoMetadata.value.isEmpty then
+      logger.warn("Ignoring WSJT-X QSO because no contest is configured")
+      return
+    AdifRecordParser(() => qsoMetadataManager.current).parseRecord(adifRecord) match
       case scala.util.Success(qso) =>
         val msg = qsoStore.add(qso)
         logger.info("WSJT-X QSO added", "callsign" -> qso.callsign.value, "result" -> msg.text)

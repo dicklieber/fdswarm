@@ -18,7 +18,6 @@
 
 package fdswarm.fx.contest
 
-import com.typesafe.config.ConfigFactory
 import fdswarm.model.Callsign
 import fdswarm.util.HamPhonetic.fromString
 import io.circe.Codec
@@ -56,6 +55,8 @@ case class ContestConfig(
     location: String = "")
     extends ContestConfigFields
     derives Codec.AsObject, sttp.tapir.Schema:
+  require(ContestTypes.configured.get(contestType.name).contains(contestType),
+    "contestType must match a configured contest definition")
   require(ourClass.nonEmpty, "ourClass must not be empty")
   require(ourSection.nonEmpty, "ourSection must not be empty")
   val exchange: String =
@@ -87,20 +88,9 @@ case class ContestConfig(
 
   val display: String =
     exchange
-  lazy val isDefined:Boolean = contestType != ContestType.NONE
 
 object ContestConfig:
-  private lazy val config = ConfigFactory.load()
-
-  val noContest: ContestConfig = ContestConfig(
-    contestType = ContestType.NONE,
-    ourCallsign = Callsign(""),
-    transmitters = 1,
-    ourClass = "-",
-    ourSection = "-",
-    club = "",
-    location = ""
-  )
+  private lazy val config = fdswarm.ApplicationConfig.value
 
   private[contest] def withDetails(
       value: String,

@@ -42,7 +42,7 @@ class ContestTimeDialog @Inject()(contestManager: ContestConfigManager,
          initOwner(ownerWindow)
        }.showAndWait()
        return
-    val dates = contestManager.contestConfigProperty.value.contestType.dates()
+    val dates = contestManager.current.contestType.dates()
     stage match {
       case Some(s) => s.requestFocus()
       case None =>

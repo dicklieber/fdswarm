@@ -16,8 +16,8 @@ class ContestScoringService @Inject() (
   extends LazyStructuredLogging() :
 
   private var scorer: ContestScorer =
-    contestScorerRegistry.forType(
-      contestConfigManager.contestConfigProperty.value.contestType
+    scorerFor(
+      contestConfigManager.contestConfigProperty.value.map(_.contestType)
     )
 
   private val finalScoreValue = new AtomicLong(0L)
@@ -26,7 +26,7 @@ class ContestScoringService @Inject() (
   private val multiplierValue = new AtomicReference[Double](1.0)
   private val contestTypeValue = new AtomicInteger(
     toContestTypeMetricValue(
-      contestConfigManager.contestConfigProperty.value.contestType
+      contestConfigManager.contestConfigProperty.value.map(_.contestType)
     )
   )
   private val lastResult =
@@ -39,11 +39,11 @@ class ContestScoringService @Inject() (
     )
 
   contestConfigManager.contestConfigProperty.onChange { (_, oldConfig, newConfig) =>
-    val oldType = oldConfig.contestType
-    val newType = newConfig.contestType
+    val oldType = oldConfig.map(_.contestType)
+    val newType = newConfig.map(_.contestType)
 
     if oldType != newType then
-      scorer = contestScorerRegistry.forType(newType)
+      scorer = scorerFor(newType)
       contestTypeValue.set(toContestTypeMetricValue(newType))
       logger.info(
         "contestTypeChanged" -> s"$oldType->$newType",
@@ -88,7 +88,7 @@ class ContestScoringService @Inject() (
 
     logger.debug(
       "contestScoreRecomputed" -> true,
-      "contestType" -> contestConfigManager.contestConfigProperty.value.contestType.toString,
+      "contestType" -> contestConfigManager.contestConfigProperty.value.map(_.contestType).toString,
       "scorer" -> scorer.name,
       "qsos" -> result.totalQsos,
       "rawPoints" -> result.rawPoints,
@@ -96,11 +96,13 @@ class ContestScoringService @Inject() (
       "finalScore" -> result.totalScore
     )
 
-  private def toContestTypeMetricValue(contestType: ContestType): Int =
-    contestType.id match
-      case "NONE" => 0
-      case "WFD"  => 1
-      case "ARRL" => 2
+  private def scorerFor(contestType: Option[ContestType]): ContestScorer =
+    contestType.map(contestScorerRegistry.forType).getOrElse(NoopScorer)
+
+  private def toContestTypeMetricValue(contestType: Option[ContestType]): Int =
+    contestType.map(_.name) match
+      case Some("WFD")  => 1
+      case Some("ARRL") => 2
       case _ => 0
 
   def current: ScoreResult =

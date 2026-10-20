@@ -17,6 +17,8 @@
 
 package fdswarm.importer
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.model.Mode
 import munit.FunSuite
 
@@ -27,11 +29,11 @@ class FieldDayAdifParserTest extends FunSuite:
   private val testFile = os.pwd / "testdata" / "fieldday.adif"
 
   test("AdifParser reads two QSOs from fieldday.adif"):
-    val qsos = AdifParser(os.read.inputStream(testFile)).qsos
+    val qsos = AdifParser(os.read.inputStream(testFile), ContestTypes.configured("ARRL")).qsos
     assertEquals(qsos.length, 2)
 
   test("AdifParser parses first QSO (W1AW) correctly"):
-    val qso = AdifParser(os.read.inputStream(testFile)).qsos.head.toOption.get
+    val qso = AdifParser(os.read.inputStream(testFile), ContestTypes.configured("ARRL")).qsos.head.toOption.get
 
     assertEquals(qso.callsign.value, "W1AW")
     assertEquals(qso.bandMode.band.name, "20m")
@@ -42,7 +44,7 @@ class FieldDayAdifParserTest extends FunSuite:
     assertEquals(qso.stamp, Instant.parse("2026-06-27T18:15:23Z"))
 
   test("AdifParser parses second QSO (N0CALL) correctly"):
-    val qso = AdifParser(os.read.inputStream(testFile)).qsos(1).toOption.get
+    val qso = AdifParser(os.read.inputStream(testFile), ContestTypes.configured("ARRL")).qsos(1).toOption.get
 
     assertEquals(qso.callsign.value, "N0CALL")
     assertEquals(qso.bandMode.band.name, "40m")

@@ -46,7 +46,7 @@ import java.time.Instant
 case class StatusMessage(
     storeStats: StoreStats,
     bandNodeOperator: BandModeOperator,
-    contestConfig: ContestConfig,
+    contestConfig: Option[ContestConfig],
     contestStart: Instant,
     metrics: Seq[MetricStat]
 )

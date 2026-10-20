@@ -38,7 +38,7 @@ class DupeSheetExporter @Inject()(
   override def doExport(outputStream: OutputStream): Unit =
     val qsos = qsosSource.all
     val station = stationStore.station.value
-    val config = contestManager.contestConfigProperty.value
+    val config = contestManager.current
     val callUsed = config.ourCallsign.toString
     val mySect = config.ourSection
     val myCls = s"${config.transmitters}${config.ourClass}"

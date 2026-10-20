@@ -18,6 +18,8 @@
 
 package fdswarm.exporter
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.fx.contest.{ContestConfig, ContestConfigManager, ContestType}
 import fdswarm.model.*
 import munit.FunSuite
@@ -25,7 +27,7 @@ import java.time.Instant
 
 class CabrilloExporterTest extends FunSuite:
   val testConfig = ContestConfig(
-    contestType = ContestType.WFD,
+    contestType = ContestTypes.configured("WFD"),
     ourCallsign = Callsign("W1AW"),
     transmitters = 1,
     ourClass = "A",
@@ -47,7 +49,7 @@ class CabrilloExporterTest extends FunSuite:
     
     assert(result.contains("START-OF-LOG: 3.0"))
     assert(result.contains("CALLSIGN: W1AW"))
-    assert(result.contains("CONTEST: WFDA-CONTEST")) // ContestType.WFD field cabrilloFieldName is WFDA-CONTEST
+    assert(result.contains("CONTEST: WFDA-CONTEST"))
     assert(result.contains("QSO: 14035 CW 2026-02-25 1400 W1AW         1A  CT  K1ABC        1O  CT "))
     assert(result.contains("END-OF-LOG:"))
 
@@ -55,6 +57,6 @@ class CabrilloExporterTest extends FunSuite:
     val resultWfd = exporter.exportQsos(Seq.empty, testConfig)
     assert(resultWfd.contains("CONTEST: WFDA-CONTEST"))
     
-    val arrlConfig = testConfig.copy(contestType = ContestType.ARRL)
+    val arrlConfig = testConfig.copy(contestType = ContestTypes.configured("ARRL"))
     val resultArrl = exporter.exportQsos(Seq.empty, arrlConfig)
     assert(resultArrl.contains("CONTEST: ARRL-FIELD-DAY"))

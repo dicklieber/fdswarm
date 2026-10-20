@@ -21,7 +21,7 @@ package fdswarm.fx
 
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import fdswarm.api.ApiEndpoints
 import fdswarm.io.FileHelper
 import fdswarm.logging.LazyStructuredLogging
@@ -67,9 +67,7 @@ class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModu
       asSingleton = true
     )
 
-    val primaryConfigFromFile = ConfigFactory.parseFile((os.pwd / "config" / "sarasec.conf").toIO)
-    val defaultConfigFromFile: Config = ConfigFactory.load()
-    val fullConfig: Config = primaryConfigFromFile.withFallback(defaultConfigFromFile)
+    val fullConfig: Config = fdswarm.ApplicationConfig.value
 //    bind[StatusBroadcastService].asEagerSingleton()
 //    bind[NodeStatusDispatcher].asEagerSingleton()
 //    bind[MulticastTransport].asEagerSingleton()
@@ -134,7 +132,7 @@ class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModu
     }
 
     bind[Config].toInstance(fullConfig)
-    bind[fdswarm.fx.contest.ContestTypes].asEagerSingleton()
+    bind[fdswarm.fx.contest.ContestTypes].toInstance(fdswarm.fx.contest.ContestTypes.configured)
 
 object ConfigModule:
   given Conversion[String, os.Path] = (in: String) => os.Path(in)

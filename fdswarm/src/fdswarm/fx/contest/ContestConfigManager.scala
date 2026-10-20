@@ -5,7 +5,6 @@ import fdswarm.io.FileHelper
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.model.Callsign
 import fdswarm.replication.{NodeStatusDispatcher, Service}
-import io.circe.generic.auto.{deriveDecoder, deriveEncoder}
 import jakarta.inject.{Inject, Singleton}
 import scalafx.application.Platform
 import scalafx.beans.property.{ObjectProperty, ReadOnlyBooleanProperty, ReadOnlyBooleanWrapper}
@@ -18,44 +17,46 @@ final class ContestConfigManager @Inject() (
                                              nodeStatusDispatcher: NodeStatusDispatcher,
                                              @Named("fdswarm.contestChangeIgnoreStatusSec")
     ignoreStatusSec: Int)
-    extends ContestConfigFields with LazyStructuredLogging():
+    extends LazyStructuredLogging():
   lazy val hasConfiguration: ReadOnlyBooleanProperty = _hasConfiguration.readOnlyProperty
   private val file = "contest.json"
-  private val _contestConfig: ObjectProperty[ContestConfig] = ObjectProperty(load())
+  private val _contestConfig: ObjectProperty[Option[ContestConfig]] = ObjectProperty(load())
   private val _hasConfiguration =
-    new ReadOnlyBooleanWrapper(this, "hasConfiguration", _contestConfig.value.contestType != ContestType.NONE)
+    new ReadOnlyBooleanWrapper(this, "hasConfiguration", _contestConfig.value.isDefined)
 
-// These override methods expose the current value of the contestConfigProperty
-  override def contestType: ContestType = contestConfigProperty.value.contestType
+  // Accessors for operations that require a configured contest.
+  def contestType: ContestType = current.contestType
 
-  override def ourCallsign: Callsign = contestConfigProperty.value.ourCallsign
+  def ourCallsign: Callsign = current.ourCallsign
 
-  def contestConfigProperty: ObjectProperty[ContestConfig] = _contestConfig
+  def current: ContestConfig =
+    _contestConfig.value.getOrElse(throw new IllegalStateException("No contest configured"))
 
-  override def transmitters: Int = contestConfigProperty.value.transmitters
+  def contestConfigProperty: ObjectProperty[Option[ContestConfig]] = _contestConfig
 
-  override def ourClass: String = contestConfigProperty.value.ourClass
+  def transmitters: Int = current.transmitters
 
-  _contestConfig.onChange((_, _, config) => _hasConfiguration.value = config.contestType != ContestType.NONE)
+  def ourClass: String = current.ourClass
+
+  _contestConfig.onChange((_, _, config) => _hasConfiguration.value = config.isDefined)
 
   nodeStatusDispatcher
     .addListener(service = Service.SyncContest)((_, newConfig) =>
       handleContestConfigUpdate(newConfig = newConfig))
 
-  override def ourSection: String = contestConfigProperty.value.ourSection
-  override def club: String = contestConfigProperty.value.club
-  override def location: String = contestConfigProperty.value.location
+  def ourSection: String = current.ourSection
+  def club: String = current.club
+  def location: String = current.location
 
-  override def toolTip: Node = contestConfigProperty.value.toolTip
+  def toolTip: Node = current.toolTip
 
-  def clearContestConfig(): Unit = setConfig(ContestConfig.noContest)
+  def clearContestConfig(): Unit =
+    _contestConfig.value = None
+    removePersistedConfig()
 
   def setConfig(newConfig: ContestConfig): Unit =
-    _contestConfig.value = newConfig
-    if newConfig.contestType == ContestType.NONE then removePersistedConfig() else persist()
-
-  private def persist(): Unit =
-    fileHelper.save(file, contestConfigProperty.value)
+    _contestConfig.value = Some(newConfig)
+    fileHelper.save(file, newConfig)
 
   private def removePersistedConfig(): Unit =
     fileHelper.remove(file)
@@ -64,5 +65,5 @@ final class ContestConfigManager @Inject() (
     logger.debug("Received Contest", "ContestConfig" -> newConfig)
     Platform.runLater { setConfig(newConfig) }
 
-  private def load(): ContestConfig =
-    fileHelper.loadOrDefault[ContestConfig](file)(ContestConfig.noContest)
+  private def load(): Option[ContestConfig] =
+    fileHelper.loadOrDefault[Option[ContestConfig]](file)(None)

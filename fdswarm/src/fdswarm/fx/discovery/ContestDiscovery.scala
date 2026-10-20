@@ -20,7 +20,7 @@ package fdswarm.fx.discovery
 
 import com.google.inject.name.Named
 import fdswarm.contestStart.{ContestStart, ContestStartManager}
-import fdswarm.fx.contest.{ContestConfig, ContestConfigManager, ContestType}
+import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.replication.status.SwarmData
 import fdswarm.replication.{Service, Transport}
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
 /** ContestDiscovery is responsible for determining the contest configuration
   * within a distributed swarm environment. It attempts to identify and select a
   * valid contest configuration by querying all nodes in the swarm and picking
-  * the most recent configuration that is not set to NONE. If no such
+  * the most recent configuration that is present. If no such
   * configuration is found, it logs the absence of a valid contest
   * configuration.
   *
@@ -81,9 +81,9 @@ class ContestDiscovery @Inject() (
 
     val currentConfig = contestConfigManager.contestConfigProperty.value
     val currentStart = contestStartManager.contestStart.value
-    if currentConfig.contestType != ContestType.NONE && currentStart.isStarted then
+    if currentConfig.isDefined && currentStart.isStarted then
       logger.debug(
-        s"Skipping contest discovery because contest config is already set to ${currentConfig.contestType} and contest is started"
+        s"Skipping contest discovery because contest config is already set to ${currentConfig.map(_.contestType)} and contest is started"
       )
       return
 
@@ -104,19 +104,19 @@ class ContestDiscovery @Inject() (
     logger.whenTraceEnabled {
       allNodeStatuses.foreach(nodeStatus =>
         logger.trace(
-          s"Node status: ${nodeStatus.nodeIdentity} ContestType: ${nodeStatus.statusMessage.contestConfig.contestType}"
+          s"Node status: ${nodeStatus.nodeIdentity} ContestType: ${nodeStatus.statusMessage.contestConfig.map(_.contestType)}"
         )
       )
     }
 
     val selectedStatus = allNodeStatuses
       .filter(nodeStatus =>
-        nodeStatus.statusMessage.contestConfig.contestType != ContestType.NONE
+        nodeStatus.statusMessage.contestConfig.isDefined
       )
       .headOption
     selectedStatus.foreach(nodeStatus =>
       logger.debug(s"Selected status: $nodeStatus")
-      val selectedConfig = nodeStatus.statusMessage.contestConfig
+      val selectedConfig = nodeStatus.statusMessage.contestConfig.get
       val selectedStart = ContestStart(start = nodeStatus.statusMessage.contestStart)
       updateContestFromStatus(selectedConfig = selectedConfig, selectedStart = selectedStart)
       logger.info(
@@ -125,7 +125,7 @@ class ContestDiscovery @Inject() (
     )
     if selectedStatus.isEmpty then
       logger.info(
-        "Contest discovery did not find a non-NONE contest config in swarm data."
+        "Contest discovery did not find a contest config in swarm data."
       )
 
   private def updateContestFromStatus(selectedConfig: ContestConfig, selectedStart: ContestStart): Unit =

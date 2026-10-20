@@ -68,8 +68,7 @@ class ContestDetailPanel @Inject()(
 
   private def refreshDisplay(): Unit =
     val config = contestManager.contestConfigProperty.value
-    contestType = config.contestType
-    if contestType == ContestType.NONE then
+    if config.isEmpty then
       _node.children = Seq(
         GridColumns.fieldSet(
           "Contest ?",
@@ -78,25 +77,18 @@ class ContestDetailPanel @Inject()(
       )
       timerTimeline.stop()
     else
+      contestType = config.get.contestType
       contestDates = contestType.dates()
       updateContestTimeDisplay()
       _node.children = Seq(
         GridColumns.fieldSet(
-          s"${contestType.name} ${contestDates.startUtc.getYear}",
+          s"${contestType.displayName} ${contestDates.startUtc.getYear}",
           contestTimerLabel
         )
       )
       timerTimeline.play()
 
-  contestManager.hasConfiguration.onChange((_, _, hasConfig) => refreshDisplay())
-  // Listen to config changes only if we actually have a config manager that is ready.
-  // Actually, contestConfigProperty itself throws if not initialized.
-  contestManager.hasConfiguration.onChange { (_, _, hasConfig) =>
-    if hasConfig then
-       contestManager.contestConfigProperty.onChange((_, _, _) => refreshDisplay())
-  }
-  if contestManager.hasConfiguration.value then
-    contestManager.contestConfigProperty.onChange((_, _, _) => refreshDisplay())
+  contestManager.contestConfigProperty.onChange((_, _, _) => refreshDisplay())
 
   private val contestTimerLabel = new Label:
     styleClass += "contest-timer"
@@ -129,11 +121,11 @@ class ContestDetailPanel @Inject()(
 
     val (msg, style) = mode match
       case TimeMode.Before =>
-        (s"${contestType.name} ${contestDates.startUtc.getYear} starts in ${DurationFormat(JDuration.between(now, contestDates.startUtc))}", "contest-before")
+        (s"${contestType.displayName} ${contestDates.startUtc.getYear} starts in ${DurationFormat(JDuration.between(now, contestDates.startUtc))}", "contest-before")
       case TimeMode.After =>
-        (s"${contestType.name} ${contestDates.startUtc.getYear} ended ${DurationFormat(JDuration.between(contestDates.endUtc, now))} ago.", "contest-after")
+        (s"${contestType.displayName} ${contestDates.startUtc.getYear} ended ${DurationFormat(JDuration.between(contestDates.endUtc, now))} ago.", "contest-after")
       case TimeMode.During =>
-        (s"${contestType.name} ${contestDates.startUtc.getYear} ends in ${DurationFormat(JDuration.between(now, contestDates.endUtc))}", "contest-during")
+        (s"${contestType.displayName} ${contestDates.startUtc.getYear} ends in ${DurationFormat(JDuration.between(now, contestDates.endUtc))}", "contest-during")
 
     contestTimerLabel.text = msg
     contestTimerLabel.styleClass.removeAll("contest-before", "contest-during", "contest-after")

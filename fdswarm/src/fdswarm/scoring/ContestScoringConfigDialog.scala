@@ -18,7 +18,7 @@ class ContestScoringConfigDialog @Inject() (
 
     val dialog = new Dialog[ButtonType]:
       title = "Contest Scoring"
-      headerText = s"Scoring settings for ${contestConfigManager.contestConfigProperty.value.contestType}"
+      headerText = s"Scoring settings for ${contestConfigManager.contestConfigProperty.value.map(_.contestType.name).getOrElse("Not configured")}"
       dialogPane().buttonTypes = Seq(ButtonType.Cancel, saveButtonType)
       dialogPane().content = scoringPane.pane
       if FdSwarmUi.primaryStage != null then initOwner(FdSwarmUi.primaryStage)

@@ -30,13 +30,18 @@ class QsoMetadataManager @Inject() (
     contestConfigManager: ContestConfigManager
 ):
 
-  private def build(): QsoMetadata = QsoMetadata(
-    station = stationConfigManager.stationConfig,
-    node    = NodeIdentityManager.nodeIdentity,
-    contest = contestConfigManager.contestType
-  )
+  private def build(): Option[QsoMetadata] = contestConfigManager.contestConfigProperty.value.map { config =>
+    QsoMetadata(
+      station = stationConfigManager.stationConfig,
+      node    = NodeIdentityManager.nodeIdentity,
+      contest = config.contestType
+    )
+  }
 
-  val qsoMetadata: ObjectProperty[QsoMetadata] = ObjectProperty(build())
+  def current: QsoMetadata =
+    qsoMetadata.value.getOrElse(throw new IllegalStateException("No contest configured"))
+
+  val qsoMetadata: ObjectProperty[Option[QsoMetadata]] = ObjectProperty(build())
 
   stationConfigManager.stationProperty.onChange { (_, _, _) =>
     qsoMetadata.value = build()

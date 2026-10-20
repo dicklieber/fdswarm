@@ -1,5 +1,7 @@
 package fdswarm
 
+import fdswarm.fx.contest.ContestTypes
+
 import com.typesafe.config.ConfigFactory
 import fdswarm.fx.contest.ContestType
 import munit.FunSuite
@@ -59,6 +61,6 @@ class ContestDateCalculatorTest extends FunSuite:
     )
 
   test("contest types use configured dates and NONE retains epoch dates"):
-    assertEquals(ContestType.WFD.dates(ZonedDateTime.parse("2027-01-01T00:00Z")), ContestDateCalculator.wfd(2027))
-    assertEquals(ContestType.ARRL.dates(ZonedDateTime.parse("2027-01-01T00:00Z")), ContestDateCalculator.arrl(2027))
+    assertEquals(ContestTypes.configured("WFD").dates(ZonedDateTime.parse("2027-01-01T00:00Z")), ContestDateCalculator.wfd(2027))
+    assertEquals(ContestTypes.configured("ARRL").dates(ZonedDateTime.parse("2027-01-01T00:00Z")), ContestDateCalculator.arrl(2027))
     assertEquals(ContestDateCalculator.none(2027), ContestDateCalculator.Epoch)

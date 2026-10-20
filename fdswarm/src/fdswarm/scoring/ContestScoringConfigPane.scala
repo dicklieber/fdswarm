@@ -19,7 +19,7 @@ class ContestScoringConfigPane @Inject() (
     contestScoringConfigManager.contestScoringConfigProperty
 
   private val contestTypeValueLabel = new Label:
-    text = contestConfigManager.contestConfigProperty.value.contestType.toString
+    text = contestConfigManager.contestConfigProperty.value.map(_.contestType.name).getOrElse("Not configured")
 
   private val powerWattsField = new TextField:
     text = configProperty.value.powerWatts.toString
@@ -160,9 +160,9 @@ class ContestScoringConfigPane @Inject() (
     checkBox.selected = configProperty.value.claimedObjectives.contains(objectiveId)
 
   private def refreshContestTypeUi(): Unit =
-    val contestType = contestConfigManager.contestConfigProperty.value.contestType
-    contestTypeValueLabel.text = contestType.toString
-    val showArrlFields = contestType.id == "WFD"
+    val contestType = contestConfigManager.contestConfigProperty.value.map(_.contestType)
+    contestTypeValueLabel.text = contestType.map(_.name).getOrElse("Not configured")
+    val showArrlFields = contestType.exists(_.name == "WFD")
     val showWfdFields = !showArrlFields
 
     powerWattsLabel.visible = showArrlFields

@@ -33,7 +33,7 @@ case class ClassChoice(
 
 /**
  * As defined in [[application.conf]]
- * @param contestType  [[fdswarm.fx.contest.ContestType.WFD]] or [[fdswarm.fx.contest.ContestType.ARRL]]
+ * @param contestType  a configured contest type
  * @param classChoices what classes are allowed in this contest
  */
 case class ContestDefinition(
@@ -58,7 +58,7 @@ final class ContestCatalog @Inject()(config: Config, contestTypes: ContestTypes)
     }
 
   def getContest(contestType: ContestType): Option[ContestDefinition] =
-    contests.find(_.name.id == contestType.id)
+    contests.find(_.name.name == contestType.name)
 
   def getChars(contestType: ContestType): String =
     getContest(contestType).map(_.classCharsString).getOrElse("")

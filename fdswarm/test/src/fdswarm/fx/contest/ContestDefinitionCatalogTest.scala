@@ -34,7 +34,7 @@ class ContestDefinitionCatalogTest extends FunSuite:
     val contestCatalog = ContestCatalog(config)
     assertEquals(
       contestCatalog.getChars(
-        ContestType.NONE
+        new ContestTypes(config)("WFD").copy(name = "Unknown")
       ),
       ""
     )

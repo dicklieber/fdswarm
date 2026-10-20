@@ -19,72 +19,30 @@
 package fdswarm.fx.contest
 
 import fdswarm.{ContestDateCalculator, ContestDates}
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.Codec
 
 import java.time.*
 
-/** Stable ID is used in persisted configuration and replication messages. */
+/** The name is used in persisted configuration and replication messages. */
 case class ContestType(
-    id: String,
     name: String,
+    displayName: String,
     compute: ContestDateRule,
     cabrilloContestName: String,
     allowChosing: Boolean = true):
   def dates(zdt: ZonedDateTime = ZonedDateTime.now()): ContestDates = compute(zdt.getYear)
-  override def toString: String = id
+  override def toString: String = name
 
 /** A value-based date rule keeps independently loaded contest types equal. */
-case class ContestDateRule(rule: Option[com.typesafe.config.Config]) extends (Int => ContestDates):
+case class ContestDateRule(rule: com.typesafe.config.Config) extends (Int => ContestDates):
   override def apply(year: Int): ContestDates =
-    rule.fold(ContestDateCalculator.Epoch)(ContestDateCalculator.fromRule(year, _))
+    ContestDateCalculator.fromRule(year, rule)
 
 object ContestType:
-  val NONE: ContestType = ContestType("NONE", "None", ContestDateRule(None), "", false)
-
-  // Compatibility for non-injected callers and the string wire format.
-  private lazy val defaults = new ContestTypes(com.typesafe.config.ConfigFactory.load())
-  lazy val WFD: ContestType = defaults("WFD")
-  lazy val ARRL: ContestType = defaults("ARRL")
-
   given sttp.tapir.Schema[ContestType] = sttp.tapir.Schema.schemaForString.map(
-    id => defaults.get(id)
-  )(_.id)
+    name => ContestTypes.configured.get(name)
+  )(_.name)
 
-  given Codec[ContestType] = Codec.from(
-    Decoder.instance { cursor =>
-      cursor.as[String] match
-        case Right(id) => defaults.codec.decodeJson(io.circe.Json.fromString(id))
-        case Left(_) =>
-          for
-            id <- cursor.get[String]("id")
-            name <- cursor.get[String]("name")
-            cabrillo <- cursor.get[String]("cabrilloContestName")
-            choosing <- cursor.get[Boolean]("allowChosing")
-            dates <- cursor.get[io.circe.Json]("dates")
-            contest <- scala.util.Try {
-              val rule = com.typesafe.config.ConfigFactory.parseString(dates.noSpaces)
-              val result = ContestType(id, name, ContestDateRule(Some(rule)), cabrillo, choosing)
-              result.compute(2027)
-              result
-            }.toEither.left.map(e => io.circe.DecodingFailure(e.getMessage, cursor.history))
-          yield contest
-    },
-    Encoder.instance { contest =>
-      // Keep existing string messages; include definitions for custom or overridden types
-      // so receivers and saved files do not depend on the sender's local configuration.
-      if defaults.get(contest.id).contains(contest) then io.circe.Json.fromString(contest.id)
-      else
-        val dates = contest.compute.rule.map { rule =>
-          io.circe.parser.parse(rule.root().render(com.typesafe.config.ConfigRenderOptions.concise())).toTry.get
-        }.getOrElse(io.circe.Json.Null)
-        io.circe.Json.obj(
-          "id" -> io.circe.Json.fromString(contest.id),
-          "name" -> io.circe.Json.fromString(contest.name),
-          "cabrilloContestName" -> io.circe.Json.fromString(contest.cabrilloContestName),
-          "allowChosing" -> io.circe.Json.fromBoolean(contest.allowChosing),
-          "dates" -> dates
-        )
-    }
-  )
+  given Codec[ContestType] = ContestTypes.configured.codec
 
 case class ContestTimes(start: ZonedDateTime, end: ZonedDateTime)

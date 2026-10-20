@@ -18,15 +18,18 @@
 
 package fdswarm.replication
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.fx.contest.{ContestConfig, ContestType}
 import fdswarm.model.{BandMode, BandModeOperator, Callsign}
+import io.circe.syntax.*
 import munit.FunSuite
 
 import java.time.Instant
 
 class StatusMessageTest extends FunSuite:
   private val dummyBno = BandModeOperator(Callsign("WA9NNN"), BandMode("40M", "CW"), Instant.parse("2026-03-16T20:11:04Z"))
-  private val dummyContestConfig = ContestConfig(ContestType.ARRL,
+  private val dummyContestConfig = ContestConfig(ContestTypes.configured("ARRL"),
     Callsign("WA9NNN"),
     1,
     "A",
@@ -37,7 +40,7 @@ class StatusMessageTest extends FunSuite:
 //    val hp = NodeIdentity("localhost", 8080, name =)
     val sm = StatusMessage(storeStats = StoreStats(),
       bandNodeOperator = dummyBno,
-      contestConfig = dummyContestConfig,
+      contestConfig = Some(dummyContestConfig),
       contestStart = Instant.parse("2026-03-16T20:11:04Z"),
       metrics = Seq.empty)
     
@@ -51,7 +54,7 @@ class StatusMessageTest extends FunSuite:
   test("fromPacket should deserialize from gzipped packet") {
     val sm = StatusMessage(storeStats = StoreStats(),
       bandNodeOperator = dummyBno,
-      contestConfig = dummyContestConfig,
+      contestConfig = Some(dummyContestConfig),
       contestStart = Instant.parse("2026-03-16T20:11:04Z"),
       metrics = Seq.empty)
     
@@ -66,3 +69,14 @@ class StatusMessageTest extends FunSuite:
       StatusMessage.apply("not a gzip".getBytes("UTF-8"))
     }
   }
+
+  test("unconfigured status round trip"):
+    val status = StatusMessage(
+      storeStats = StoreStats(),
+      bandNodeOperator = dummyBno,
+      contestConfig = None,
+      contestStart = Instant.EPOCH,
+      metrics = Seq.empty
+    )
+    assertEquals(status.asJson.hcursor.downField("contestConfig").focus, Some(io.circe.Json.Null))
+    assertEquals(StatusMessage(status.toPacket), status)

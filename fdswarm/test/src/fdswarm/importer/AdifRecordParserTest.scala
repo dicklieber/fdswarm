@@ -17,6 +17,8 @@
 
 package fdswarm.importer
 
+import fdswarm.fx.contest.ContestTypes
+
 import fdswarm.model.{Band, Mode}
 import munit.FunSuite
 
@@ -24,7 +26,7 @@ import java.time.Instant
 
 class AdifRecordParserTest extends FunSuite:
 
-  private val parser = AdifRecordParser()
+  private val parser = AdifRecordParser(() => fdswarm.model.QsoMetadata.adifImportQsoMetadata(ContestTypes.configured("ARRL")))
 
   /** Replicates AdifParser's body-splitting logic to obtain raw record strings from a file. */
   private def recordsFromFile(path: os.Path): Seq[String] =
