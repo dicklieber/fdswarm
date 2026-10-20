@@ -18,7 +18,8 @@
       "Bash(git check-ignore *)",
       "Bash(python3 -)",
       "Bash(bash -n scripts/release-zips.sh)",
-      "Bash(bash -n scripts/publish-zip-installers.sh)"
+      "Bash(bash -n scripts/publish-zip-installers.sh)",
+      "Bash(env)"
     ]
   }
 }
