@@ -18,9 +18,18 @@
 
 package fdswarm
 
+import com.typesafe.config.{Config, ConfigFactory}
+
 import java.time.*
 
-final case class ContestDates(startUtc: ZonedDateTime, endUtc: ZonedDateTime)
+final case class ContestSetup(earliestStartUtc: ZonedDateTime, maxCumulativeDuration: Duration)
+
+/** End times identify the final operational minute, inclusive. */
+final case class ContestDates(
+    startUtc: ZonedDateTime,
+    endUtc: ZonedDateTime,
+    setup: Option[ContestSetup] = None
+)
 
 object ContestDateCalculator:
   val Epoch: ContestDates =
@@ -31,30 +40,34 @@ object ContestDateCalculator:
 
   def none(year: Int): ContestDates = Epoch
 
-  
-  /**
-   * WFD
-   * @param year for the event.
-   * @return start and end UTC ZonedDateTimes for the contest.
-   */
-  def lastFull(year: Int): ContestDates =
-    val (sat, sun) = lastFullWeekend(year, Month.JANUARY)
-    ContestDates(
-      startUtc = sat.atTime(19, 0).atZone(ZoneOffset.UTC), // 1900Z Sat
-      endUtc = sun.atTime(18, 59).atZone(ZoneOffset.UTC) // 1859Z Sun
-    )
+  def wfd(year: Int): ContestDates = configuredDates(year, "WFD", ConfigFactory.load())
 
-  /**
-   * ARRL
-   *
-   * @param year for the event.
-   * @return
-   */
-  def forthFullWeekend(year: Int): ContestDates =
-    val (sat, sun) = nthFullWeekend(year, Month.JUNE, n = 4) // 4th full weekend in June
+  def arrl(year: Int): ContestDates = configuredDates(year, "ARRL", ConfigFactory.load())
+
+  // Retain the existing entry points for callers; the configured rules determine the dates.
+  def lastFull(year: Int): ContestDates = wfd(year)
+
+  def forthFullWeekend(year: Int): ContestDates = arrl(year)
+
+  private[fdswarm] def configuredDates(year: Int, contest: String, config: Config): ContestDates =
+    val rule = config.getConfig(s"fdswarm.contestDates.$contest")
+    val (saturday, sunday) = nthFullWeekend(
+      year,
+      Month.of(rule.getInt("month")),
+      rule.getInt("fullWeekend")
+    )
+    val setup = Option.when(rule.hasPath("setup")) {
+      val setupRule = rule.getConfig("setup")
+      ContestSetup(
+        earliestStartUtc = saturday.plusDays(setupRule.getInt("daysFromSaturday").toLong)
+          .atTime(LocalTime.parse(setupRule.getString("startUtc"))).atZone(ZoneOffset.UTC),
+        maxCumulativeDuration = setupRule.getDuration("maxCumulativeDuration")
+      )
+    }
     ContestDates(
-      startUtc = sat.atTime(18, 0).atZone(ZoneOffset.UTC), // 1800Z Sat
-      endUtc = sun.atTime(20, 59).atZone(ZoneOffset.UTC) // 2059Z Sun
+      startUtc = saturday.atTime(LocalTime.parse(rule.getString("startUtc"))).atZone(ZoneOffset.UTC),
+      endUtc = sunday.atTime(LocalTime.parse(rule.getString("endUtc"))).atZone(ZoneOffset.UTC),
+      setup = setup
     )
 
   // ---- Helpers --------------------------------------------------------------

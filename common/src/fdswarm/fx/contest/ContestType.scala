@@ -41,13 +41,13 @@ enum ContestType(
   case WFD
       extends ContestType(
         "Winter Field Day",
-        ContestDateCalculator.lastFull,
+        ContestDateCalculator.wfd,
         "WFD"
       )
   case ARRL
       extends ContestType(
         "ARRL Field Day",
-        ContestDateCalculator.forthFullWeekend,
+        ContestDateCalculator.arrl,
         "ARRL-FD"
       )
 
