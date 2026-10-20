@@ -22,7 +22,7 @@ import munit.FunSuite
 
 class ContestDefinitionDateCalculatorTest extends FunSuite:
 
-  test("WFD last full weekend Jan 2026"):
-    val dates = ContestDateCalculator.lastFull(2026)
+  test("WFD fourth full weekend Jan 2026"):
+    val dates = ContestDateCalculator.wfd(2026)
     assertEquals(dates.startUtc.toLocalDate, java.time.LocalDate.of(2026, 1, 24))
     assertEquals(dates.endUtc.toLocalDate, java.time.LocalDate.of(2026, 1, 25))
