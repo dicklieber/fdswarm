@@ -31,6 +31,41 @@ java -jar fdswarm.jar
 FdSwarm is currently distributed as a portable Java JAR. A signed and notarized
 macOS installer is planned, but not yet available.
 
+## Developing with Codex
+
+FdSwarm uses OpenAI Codex as a coding assistant alongside IntelliJ IDEA Ultimate
+and Mill. Codex handles code analysis, implementation, bug fixes, refactoring,
+and writing tests. The developer handles builds, test execution, debugging,
+reviewing changes, and Git commits.
+
+### Start Codex
+
+From the repository root, run:
+
+```bash
+codex --sandbox workspace-write --ask-for-approval never
+```
+
+Codex reads the repository's `AGENTS.md` for project conventions, architectural
+constraints, and the division of responsibilities. Codex and IntelliJ edit the
+same working tree, so changes appear in IntelliJ without synchronization.
+
+### Review and validate changes
+
+1. Review Codex's edits in IntelliJ.
+2. Compile and run tests with the Mill commands below.
+3. Make any needed corrections.
+4. Commit the changes using IntelliJ's Git integration.
+
+For a Codex review of uncommitted changes, run:
+
+```bash
+codex review --uncommitted
+```
+
+Codex does not run builds or tests, change dependencies, or perform Git writes
+unless explicitly authorized, as specified in `AGENTS.md`.
+
 ## Build and Development Commands
 
 ### Cleaning
@@ -65,7 +100,7 @@ fdswrm.jar is the primary artifact of the project. It contains the fdswarm appli
 ```java -jar fdswarm.jar```
 Running this way requires a Java JDK version 21 or higher, with JavaFX be installed.
 
-While this can be 
+While this can be
 
 Build release artifacts locally with the package commands below. Set
 `FDSWARM_VERSION` to a three-part version such as `1.0.0` before building
