@@ -21,6 +21,7 @@ package fdswarm
 import com.typesafe.config.{Config, ConfigFactory}
 
 import java.time.*
+import scala.jdk.CollectionConverters.*
 
 final case class ContestSetup(earliestStartUtc: ZonedDateTime, maxCumulativeDuration: Duration)
 
@@ -50,7 +51,13 @@ object ContestDateCalculator:
   def forthFullWeekend(year: Int): ContestDates = arrl(year)
 
   private[fdswarm] def configuredDates(year: Int, contest: String, config: Config): ContestDates =
-    val rule = config.getConfig(s"fdswarm.contestDates.$contest")
+    val rule = config.getConfigList("fdswarm.contests").asScala
+      .find(_.getString("name") == contest)
+      .getOrElse(throw new IllegalArgumentException(s"Unknown contest: $contest"))
+      .getConfig("dates")
+    fromRule(year, rule)
+
+  private[fdswarm] def fromRule(year: Int, rule: Config): ContestDates =
     val (saturday, sunday) = nthFullWeekend(
       year,
       Month.of(rule.getInt("month")),

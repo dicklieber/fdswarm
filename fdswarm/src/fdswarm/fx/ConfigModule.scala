@@ -134,6 +134,7 @@ class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModu
     }
 
     bind[Config].toInstance(fullConfig)
+    bind[fdswarm.fx.contest.ContestTypes].asEagerSingleton()
 
 object ConfigModule:
   given Conversion[String, os.Path] = (in: String) => os.Path(in)

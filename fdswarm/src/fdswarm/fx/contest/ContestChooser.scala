@@ -6,7 +6,7 @@ import scalafx.scene.Node
 import scalafx.scene.control.{OverrunStyle, RadioButton, ToggleGroup}
 import scalafx.scene.layout.{Region, VBox}
 
-class ContestChooser extends CustomFieldEditor:
+class ContestChooser(contestTypes: ContestTypes) extends CustomFieldEditor:
   private var contestTypeProperty: Option[ObjectProperty[ContestType]] =
     None
 
@@ -27,7 +27,7 @@ class ContestChooser extends CustomFieldEditor:
         val tg = new ToggleGroup()
 
         val buttons: Seq[(ContestType, RadioButton)] =
-          ContestType.values.filter(_.allowChosing).toSeq.map { contestType =>
+          contestTypes.values.filter(_.allowChosing).toSeq.map { contestType =>
             val button = new RadioButton:
               text = contestType.name
               toggleGroup = tg

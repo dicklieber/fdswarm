@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets
  */
 class ContestConfigDialog @Inject() (
     contestCatalog: ContestCatalog,
+    contestTypes: ContestTypes,
     sectionsProvider: SectionsProvider,
     contestManager: ContestConfigManager,
     exchangePane: ExchangePane,
@@ -31,7 +32,7 @@ class ContestConfigDialog @Inject() (
   private val configEditor: CaseClassPropertyEditor[ContestConfig] =
     new CaseClassPropertyEditor(contestManager.contestConfigProperty.value)
 
-  configEditor.setCustomEditor("contestType", new ContestChooser())
+  configEditor.setCustomEditor("contestType", new ContestChooser(contestTypes))
   configEditor.setCustomEditor("transmitters", new IntSpinner())
   configEditor.setCustomEditor("ourCallsign", new CallsignCustomField())
   private val contestTypeProperty: ObjectProperty[ContestType] = configEditor.getProperty("contestType")

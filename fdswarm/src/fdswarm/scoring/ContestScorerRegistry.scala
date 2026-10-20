@@ -10,7 +10,7 @@ class ContestScorerRegistry @Inject() (
                                       ):
 
   def forType(ct: ContestType): ContestScorer =
-    ct match
-      case ContestType.WFD  => wfdScorer
-      case ContestType.ARRL => arrlFdScorer
-      case ContestType.NONE => NoopScorer
+    ct.id match
+      case "WFD"  => wfdScorer
+      case "ARRL" => arrlFdScorer
+      case _ => NoopScorer

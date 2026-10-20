@@ -35,7 +35,9 @@ class ContestDateCalculatorTest extends FunSuite:
 
   test("date calculations honor configuration overrides"):
     val config = ConfigFactory.parseString("""
-      fdswarm.contestDates.WFD {
+      fdswarm.contests = [{
+        name = WFD
+        dates {
         month = 2
         fullWeekend = 2
         startUtc = "15:00"
@@ -45,7 +47,8 @@ class ContestDateCalculatorTest extends FunSuite:
           startUtc = "14:00"
           maxCumulativeDuration = 10h
         }
-      }
+        }
+      }]
     """).withFallback(ConfigFactory.load()).resolve()
     val dates = ContestDateCalculator.configuredDates(2027, "WFD", config)
     assertEquals(dates.startUtc, ZonedDateTime.parse("2027-02-13T15:00Z"))

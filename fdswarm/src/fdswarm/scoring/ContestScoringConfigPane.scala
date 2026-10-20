@@ -162,7 +162,7 @@ class ContestScoringConfigPane @Inject() (
   private def refreshContestTypeUi(): Unit =
     val contestType = contestConfigManager.contestConfigProperty.value.contestType
     contestTypeValueLabel.text = contestType.toString
-    val showArrlFields = contestType == ContestType.WFD
+    val showArrlFields = contestType.id == "WFD"
     val showWfdFields = !showArrlFields
 
     powerWattsLabel.visible = showArrlFields

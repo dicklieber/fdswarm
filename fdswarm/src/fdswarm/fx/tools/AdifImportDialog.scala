@@ -48,6 +48,7 @@ final class AdifImportDialog @Inject()(
     qsoStore: QsoStore,
     adifExporter: AdifExporter,
     filenameStamp: FilenameStamp,
+    contestTypes: fdswarm.fx.contest.ContestTypes,
     userConfig: UserConfig
 ) extends LazyStructuredLogging:
 
@@ -251,7 +252,7 @@ final class AdifImportDialog @Inject()(
       override def call(): ImportResult =
         val is = new FileInputStream(filePath)
         try
-          val parser = new AdifParser(is)
+          val parser = new AdifParser(is, contestTypes("ARRL"))
           val total  = parser.recordCount
           val fmt    = (n: Long) => "%,d".formatLocal(java.util.Locale.getDefault, n)
           updateMessage(s"0 of ${fmt(total)} records parsed…")

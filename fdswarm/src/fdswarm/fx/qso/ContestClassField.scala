@@ -52,7 +52,7 @@ class ContestClassField @Inject() (
       None
 
   private def showHelp(): Unit =
-    val contest: Option[ContestDefinition] = contestCatalog.contests.find(_.name.eq(contestManager.contestType.name))
+    val contest: Option[ContestDefinition] = contestCatalog.getContest(contestManager.contestType)
     contest.foreach { contest =>
       val items = contest.classChoices.map(contestClassChar => (contestClassChar.ch, contestClassChar.description))
       dupPanel.show(s"${contestManager.contestType.name} Classes", items)

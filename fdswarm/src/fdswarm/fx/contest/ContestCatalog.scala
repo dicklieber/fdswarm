@@ -18,10 +18,9 @@
 
 package fdswarm.fx.contest
 
-import com.typesafe.config.{Config, ConfigRenderOptions, ConfigValue}
+import com.typesafe.config.Config
 import fdswarm.model.Choice
 import io.circe.Codec
-import io.circe.parser.decode
 import jakarta.inject.{Inject, Singleton}
 import scalafx.beans.property.ObjectProperty
 
@@ -46,20 +45,20 @@ case class ContestDefinition(
   def classCharsString: String = classChoices.map(_.ch).mkString
 
 @Singleton
-final class ContestCatalog @Inject()(config: Config):
-  /** Render the *list* at fdswarm.contests as strict JSON and decode */
-  private val key = "fdswarm.contests"
-  private val renderOpts =
-    ConfigRenderOptions.concise()
-      .setJson(true)
-      .setComments(false)
-      .setOriginComments(false)
-  private val configValue: ConfigValue = config.getValue(key)
+final class ContestCatalog @Inject()(config: Config, contestTypes: ContestTypes):
+  def this(config: Config) = this(config, new ContestTypes(config))
+
   val contests: Seq[ContestDefinition] =
-    decode[Seq[ContestDefinition]](configValue.render(renderOpts)).toTry.get
+    import scala.jdk.CollectionConverters.*
+    config.getConfigList("fdswarm.contests").asScala.toSeq.map { contest =>
+      val choices = contest.getConfigList("classChoices").asScala.toSeq.map { choice =>
+        ClassChoice(choice.getString("ch"), choice.getString("description"))
+      }
+      ContestDefinition(contestTypes(contest.getString("name")), choices)
+    }
 
   def getContest(contestType: ContestType): Option[ContestDefinition] =
-    contests.find(_.name == contestType)
+    contests.find(_.name.id == contestType.id)
 
   def getChars(contestType: ContestType): String =
     getContest(contestType).map(_.classCharsString).getOrElse("")

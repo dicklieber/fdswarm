@@ -97,10 +97,11 @@ class ContestScoringService @Inject() (
     )
 
   private def toContestTypeMetricValue(contestType: ContestType): Int =
-    contestType match
-      case ContestType.NONE => 0
-      case ContestType.WFD  => 1
-      case ContestType.ARRL => 2
+    contestType.id match
+      case "NONE" => 0
+      case "WFD"  => 1
+      case "ARRL" => 2
+      case _ => 0
 
   def current: ScoreResult =
     lastResult.get()
