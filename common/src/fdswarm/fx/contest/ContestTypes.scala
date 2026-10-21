@@ -1,14 +1,20 @@
 package fdswarm.fx.contest
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ConfigFactory, ConfigParseOptions}
 import io.circe.{Codec, Decoder, Encoder}
 import jakarta.inject.{Inject, Singleton}
-import scala.jdk.CollectionConverters.*
 
-/** Contest definitions are loaded once from the application's resolved configuration. */
+/** Contest definitions are loaded from bundled JSON resources. */
 @Singleton
-final class ContestTypes @Inject()(config: Config):
-  val values: Seq[ContestType] = config.getConfigList("fdswarm.contests").asScala.toSeq.map { contest =>
+final class ContestTypes @Inject()():
+  private[contest] val definitions = Seq("ARRL", "WFD").map { name =>
+    ConfigFactory.parseResources(
+      s"contestTypes/$name.json",
+      ConfigParseOptions.defaults().setAllowMissing(false)
+    ).resolve()
+  }
+
+  val values: Seq[ContestType] = definitions.map { contest =>
     ContestType(
       name = contest.getString("name"),
       displayName = contest.getString("displayName"),
@@ -35,4 +41,4 @@ final class ContestTypes @Inject()(config: Config):
 
 object ContestTypes:
   /** Shared with dependency injection so derived codecs use the actual application definitions. */
-  lazy val configured: ContestTypes = new ContestTypes(fdswarm.ApplicationConfig.value)
+  lazy val configured: ContestTypes = new ContestTypes()

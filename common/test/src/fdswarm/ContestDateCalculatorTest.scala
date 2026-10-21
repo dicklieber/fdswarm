@@ -3,7 +3,6 @@ package fdswarm
 import fdswarm.fx.contest.ContestTypes
 
 import com.typesafe.config.ConfigFactory
-import fdswarm.fx.contest.ContestType
 import munit.FunSuite
 
 import java.time.{Duration, ZonedDateTime}
@@ -35,11 +34,8 @@ class ContestDateCalculatorTest extends FunSuite:
     assertEquals(dates.endUtc, ZonedDateTime.parse("2027-06-27T20:59Z"))
     assertEquals(dates.setup, None)
 
-  test("date calculations honor configuration overrides"):
+  test("date rule calculations support custom setup periods"):
     val config = ConfigFactory.parseString("""
-      fdswarm.contests = [{
-        name = WFD
-        dates {
         month = 2
         fullWeekend = 2
         startUtc = "15:00"
@@ -49,10 +45,8 @@ class ContestDateCalculatorTest extends FunSuite:
           startUtc = "14:00"
           maxCumulativeDuration = 10h
         }
-        }
-      }]
-    """).withFallback(ConfigFactory.load()).resolve()
-    val dates = ContestDateCalculator.configuredDates(2027, "WFD", config)
+    """)
+    val dates = ContestDateCalculator.fromRule(2027, config)
     assertEquals(dates.startUtc, ZonedDateTime.parse("2027-02-13T15:00Z"))
     assertEquals(dates.endUtc, ZonedDateTime.parse("2027-02-14T20:59Z"))
     assertEquals(
@@ -60,7 +54,7 @@ class ContestDateCalculatorTest extends FunSuite:
       Some(ContestSetup(ZonedDateTime.parse("2027-02-11T14:00Z"), Duration.ofHours(10)))
     )
 
-  test("contest types use configured dates and NONE retains epoch dates"):
+  test("contest types use resource dates and NONE retains epoch dates"):
     assertEquals(ContestTypes.configured("WFD").dates(ZonedDateTime.parse("2027-01-01T00:00Z")), ContestDateCalculator.wfd(2027))
     assertEquals(ContestTypes.configured("ARRL").dates(ZonedDateTime.parse("2027-01-01T00:00Z")), ContestDateCalculator.arrl(2027))
     assertEquals(ContestDateCalculator.none(2027), ContestDateCalculator.Epoch)

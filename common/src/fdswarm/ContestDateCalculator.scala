@@ -18,10 +18,10 @@
 
 package fdswarm
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
+import fdswarm.fx.contest.ContestTypes
 
 import java.time.*
-import scala.jdk.CollectionConverters.*
 
 final case class ContestSetup(earliestStartUtc: ZonedDateTime, maxCumulativeDuration: Duration)
 
@@ -41,21 +41,14 @@ object ContestDateCalculator:
 
   def none(year: Int): ContestDates = Epoch
 
-  def wfd(year: Int): ContestDates = configuredDates(year, "WFD", ConfigFactory.load())
+  def wfd(year: Int): ContestDates = ContestTypes.configured("WFD").compute(year)
 
-  def arrl(year: Int): ContestDates = configuredDates(year, "ARRL", ConfigFactory.load())
+  def arrl(year: Int): ContestDates = ContestTypes.configured("ARRL").compute(year)
 
-  // Retain the existing entry points for callers; the configured rules determine the dates.
+  // Retain the existing entry points for callers; resource rules determine the dates.
   def lastFull(year: Int): ContestDates = wfd(year)
 
   def forthFullWeekend(year: Int): ContestDates = arrl(year)
-
-  private[fdswarm] def configuredDates(year: Int, contest: String, config: Config): ContestDates =
-    val rule = config.getConfigList("fdswarm.contests").asScala
-      .find(_.getString("name") == contest)
-      .getOrElse(throw new IllegalArgumentException(s"Unknown contest: $contest"))
-      .getConfig("dates")
-    fromRule(year, rule)
 
   private[fdswarm] def fromRule(year: Int, rule: Config): ContestDates =
     val (saturday, sunday) = nthFullWeekend(

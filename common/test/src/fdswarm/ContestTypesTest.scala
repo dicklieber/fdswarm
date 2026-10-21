@@ -5,54 +5,25 @@ import fdswarm.fx.contest.{ContestType, ContestTypes}
 import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.FunSuite
-import java.time.ZonedDateTime
 
 class ContestTypesTest extends FunSuite:
-  private val config = ConfigFactory.load()
-
   test("default definitions retain names, display names and Cabrillo values"):
-    val types = new ContestTypes(config)
+    val types = new ContestTypes()
     assertEquals(types.values.map(_.name), Seq("ARRL", "WFD"))
     assertEquals(types("WFD").displayName, "Winter Field Day")
     assertEquals(types("WFD").cabrilloContestName, "WFD")
     assertEquals(types("ARRL").cabrilloContestName, "ARRL-FD")
     assertEquals(types.get("NONE"), None)
-    assertEquals(types("WFD"), new ContestTypes(config)("WFD"))
+    assertEquals(types("WFD"), new ContestTypes()("WFD"))
     assertEquals(types("WFD").asJson.noSpaces, "\"WFD\"")
     assertEquals(decode[ContestType]("\"WFD\""), Right(types("WFD")))
     assert(decode[ContestType]("\"unknown\"").isLeft)
 
-  private def customConfig(name: String = "CUSTOM") = ConfigFactory.parseString(s"""
-    fdswarm.contests = [{
-      name = "$name"
-      displayName = "Local Contest"
-      cabrilloContestName = "LOCAL"
-      allowChosing = false
-      dates {
-        month = 2
-        fullWeekend = 2
-        startUtc = "15:00"
-        endUtc = "20:59"
-      }
-    }]
-  """)
-
-  test("injected configuration supplies custom types and date rules"):
-    val types = new ContestTypes(customConfig())
-    val contest = types("CUSTOM")
-    assertEquals(contest.displayName, "Local Contest")
-    assert(!contest.allowChosing)
-    assertEquals(contest.dates(ZonedDateTime.parse("2027-01-01T00:00Z")).startUtc,
-      ZonedDateTime.parse("2027-02-13T15:00Z"))
-    assertEquals(contest.asJson.noSpaces, "\"CUSTOM\"")
-    assertEquals(types.codec.decodeJson(contest.asJson), Right(contest))
-    assertEquals(types.codec.decodeJson(io.circe.Json.fromString("CUSTOM")), Right(contest))
-
-  test("overridden built-in definitions encode only their name"):
-    val types = new ContestTypes(customConfig("WFD"))
-    val contest = types("WFD")
+  test("modified definitions encode only their name"):
+    val types = new ContestTypes()
+    val contest = types("WFD").copy(displayName = "Local Contest")
     assertEquals(contest.asJson.noSpaces, "\"WFD\"")
-    assertEquals(types.codec.decodeJson(contest.asJson), Right(contest))
+    assertEquals(types.codec.decodeJson(contest.asJson), Right(types("WFD")))
     assertEquals(decode[ContestType](contest.asJson.noSpaces), Right(ContestTypes.configured("WFD")))
 
   test("NONE is not a configured contest"):
@@ -61,14 +32,16 @@ class ContestTypesTest extends FunSuite:
   test("object definitions are rejected"):
     assert(decode[ContestType]("""{"name":"WFD"}""").isLeft)
 
-  test("duplicate and empty names fail at startup"):
-    intercept[IllegalArgumentException](new ContestTypes(customConfig("")))
-    val entry = customConfig().getConfigList("fdswarm.contests").get(0).root().render()
+  test("unknown contest lookup fails"):
     intercept[IllegalArgumentException] {
-      new ContestTypes(ConfigFactory.parseString(s"fdswarm.contests = [$entry, $entry]"))
+      new ContestTypes()("UNKNOWN")
     }
 
-  test("an empty contest list is rejected"):
-    intercept[IllegalArgumentException] {
-      new ContestTypes(ConfigFactory.parseString("fdswarm.contests = []"))
-    }
+  test("definitions are bundled JSON resources rather than reference configuration"):
+    assert(!ConfigFactory.defaultReference().hasPath("fdswarm.contests"))
+    for name <- Seq("ARRL", "WFD") do
+      val stream = Option(getClass.getResourceAsStream(s"/contestTypes/$name.json"))
+        .getOrElse(fail(s"Missing contest resource: $name"))
+      val json = scala.util.Using.resource(scala.io.Source.fromInputStream(stream, "UTF-8"))(_.mkString)
+      val parsed = io.circe.parser.parse(json).fold(error => fail(error.message), identity)
+      assertEquals(parsed.hcursor.get[String]("name"), Right(name))

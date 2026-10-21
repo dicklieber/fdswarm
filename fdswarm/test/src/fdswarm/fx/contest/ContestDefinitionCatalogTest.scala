@@ -18,23 +18,24 @@
 
 package fdswarm.fx.contest
 
-import com.typesafe.config.ConfigFactory
 import munit.FunSuite
 
 class ContestDefinitionCatalogTest extends FunSuite:
 
   test("ContestCatalog"):
-    val config = ConfigFactory.load()
-    val contestCatalog = ContestCatalog(config)
+    val contestCatalog = ContestCatalog(new ContestTypes())
     val contests = contestCatalog.contests
     assertEquals(contests.size, 2)
+    assertEquals(contestCatalog.getChars(ContestTypes.configured("ARRL")), "ABCDEF")
+    assertEquals(contestCatalog.getChars(ContestTypes.configured("WFD")), "IOMDEF")
+    assertEquals(contests.head.classChoices.head.description,
+      "Club / group portable station (not at a home location)")
 
   test("ContestCatalog getChars handles unknown contest type"):
-    val config = ConfigFactory.load()
-    val contestCatalog = ContestCatalog(config)
+    val contestCatalog = ContestCatalog(new ContestTypes())
     assertEquals(
       contestCatalog.getChars(
-        new ContestTypes(config)("WFD").copy(name = "Unknown")
+        new ContestTypes()("WFD").copy(name = "Unknown")
       ),
       ""
     )

@@ -121,10 +121,7 @@ object ContestConfig:
       ourClass: String
   ): Option[String] =
     val classCode = ourClass.dropWhile(_.isDigit)
-    Option.when(config.hasPath("fdswarm.contests")) {
-      config.getConfigList("fdswarm.contests").asScala
-    }.toSeq
-      .flatten
+    ContestTypes.configured.definitions
       .find(_.getString("name") == contestType.toString)
       .flatMap { contestConfig =>
         contestConfig.getConfigList("classChoices").asScala

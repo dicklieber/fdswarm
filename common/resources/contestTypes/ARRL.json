@@ -1,0 +1,38 @@
+{
+  "name": "ARRL",
+  "displayName": "ARRL Field Day",
+  "cabrilloContestName": "ARRL-FD",
+  "allowChosing": true,
+  "dates": {
+    "month": 6,
+    "fullWeekend": 4,
+    "startUtc": "18:00",
+    "endUtc": "20:59"
+  },
+  "classChoices": [
+    {
+      "ch": "A",
+      "description": "Club / group portable station (not at a home location)"
+    },
+    {
+      "ch": "B",
+      "description": "One or two person portable"
+    },
+    {
+      "ch": "C",
+      "description": "Mobile"
+    },
+    {
+      "ch": "D",
+      "description": "Home station (commercial power)"
+    },
+    {
+      "ch": "E",
+      "description": "Home station (emergency power)"
+    },
+    {
+      "ch": "F",
+      "description": "EOC (Emergency Operations Center)"
+    }
+  ]
+}

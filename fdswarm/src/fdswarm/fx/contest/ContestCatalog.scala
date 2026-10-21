@@ -18,12 +18,23 @@
 
 package fdswarm.fx.contest
 
-import com.typesafe.config.Config
 import fdswarm.model.Choice
 import io.circe.Codec
 import jakarta.inject.{Inject, Singleton}
 import scalafx.beans.property.ObjectProperty
 
+/**
+ * Represents a choice with a single-character label and a description.
+ *
+ * @param ch          A string containing the character representing the choice. The first character of this string is used as the value.
+ * @param description A textual description of the choice.
+ *
+ *                    This class extends the `Choice` trait, parameterized with `Char`, and implements the following:
+ *
+ *                    - `value`: The first character of the `ch` string, used as the value of the choice.
+ *                    - `label`: A string combining `ch` and `description` in the format "ch - description".
+ *
+ *                    It also derives the `Codec.AsObject` type class for encoding and decoding support. */
 case class ClassChoice(
                             ch: String,
                             description: String
@@ -32,7 +43,7 @@ case class ClassChoice(
   override val label: String = s"$ch - $description"
 
 /**
- * As defined in [[application.conf]]
+ * As defined in the bundled contestTypes JSON resources.
  * @param contestType  a configured contest type
  * @param classChoices what classes are allowed in this contest
  */
@@ -45,12 +56,10 @@ case class ContestDefinition(
   def classCharsString: String = classChoices.map(_.ch).mkString
 
 @Singleton
-final class ContestCatalog @Inject()(config: Config, contestTypes: ContestTypes):
-  def this(config: Config) = this(config, new ContestTypes(config))
-
+final class ContestCatalog @Inject()(contestTypes: ContestTypes):
   val contests: Seq[ContestDefinition] =
     import scala.jdk.CollectionConverters.*
-    config.getConfigList("fdswarm.contests").asScala.toSeq.map { contest =>
+    contestTypes.definitions.map { contest =>
       val choices = contest.getConfigList("classChoices").asScala.toSeq.map { choice =>
         ClassChoice(choice.getString("ch"), choice.getString("description"))
       }

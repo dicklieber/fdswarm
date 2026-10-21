@@ -81,3 +81,9 @@ class ContestConfigTest extends FunSuite:
     intercept[IllegalArgumentException] {
       ContestConfig(modified, Callsign("W1AW"), 1, "O", "CT")
     }
+
+  test("class descriptions come from contest resources"):
+    assertEquals(ContestConfig.classDescription(ContestTypes.configured("WFD"), "2O"), Some("Outdoor"))
+    assertEquals(ContestConfig.classDescription(ContestTypes.configured("ARRL"), "A"),
+      Some("Club / group portable station (not at a home location)"))
+    assertEquals(ContestConfig.classDescription(ContestTypes.configured("WFD"), "Z"), None)

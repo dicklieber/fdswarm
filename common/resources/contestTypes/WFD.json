@@ -1,0 +1,43 @@
+{
+  "name": "WFD",
+  "displayName": "Winter Field Day",
+  "cabrilloContestName": "WFD",
+  "allowChosing": true,
+  "dates": {
+    "month": 1,
+    "fullWeekend": 4,
+    "startUtc": "16:00",
+    "endUtc": "21:59",
+    "setup": {
+      "daysFromSaturday": -1,
+      "startUtc": "16:00",
+      "maxCumulativeDuration": "12h"
+    }
+  },
+  "classChoices": [
+    {
+      "ch": "I",
+      "description": "Indoor"
+    },
+    {
+      "ch": "O",
+      "description": "Outdoor"
+    },
+    {
+      "ch": "M",
+      "description": "Mobile"
+    },
+    {
+      "ch": "D",
+      "description": "Home station (commercial power)"
+    },
+    {
+      "ch": "E",
+      "description": "Home station (emergency power)"
+    },
+    {
+      "ch": "F",
+      "description": "EOC (Emergency Operations Center)"
+    }
+  ]
+}
