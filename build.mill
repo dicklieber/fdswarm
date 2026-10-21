@@ -172,7 +172,7 @@ object manager extends CommonSettings:
 
 
 object releaseTool extends ScalaModule:
-  def scalaVersion = "3.7.4"
+  def scalaVersion = Versions.scala
 
   def mainClass = Some("release.ReleaseApp")
 
