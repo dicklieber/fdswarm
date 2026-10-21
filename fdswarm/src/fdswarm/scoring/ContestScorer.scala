@@ -1,21 +1,28 @@
 package fdswarm.scoring
 
-import fdswarm.model.Qso
+import fdswarm.model.{Mode, Qso}
 
-trait ContestScorer:
-  def name: String
+object ContestScorer:
+  def score(qsos: Seq[Qso]): ScoreResult =
+    val byMode = Mode.values.map { mode =>
+      mode.toString -> qsos.count(_.bandMode.mode == mode)
+    }.toMap
+    val totalScore = qsos.map { qso =>
+      qso.bandMode.mode match
+        case Mode.PH => 1
+        case Mode.CW | Mode.DIGI => 2
+    }.sum
 
-  def score(
-      qsos: Seq[Qso],
-      scoringConfig: ContestScoringConfig
-    ): ScoreResult
+    ScoreResult(
+      totalScore = totalScore,
+      totalQsos = qsos.size,
+      byMode = byMode,
+      byBand = qsos.groupBy(_.bandMode.band.name).view.mapValues(_.size).toMap
+    )
 
 case class ScoreResult(
     totalScore: Int,
-    rawPoints: Int,
-    multiplier: Double,
     totalQsos: Int,
     byMode: Map[String, Int],
-    byBand: Map[String, Int],
-    breakdown: Map[String, Double] = Map.empty // ← add back
-  )
+    byBand: Map[String, Int]
+)

@@ -40,8 +40,9 @@ identify the final operational minute, inclusive.
 Contest types always encode as their name string, including custom and modified
 definitions. Decoding resolves the name using local configuration; definitions and
 date rules are never embedded in JSON. Nodes must configure matching definitions.
-Scoring remains implemented for WFD and ARRL; other names use the no-op scorer
-and metric value zero.
+Scoring uses the same QSO points for every contest: phone QSOs count as one
+point, and CW and digital QSOs count as two points each. Power, objectives, and
+other contest-specific bonuses do not affect the displayed score.
 
 There is no placeholder contest type. An unconfigured node holds
 `Option[ContestConfig] = None`; every actual `ContestConfig` must use a configured

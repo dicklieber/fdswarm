@@ -15,7 +15,8 @@ class ContestScoreResultsDialog @Inject() (
 
     val dialog = new Dialog[ButtonType]:
       title = "Current Contest Score"
-      headerText = "Live scoring values"
+      headerText = "QSO points by mode"
+      resizable = true
       dialogPane().buttonTypes = Seq(ButtonType.Close)
       dialogPane().content = resultsPane.pane
       initOwner(FdSwarmUi.primaryStage)

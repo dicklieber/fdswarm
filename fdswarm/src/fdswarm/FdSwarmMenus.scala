@@ -30,7 +30,7 @@ import fdswarm.fx.utils.editor.HelpBrowser
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.metric.StatsManager
 import fdswarm.replication.status.ContestConfigMismatchUi
-import fdswarm.scoring.{ContestScoreResultsDialog, ContestScoringConfigDialog}
+import fdswarm.scoring.ContestScoreResultsDialog
 import _root_.io.circe.parser.decode
 import _root_.io.circe.syntax.EncoderOps
 import fdswarm.fx.qso.PostContestPanel
@@ -67,7 +67,6 @@ final class FdSwarmMenus @Inject()(
                                    swarmStatusAdmin: fdswarm.fx.admin.SwarmStatusAdmin,
                                    summaryDialog: SummaryDialog,
                                    contestConfigDialog: ContestConfigDialog,
-                                   contestScoringConfigDialog: ContestScoringConfigDialog,
                                    contestConfigManager: ContestConfigManager,
                                    metricsDialog: MetricsDialog,
                                    portsDialog: PortsDialog,
@@ -115,9 +114,6 @@ final class FdSwarmMenus @Inject()(
         ,
         new MenuItem("Contest"):
           onAction = _ => contestConfigDialog.show()
-        ,
-        new MenuItem("Scoring"):
-          onAction = _ => contestScoringConfigDialog.show()
         ,
         new SeparatorMenuItem(),
         new MenuItem("WSJT-X"):

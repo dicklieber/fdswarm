@@ -17,25 +17,18 @@ class ContestScoreResultsPane @Inject() (
     Locale.US
   )
 
-  private val decimalFormat =
-    val formatter = NumberFormat.getNumberInstance(
-      Locale.US
-    )
-    formatter.setMinimumFractionDigits(
-      2
-    )
-    formatter.setMaximumFractionDigits(
-      2
-    )
-    formatter
-
   private val scoreGrid = new GridPane:
     hgap = 8
     vgap = 2
 
+  private val pointsLabel = new Label("Phone: 1 point per QSO. CW and digital: 2 points per QSO."):
+    wrapText = true
+    maxWidth = Double.MaxValue
+
   private val rootPane = new VBox:
     padding = Insets(12)
-    children = Seq(scoreGrid)
+    spacing = 8
+    children = Seq(pointsLabel, scoreGrid)
 
   def pane: VBox =
     rootPane
@@ -44,13 +37,6 @@ class ContestScoreResultsPane @Inject() (
                          value: Int
                        ): String =
     intFormat.format(
-      value
-    )
-
-  private def formatDouble(
-                            value: Double
-                          ): String =
-    decimalFormat.format(
       value
     )
 
@@ -63,6 +49,7 @@ class ContestScoreResultsPane @Inject() (
       styleClass += "grid-header"
       alignment = Pos.Center
       maxWidth = Double.MaxValue
+      wrapText = true
 
   private def newNameCell(
                            text: String
@@ -72,6 +59,7 @@ class ContestScoreResultsPane @Inject() (
     ):
       styleClass += "grid-row-label"
       maxWidth = Double.MaxValue
+      wrapText = true
 
   private def newValueCell(
                             text: String
@@ -82,6 +70,7 @@ class ContestScoreResultsPane @Inject() (
       styleClass += "grid-value"
       alignment = Pos.CenterRight
       maxWidth = Double.MaxValue
+      wrapText = true
 
   private def addSectionHeaderRow(
                                    row: Int,
@@ -150,20 +139,6 @@ class ContestScoreResultsPane @Inject() (
       name = "Total Score",
       value = formatInt(
         result.totalScore
-      )
-    )
-    row = addNameValueRow(
-      row = row,
-      name = "Raw Points",
-      value = formatInt(
-        result.rawPoints
-      )
-    )
-    row = addNameValueRow(
-      row = row,
-      name = "Multiplier",
-      value = formatDouble(
-        result.multiplier
       )
     )
     row = addNameValueRow(
