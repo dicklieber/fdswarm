@@ -34,8 +34,11 @@ class BandModeTest extends FunSuite:
     assertEquals(BandMode("20M PH"), BandMode("20M", "PH"))
     assertEquals(BandMode("2M FM"), BandMode("2M", "PH"))
     assertEquals(BandMode("1.25M SSB"), BandMode("1.25M", "PH"))
-    assertEquals(BandMode("70cm DI"), BandMode("70cm", "DIGI"))
+    assertEquals(BandMode("70cm DIGI"), BandMode("70cm", "DIGI"))
     assertEquals(BandMode("4m DIGI"), BandMode("4m", "DIGI"))
+
+  test("BandMode falls back to phone for noncanonical mode strings"):
+    assertEquals(BandMode("70cm DI"), BandMode("70cm", "PH"))
 
   test("BandMode apply(String) with extra spaces should parse correctly"):
     assertEquals(BandMode(" 40M CW "), BandMode("40M", "CW"))

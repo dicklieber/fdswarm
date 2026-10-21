@@ -49,14 +49,14 @@ class CabrilloExporterTest extends FunSuite:
     
     assert(result.contains("START-OF-LOG: 3.0"))
     assert(result.contains("CALLSIGN: W1AW"))
-    assert(result.contains("CONTEST: WFDA-CONTEST"))
+    assert(result.contains("CONTEST: WFD\n"))
     assert(result.contains("QSO: 14035 CW 2026-02-25 1400 W1AW         1A  CT  K1ABC        1O  CT "))
     assert(result.contains("END-OF-LOG:"))
 
   test("cabrilloFieldName is used correctly"):
     val resultWfd = exporter.exportQsos(Seq.empty, testConfig)
-    assert(resultWfd.contains("CONTEST: WFDA-CONTEST"))
+    assert(resultWfd.contains("CONTEST: WFD\n"))
     
     val arrlConfig = testConfig.copy(contestType = ContestTypes.configured("ARRL"))
     val resultArrl = exporter.exportQsos(Seq.empty, arrlConfig)
-    assert(resultArrl.contains("CONTEST: ARRL-FIELD-DAY"))
+    assert(resultArrl.contains("CONTEST: ARRL-FD\n"))

@@ -1,4 +1,4 @@
-scoing package fdswarm.scoring
+package fdswarm.scoring
 
 import fdswarm.fx.contest.ContestTypes
 import fdswarm.model.{BandMode, Callsign, Exchange, FdClass, Mode, Qso, QsoMetadata}

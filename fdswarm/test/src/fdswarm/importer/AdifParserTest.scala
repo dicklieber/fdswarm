@@ -67,7 +67,7 @@ class AdifParserTest extends FunSuite:
 
     assertEquals(qso.callsign.value, "XX4XXX")
     assertEquals(qso.bandMode.band.name, "160m")
-    assertEquals(qso.bandMode.mode, Mode.PH)
+    assertEquals(qso.bandMode.mode, Mode.DIGI)
     assertEquals(qso.exchange.fdClass.transmitters, 9)
     assertEquals(qso.exchange.fdClass.classLetter, 'B')
     assertEquals(qso.exchange.sectionCode, "IL")

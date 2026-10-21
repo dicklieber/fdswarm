@@ -24,5 +24,9 @@ import munit.FunSuite
 class BandCatalogTest extends FunSuite:
 
   test("Band enum has all configured bands"):
-    assertEquals(Band.values.length, 19)
+    assertEquals(
+      Band.values.filterNot(_ == Band.OutOfBand).map(_.name).toSeq,
+      Seq("160m", "80m", "60m", "40m", "30m", "20m", "15m", "10m", "6m", "4m",
+        "2m", "1.25m", "70cm", "33cm", "23cm", "13cm", "9cm", "6cm", "3cm")
+    )
 
