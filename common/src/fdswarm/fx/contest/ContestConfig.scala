@@ -23,6 +23,7 @@ import fdswarm.util.HamPhonetic.fromString
 import fdswarm.util.FingerPrint
 import io.circe.Codec
 import java.time.Instant
+add import java.util.Base64
 import scalafx.geometry.Insets
 import scalafx.scene.Node
 import scalafx.scene.control.Label
@@ -63,6 +64,11 @@ case class ContestConfig(
     derives Codec.AsObject, sttp.tapir.Schema:
   require(ourClass.nonEmpty, "ourClass must not be empty")
   require(ourSection.nonEmpty, "ourSection must not be empty")
+
+  /** URL-safe Base64 of epoch nanoseconds as signed, big-endian integer bytes. */
+  lazy val timeStampBase64: String =
+    val nanos = BigInt(timeStamp.getEpochSecond) * 1000000000 + timeStamp.getNano
+    Base64.getUrlEncoder.withoutPadding().encodeToString(nanos.toByteArray)
 
   /** A local save creates a new version. Received versions retain their metadata. */
   def updated(at: Instant = Instant.now()): ContestConfig =
