@@ -24,6 +24,7 @@ class ContestChooser(contestTypes: ContestTypes) extends CustomFieldEditor:
           value
         )
         val tg = new ToggleGroup()
+        var syncingSelection = false
 
         val buttons: Seq[(ContestType, RadioButton)] =
           contestTypes.values.map { contestType =>
@@ -38,19 +39,20 @@ class ContestChooser(contestTypes: ContestTypes) extends CustomFieldEditor:
         def syncSelection(
           contestType: ContestType
         ): Unit =
-          buttons.find(_._1 == contestType) match
-            case Some((_, button)) =>
-              if !button.selected.value then
-                button.selected = true
-            case None =>
-              tg.selectToggle(null)
+          syncingSelection = true
+          try
+            buttons.find(_._1.name == contestType.name) match
+              case Some((_, button)) =>
+                if !button.selected.value then button.selected = true
+              case None => tg.selectToggle(null)
+          finally syncingSelection = false
 
         syncSelection(
           value.value
         )
 
         tg.selectedToggle.onChange { (_, _, newToggle) =>
-          if newToggle != null then
+          if !syncingSelection && newToggle != null then
             buttons.find(_._2.delegate == newToggle).foreach { case (contestType, _) =>
               if value.value != contestType then
                 value.value = contestType

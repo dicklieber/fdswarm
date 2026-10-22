@@ -9,9 +9,9 @@ import io.circe.syntax.EncoderOps
 import jakarta.inject.Inject
 import javafx.stage.Modality
 import scalafx.Includes.*
-import scalafx.beans.property.{ObjectProperty, ReadOnlyObjectProperty}
+import scalafx.beans.property.ObjectProperty
 import scalafx.geometry.Pos
-import scalafx.scene.control.{ButtonType, Label}
+import scalafx.scene.control.{ButtonType, Label, ScrollPane, TitledPane}
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.scene.paint.Color
 
@@ -40,9 +40,20 @@ class ContestConfigDialog @Inject() (
   private val contestTypeProperty: ObjectProperty[ContestType] = configEditor.getProperty("contestType")
   configEditor.setCustomEditor("ourClass", contestCatalog.comboBox(contestTypeProperty))
   configEditor.setCustomEditor("ourSection", new SectionComboBox(sectionsProvider))
+  configEditor.hideField("timeStamp")
+  configEditor.hideField("fingerPrint")
 
-  private val configPane = configEditor.horizontal
-  private val currentContestConfigProperty: ReadOnlyObjectProperty[ContestConfig] = configEditor.currentValueProperty
+  private val typeEditor = new ContestTypeEditor(contestTypeProperty)
+  private val typePane = new TitledPane:
+    text = "Edit contest definition"
+    expanded = false
+    content = typeEditor
+
+  private val configPane = configEditor.vertical
+  private val currentContestConfigProperty = ObjectProperty(configEditor.finish())
+  configEditor.onAnyFieldChange(() =>
+    if configEditor.isValid then currentContestConfigProperty.value = configEditor.finish()
+  )
 
   private val warningIcon = BootstrapIcons.svgPath(
     name = "exclamation-triangle-fill",
@@ -54,6 +65,7 @@ class ContestConfigDialog @Inject() (
     text = "This will change the contest on every node currently in the swarm!"
     textFill = Color.web("#664d03")
     style = "-fx-font-weight: 600;"
+    wrapText = true
 
   private val warningPane = new HBox(spacing = 8):
     alignment = Pos.CenterLeft
@@ -67,29 +79,32 @@ class ContestConfigDialog @Inject() (
   title = "Contest Configuration"
   initModality(Modality.APPLICATION_MODAL)
   resizable = true
-  dialogPane().content = new VBox(spacing = 8):
+  private val contents = new VBox(spacing = 8):
     children ++= Seq(
       configPane,
+      typePane,
       exchangePane.pane(
         currentContestConfigProperty
       ),
       warningPane
     )
+  dialogPane().content = new ScrollPane:
+    content = contents
+    fitToWidth = true
+    prefViewportHeight = 560
 
   dialogPane().buttonTypes = Seq(ButtonType.OK, ButtonType.Cancel)
 
   private val updateButton = dialogPane().lookupButton(ButtonType.OK)
-  configEditor.onAnyFieldChange(
-    () => updateButton.setDisable(!configEditor.isValid)
-  )
-  updateButton.setDisable(!configEditor.isValid)
+  private def updateValidity(): Unit =
+    updateButton.setDisable(!configEditor.isValid || !typeEditor.valid.value)
+  configEditor.onAnyFieldChange(() => updateValidity())
+  typeEditor.valid.onChange { (_, _, _) => updateValidity() }
+  updateValidity()
   updateButton.addEventFilter(
     javafx.event.ActionEvent.ACTION,
     (_: javafx.event.ActionEvent) =>
-      val config = configEditor.finish()
-      contestManager.setConfig(
-        config
-      )
+      val config = contestManager.updateConfig(configEditor.finish())
       val payload = config.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)
       transport.send(
         service = Service.SyncContest,

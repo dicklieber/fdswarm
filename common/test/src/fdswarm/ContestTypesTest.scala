@@ -15,21 +15,21 @@ class ContestTypesTest extends FunSuite:
     assertEquals(types("ARRL").cabrilloContestName, "ARRL-FD")
     assertEquals(types.get("NONE"), None)
     assertEquals(types("WFD"), new ContestTypes()("WFD"))
-    assertEquals(types("WFD").asJson.noSpaces, "\"WFD\"")
-    assertEquals(decode[ContestType]("\"WFD\""), Right(types("WFD")))
+    assertEquals(types("WFD").asJson.hcursor.get[String]("name"), Right("WFD"))
+    assertEquals(decode[ContestType](types("WFD").asJson.noSpaces), Right(types("WFD")))
     assert(decode[ContestType]("\"unknown\"").isLeft)
 
-  test("modified definitions encode only their name"):
+  test("modified definitions retain their complete contents"):
     val types = new ContestTypes()
     val contest = types("WFD").copy(displayName = "Local Contest")
-    assertEquals(contest.asJson.noSpaces, "\"WFD\"")
-    assertEquals(types.codec.decodeJson(contest.asJson), Right(types("WFD")))
-    assertEquals(decode[ContestType](contest.asJson.noSpaces), Right(ContestTypes.configured("WFD")))
+    assertEquals(contest.asJson.hcursor.get[String]("displayName"), Right("Local Contest"))
+    assertEquals(types.codec.decodeJson(contest.asJson), Right(contest))
+    assertEquals(decode[ContestType](contest.asJson.noSpaces), Right(contest))
 
   test("NONE is not a configured contest"):
     assert(decode[ContestType]("\"NONE\"").isLeft)
 
-  test("object definitions are rejected"):
+  test("incomplete object definitions are rejected"):
     assert(decode[ContestType]("""{"name":"WFD"}""").isLeft)
 
   test("unknown contest lookup fails"):

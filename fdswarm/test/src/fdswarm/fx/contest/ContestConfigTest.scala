@@ -70,17 +70,13 @@ class ContestConfigTest extends FunSuite:
   }
 
 
-  test("ContestConfig rejects a contest not in the configured definitions"):
+  test("ContestConfig accepts a complete custom contest definition"):
     val unknown = ContestTypes.configured("WFD").copy(name = "Unknown")
-    intercept[IllegalArgumentException] {
-      ContestConfig(unknown, Callsign("W1AW"), 1, "O", "CT")
-    }
+    assertEquals(ContestConfig(unknown, Callsign("W1AW"), 1, "O", "CT").contestType, unknown)
 
-  test("ContestConfig rejects a modified definition with an existing name"):
+  test("ContestConfig accepts an edited definition with an existing name"):
     val modified = ContestTypes.configured("WFD").copy(cabrilloContestName = "Other")
-    intercept[IllegalArgumentException] {
-      ContestConfig(modified, Callsign("W1AW"), 1, "O", "CT")
-    }
+    assertEquals(ContestConfig(modified, Callsign("W1AW"), 1, "O", "CT").contestType, modified)
 
   test("class descriptions come from contest resources"):
     assertEquals(ContestConfig.classDescription(ContestTypes.configured("WFD"), "2O"), Some("Outdoor"))

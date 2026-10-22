@@ -40,7 +40,7 @@ class CirceSupportTest extends FunSuite:
   test("ContestConfig round trip"):
     val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 1, "O", "CT")
     val json = config.asJson.noSpaces
-    assertEquals(config.asJson.hcursor.get[String]("contestType"), Right(config.contestType.name))
+    assertEquals(config.asJson.hcursor.downField("contestType").get[String]("name"), Right(config.contestType.name))
     val decoded = decode[ContestConfig](json).toOption.get
     // ZonedDateTime might lose some precision or change format slightly, but should be equivalent
     assertEquals(decoded.contestType, config.contestType)
@@ -94,7 +94,7 @@ class CirceSupportTest extends FunSuite:
     val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 1, "O", "CT")
     assertEquals(decode[Option[ContestConfig]](config.asJson.noSpaces), Right(Some(config)))
 
-  test("ContestConfig rejects unknown contest names when decoding"):
+  test("ContestConfig rejects name-only contest types when decoding"):
     val config = ContestConfig(ContestTypes.configured("WFD"), Callsign("W1AW"), 1, "O", "CT")
     val json = config.asJson.mapObject(_.add("contestType", io.circe.Json.fromString("Unknown")))
     assert(decode[ContestConfig](json.noSpaces).isLeft)

@@ -54,9 +54,16 @@ final class ContestConfigManager @Inject() (
     _contestConfig.value = None
     removePersistedConfig()
 
+  /** Adopt an already saved version, preserving the originating node's metadata. */
   def setConfig(newConfig: ContestConfig): Unit =
     _contestConfig.value = Some(newConfig)
     fileHelper.save(file, newConfig)
+
+  /** Save local edits and return the exact version to broadcast to the swarm. */
+  def updateConfig(newConfig: ContestConfig): ContestConfig =
+    val updated = newConfig.updated()
+    setConfig(updated)
+    updated
 
   private def removePersistedConfig(): Unit =
     fileHelper.remove(file)

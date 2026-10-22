@@ -59,7 +59,22 @@ class QsoCirceTest extends FunSuite:
                                |      "hostName" : "testHost",
                                |      "instanceId" : "qO-"
                                |    },
-                               |    "contest" : "WFD",
+                               |    "contest" : {
+                               |      "name" : "WFD",
+                               |      "displayName" : "Winter Field Day",
+                               |      "compute" : {
+                               |        "endUtc" : "21:59",
+                               |        "fullWeekend" : 4,
+                               |        "month" : 1,
+                               |        "setup" : {
+                               |          "daysFromSaturday" : -1,
+                               |          "maxCumulativeDuration" : "12h",
+                               |          "startUtc" : "16:00"
+                               |        },
+                               |        "startUtc" : "16:00"
+                               |      },
+                               |      "cabrilloContestName" : "WFD"
+                               |    },
                                |    "v" : "${BuildInfo.version}"
                                |  },
                                |  "stamp" : "1970-01-01T00:00:00Z",

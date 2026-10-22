@@ -20,7 +20,9 @@ package fdswarm.fx.contest
 
 import fdswarm.model.Callsign
 import fdswarm.util.HamPhonetic.fromString
+import fdswarm.util.FingerPrint
 import io.circe.Codec
+import java.time.Instant
 import scalafx.geometry.Insets
 import scalafx.scene.Node
 import scalafx.scene.control.Label
@@ -36,6 +38,8 @@ trait ContestConfigFields:
   def ourSection: String
   def club: String
   def location: String
+  def timeStamp: Instant
+  def fingerPrint: String
   def toolTip: Node
 
 /**
@@ -52,13 +56,20 @@ case class ContestConfig(
     ourClass: String,
     ourSection: String,
     club: String = "",
-    location: String = "")
+    location: String = "",
+    timeStamp: Instant = Instant.now(),
+    fingerPrint: String = "")
     extends ContestConfigFields
     derives Codec.AsObject, sttp.tapir.Schema:
-  require(ContestTypes.configured.get(contestType.name).contains(contestType),
-    "contestType must match a configured contest definition")
   require(ourClass.nonEmpty, "ourClass must not be empty")
   require(ourSection.nonEmpty, "ourSection must not be empty")
+
+  /** A local save creates a new version. Received versions retain their metadata. */
+  def updated(at: Instant = Instant.now()): ContestConfig =
+    copy(timeStamp = at).withFingerPrint
+
+  def withFingerPrint: ContestConfig =
+    copy(fingerPrint = FingerPrint.fingerprint8(this, "fingerPrint"))
   val exchange: String =
     s"$transmitters$ourClass $ourSection"
 

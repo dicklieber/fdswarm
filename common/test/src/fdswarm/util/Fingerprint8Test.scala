@@ -9,6 +9,11 @@ import java.util.Base64
 class Fingerprint8Test extends FunSuite:
   private case class Entry(name: String, count: Int, ignored: String)
   private case class Pair(first: String, second: String)
+  private case class Nested(entry: Entry)
+  private case class Named(name: String, detail: String):
+    override def toString: String = name
+  private case class Wrapped(value: Named)
+  private case class Items(values: Seq[String])
 
   test("fingerprints retain 8 SHA-256 bytes as unpadded URL-safe Base64"):
     val entry = Entry("W1AW", 3, "local")
@@ -39,3 +44,17 @@ class Fingerprint8Test extends FunSuite:
     val contest = ContestTypes.configured("WFD")
     assertEquals(fingerprint8(contest, "displayName"),
       fingerprint8(contest.copy(displayName = "Local name"), "displayName"))
+
+  test("nested products use fields rather than their overridden toString"):
+    val original = Wrapped(Named("same", "first"))
+    val changed = Wrapped(Named("same", "second"))
+    assertNotEquals(fingerprint8(original, ""), fingerprint8(changed, ""))
+
+  test("omission does not apply to nested fields"):
+    val original = Nested(Entry("W1AW", 3, "local"))
+    val changed = Nested(original.entry.copy(ignored = "remote"))
+    assertNotEquals(fingerprint8(original, "ignored"), fingerprint8(changed, "ignored"))
+
+  test("sequences preserve element boundaries and order"):
+    assertNotEquals(fingerprint8(Items(Seq("a", "b")), ""), fingerprint8(Items(Seq("b", "a")), ""))
+    assertNotEquals(fingerprint8(Items(Seq("ab", "c")), ""), fingerprint8(Items(Seq("a", "bc")), ""))

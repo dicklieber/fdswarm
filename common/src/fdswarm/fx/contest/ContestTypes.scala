@@ -1,7 +1,7 @@
 package fdswarm.fx.contest
 
 import com.typesafe.config.{ConfigFactory, ConfigParseOptions}
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.Codec
 import jakarta.inject.{Inject, Singleton}
 
 /** Contest definitions are loaded from bundled JSON resources. */
@@ -33,10 +33,7 @@ final class ContestTypes @Inject()():
   def apply(name: String): ContestType =
     get(name).getOrElse(throw new IllegalArgumentException(s"Unknown contest: $name"))
 
-  val codec: Codec[ContestType] = Codec.from(
-    Decoder.decodeString.emap(name => get(name).toRight(s"Invalid ContestType: $name")),
-    Encoder.encodeString.contramap(_.name)
-  )
+  val codec: Codec[ContestType] = summon[Codec[ContestType]]
 
 object ContestTypes:
   /** Shared with dependency injection so derived codecs use the actual application definitions. */
