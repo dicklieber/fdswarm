@@ -18,10 +18,12 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import io.circe.{Decoder, Encoder}
 import sttp.tapir.Schema
 
-enum Mode:
+enum Mode derives CanEqual:
   case CW, PH, DIGI
 
   override def toString: String = productPrefix

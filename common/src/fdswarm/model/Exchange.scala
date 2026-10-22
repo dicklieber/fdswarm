@@ -18,6 +18,8 @@
  */
 
 package fdswarm.model
+
+import scala.language.strictEquality
 import io.circe.{Decoder, Encoder}
 import sttp.tapir.Schema
 
@@ -28,7 +30,7 @@ import sttp.tapir.Schema
  * @param stationClass
  */
 case class FdClass(transmitters: Int = 1,
-                   classLetter: Char = 'I'):
+                   classLetter: Char = 'I') derives CanEqual:
   override def toString: String = s"$transmitters${classLetter}"
 
 object FdClass:
@@ -56,7 +58,7 @@ object FdClass:
  * @param sectionCode
  */
 case class Exchange(fdClass: FdClass = FdClass(),
-                    sectionCode: String = "IL"):
+                    sectionCode: String = "IL") derives CanEqual:
 
   /**
    *

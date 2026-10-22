@@ -17,9 +17,11 @@
  */
 
 package fdswarm.model
+
+import scala.language.strictEquality
 import io.circe.Codec
 
 case class StationClass(value:Char, label:String)
-  extends Choice[Char] derives Codec.AsObject
+  extends Choice[Char] derives CanEqual, Codec.AsObject
 
 

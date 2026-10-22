@@ -17,6 +17,8 @@
 
 package fdswarm.util
 
+import scala.language.strictEquality
+
 import fdswarm.Ports
 import fdswarm.util.Ids.Id
 import io.circe.*
@@ -47,7 +49,7 @@ import java.net.InetAddress
   *   - `compare`: Compares two `NodeIdentity` instances first by host, then by port.
   */
 case class NodeIdentity( hostIp: String, port: Int, hostName: String, instanceId: Id)
-    extends Ordered[NodeIdentity] derives Codec.AsObject, Schema:
+    extends Ordered[NodeIdentity] derives CanEqual, Codec.AsObject, Schema:
 
   lazy val shortHost: String = s"$hostName:$port"
     /**

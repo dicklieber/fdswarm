@@ -18,6 +18,8 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import io.circe.{Decoder, Encoder}
 
 /**
@@ -25,7 +27,7 @@ import io.circe.{Decoder, Encoder}
  *
  * @param value the actual callsign.
  */
-final class Callsign private(val value: String) extends AnyRef with Ordered[Callsign]:
+final class Callsign private(val value: String) extends AnyRef with Ordered[Callsign] derives CanEqual:
   def startsWith(startofCallsign: String): Boolean = value.startsWith(startofCallsign)
 
   override def toString: String = value

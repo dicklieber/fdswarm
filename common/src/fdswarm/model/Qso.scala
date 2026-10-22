@@ -18,6 +18,8 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import fdswarm.logging.LogFields
 import fdswarm.util.Ids
 import fdswarm.util.Ids.Id
@@ -49,7 +51,7 @@ case class Qso(
     stamp: Instant = Instant.now(),
     uuid: Id = Ids.generateId())
 
-    extends  LogFields derives Codec.AsObject, sttp.tapir.Schema:
+    extends  LogFields derives CanEqual, Codec.AsObject, sttp.tapir.Schema:
 
   lazy val rejectedMsg: String = s"Rejected duplicate Qso: $callsign $bandMode"
   val logFields: Seq[(String, Any)] =

@@ -18,13 +18,15 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import io.circe.{Decoder, Encoder}
 import sttp.tapir.Schema
 
 /**
  * Allows storing band and mode in a compact why in a [[Qso]]
  */
-case class BandMode private[fdswarm] (band: Band, mode: Mode):
+case class BandMode private[fdswarm] (band: Band, mode: Mode) derives CanEqual:
   def cabMode: Mode =
     mode match
       case Mode.CW => Mode.CW

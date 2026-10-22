@@ -18,6 +18,8 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import io.circe.Codec
 
 import java.time.Instant
@@ -26,4 +28,4 @@ case class  BandModeOperator(
     operator: Callsign,
     bandMode: BandMode,
     stamp: Instant = Instant.now()
-)derives Codec.AsObject, sttp.tapir.Schema
+)derives CanEqual, Codec.AsObject, sttp.tapir.Schema

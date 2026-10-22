@@ -19,6 +19,8 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import com.organization.BuildInfo
 import fdswarm.fx.contest.ContestType
 import fdswarm.fx.station.StationConfig
@@ -37,7 +39,7 @@ import io.circe.Codec
 case class QsoMetadata(station: StationConfig,
                        node: NodeIdentity,
                        contest: ContestType,
-                       v: String = BuildInfo.version) derives Codec.AsObject, sttp.tapir.Schema:
+                       v: String = BuildInfo.version) derives CanEqual, Codec.AsObject, sttp.tapir.Schema:
 
   def withOperator(operator: Callsign): QsoMetadata =
     copy(station = station.copy(operator = operator))

@@ -18,16 +18,18 @@
 
 package fdswarm.model
 
+import scala.language.strictEquality
+
 import io.circe.{Decoder, Encoder}
 import sttp.tapir.Schema
 
-enum BandClass:
+enum BandClass derives CanEqual:
   case LF, VLF, MF, HF, VHF, UHF, SHF, EHF
 
-enum BandRegion:
+enum BandRegion derives CanEqual:
   case ALL, R1, R2, R3
 
-enum Band(val name: String, val startFrequencyHz: Long, val endFrequencyHz: Long, val bandClass: BandClass, val region: BandRegion):
+enum Band(val name: String, val startFrequencyHz: Long, val endFrequencyHz: Long, val bandClass: BandClass, val region: BandRegion) derives CanEqual:
   case Band_160m extends Band("160m", 1800000L, 2000000L, BandClass.MF, BandRegion.ALL)
   case Band_80m extends Band("80m", 3500000L, 4000000L, BandClass.HF, BandRegion.ALL)
   case Band_60m extends Band("60m", 5250000L, 5450000L, BandClass.HF, BandRegion.ALL)
