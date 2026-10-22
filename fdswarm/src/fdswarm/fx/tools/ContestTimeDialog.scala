@@ -42,14 +42,13 @@ class ContestTimeDialog @Inject()(contestManager: ContestConfigManager,
          initOwner(ownerWindow)
        }.showAndWait()
        return
-    val dates = contestManager.current.contestType.dates()
     stage match {
       case Some(s) => s.requestFocus()
       case None =>
         val newStage = new Stage {
           title = "Contest Time"
           initOwner(ownerWindow)
-          resizable = false
+          resizable = true
         }
 
         val useMockTimeCheckBox = new CheckBox("Use Mock time") {
@@ -70,18 +69,6 @@ class ContestTimeDialog @Inject()(contestManager: ContestConfigManager,
         val mockTimeBox = new HBox(5, mockTimeEditor)
         mockTimeBox.disable <== useMockTimeCheckBox.selected.not()
 
-        // --- Contest Times ---
-        val startEditor = new ZonedDateTimeEditor(dates.startUtc, "Contest Start")
-        val endEditor = new ZonedDateTimeEditor(dates.endUtc, "Contest End")
-
-        def updateContestTimes(): Unit = {
-//          contestManager.contestType.dates().value = ContestTimes(startEditor.value, endEditor.value)
-          logger.error("ContestTimes not yet implemented, don't think its needed.")
-        }
-
-        startEditor.setOnAction(updateContestTimes())
-        endEditor.setOnAction(updateContestTimes())
-
         val root = new GridPane {
           hgap = 10
           vgap = 10
@@ -90,12 +77,10 @@ class ContestTimeDialog @Inject()(contestManager: ContestConfigManager,
           add(new Label("Mock Time:") { minWidth = Region.USE_PREF_SIZE }, 0, 1)
           add(mockTimeBox, 1, 1)
 
-          add(new Separator(), 0, 2, 2, 1)
-
-          add(new Label("Contest Start:") { minWidth = Region.USE_PREF_SIZE }, 0, 3)
-          add(startEditor, 1, 3)
-          add(new Label("Contest End:") { minWidth = Region.USE_PREF_SIZE }, 0, 4)
-          add(endEditor, 1, 4)
+          add(new Label("Set the optional end time in Contest Configuration.") {
+            wrapText = true
+            minHeight = Region.USE_PREF_SIZE
+          }, 0, 2, 2, 1)
         }
 
         newStage.scene = new Scene(root)

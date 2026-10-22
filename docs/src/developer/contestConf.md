@@ -74,10 +74,18 @@ The swarm display resolves full configuration details from an in-memory cache.
 An uncached older version displays `Details pending` until its details are known;
 only newer versions trigger automatic HTTP requests.
 
-The configuration dialog has an expandable **Edit contest definition** section
-for names, UTC date rules, and the optional setup period. Contest names remain
-ARRL or WFD because class choices are selected by that resource name. Timestamp
-and fingerprint fields are managed automatically and are not editable.
+The configuration dialog selects ARRL or WFD and edits station settings; contest
+metadata and date rules are not exposed for editing. An optional `endTime`
+(`Option[LocalDateTime]`) controls only the contest-end display. Users can enable
+the countdown and select a local date and time using a GemsFX 24-hour `HH:mm`
+picker with popup selection, or disable it to save
+`None`. The countdown is green before the end and red at or after it. With no end
+time there is no countdown; resource date rules do not supply a fallback.
+The end time is saved and synchronized with the complete configuration. Nodes
+are assumed to use the same local time zone. Timestamp and fingerprint fields
+are managed automatically and are not editable. On loading a saved configuration,
+its fingerprint is recomputed to account for schema changes without changing its
+timestamp. The separate contest-start state is unchanged.
 Scoring uses the same QSO points for every contest: phone QSOs count as one
 point, and CW and digital QSOs count as two points each. Power, objectives, and
 other contest-specific bonuses do not affect the displayed score.

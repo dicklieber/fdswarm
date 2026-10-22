@@ -13,3 +13,4 @@ object Versions:
   val scoverage = "2.1.1"
   val munit = "1.0.0"
   val scalaFx = "20.0.0-R31"
+  val gemsFx = "4.5.0"

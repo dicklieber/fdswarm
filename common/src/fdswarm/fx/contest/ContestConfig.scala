@@ -22,7 +22,7 @@ import fdswarm.model.Callsign
 import fdswarm.util.HamPhonetic.fromString
 import fdswarm.util.FingerPrint
 import io.circe.Codec
-import java.time.Instant
+import java.time.{Instant, LocalDateTime}
 import java.util.Base64
 import scalafx.geometry.Insets
 import scalafx.scene.Node
@@ -41,6 +41,7 @@ trait ContestConfigFields:
   def location: String
   def timeStamp: Instant
   def fingerPrint: String
+  def endTime: Option[LocalDateTime]
   def toolTip: Node
 
 /**
@@ -59,7 +60,8 @@ case class ContestConfig(
     club: String = "",
     location: String = "",
     timeStamp: Instant = Instant.now(),
-    fingerPrint: String = "")
+    fingerPrint: String = "",
+    endTime: Option[LocalDateTime] = None)
     extends ContestConfigFields
     derives Codec.AsObject, sttp.tapir.Schema:
   require(ourClass.nonEmpty, "ourClass must not be empty")

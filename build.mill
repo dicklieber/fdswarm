@@ -120,6 +120,16 @@ object fdswarm
     mvn"org.http4s:http4s-dsl_3:$http4sV",
     mvn"org.http4s:http4s-circe_3:$http4sV",
     mvn"org.typelevel:cats-effect_3:3.5.7",
+    // JavaFX comes from the Liberica Full JDK, as it does for ScalaFX.
+    mvn"com.dlsc.gemsfx:gemsfx:${Versions.gemsFx}".exclude(
+      "org.openjfx" -> "javafx-base",
+      "org.openjfx" -> "javafx-controls",
+      "org.openjfx" -> "javafx-fxml",
+      "org.openjfx" -> "javafx-graphics",
+      "org.openjfx" -> "javafx-media",
+      "org.openjfx" -> "javafx-swing",
+      "org.openjfx" -> "javafx-web"
+    ),
     scalaFxDep,
     mvn"org.scala-lang.modules::scala-xml:2.3.0",
     mvn"org.typelevel::otel4s-oteljava:0.16.0-M1",

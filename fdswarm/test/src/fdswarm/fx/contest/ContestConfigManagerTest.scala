@@ -5,6 +5,7 @@ import fdswarm.replication.NodeStatusDispatcher
 import fdswarm.support.TempDirFileHelperSuite
 import fdswarm.util.FilenameStamp
 import org.mockito.Mockito.mock
+import io.circe.syntax.*
 
 import java.time.Instant
 
@@ -50,3 +51,13 @@ class ContestConfigManagerTest extends TempDirFileHelperSuite:
     assert(service.adoptIfNewer(received))
     assert(!service.adoptIfNewer(received))
     assertEquals(manager.current, received)
+
+  test("loading a configuration predating endTime refreshes its fingerprint without changing its timestamp"):
+    val previous = config.updated(Instant.EPOCH)
+    val legacyJson = previous.asJson.mapObject(_.remove("endTime")
+      .add("fingerPrint", io.circe.Json.fromString("previous-schema")))
+    fileHelper.save("contest.json", legacyJson)
+    val loaded = manager.current
+    assertEquals(loaded.timeStamp, previous.timeStamp)
+    assertEquals(loaded.endTime, None)
+    assertEquals(loaded.withFingerPrint, loaded)

@@ -10,7 +10,7 @@ import javafx.stage.Modality
 import scalafx.Includes.*
 import scalafx.beans.property.ObjectProperty
 import scalafx.geometry.Pos
-import scalafx.scene.control.{ButtonType, Label, ScrollPane, TitledPane}
+import scalafx.scene.control.{ButtonType, Label, ScrollPane}
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.scene.paint.Color
 
@@ -41,11 +41,8 @@ class ContestConfigDialog @Inject() (
   configEditor.hideField("timeStamp")
   configEditor.hideField("fingerPrint")
 
-  private val typeEditor = new ContestTypeEditor(contestTypeProperty)
-  private val typePane = new TitledPane:
-    text = "Edit contest definition"
-    expanded = false
-    content = typeEditor
+  private val endTimeEditor = new OptionalEndTimeEditor
+  configEditor.setCustomEditor("endTime", endTimeEditor)
 
   private val configPane = configEditor.vertical
   private val currentContestConfigProperty = ObjectProperty(configEditor.finish())
@@ -80,7 +77,6 @@ class ContestConfigDialog @Inject() (
   private val contents = new VBox(spacing = 8):
     children ++= Seq(
       configPane,
-      typePane,
       exchangePane.pane(
         currentContestConfigProperty
       ),
@@ -95,9 +91,9 @@ class ContestConfigDialog @Inject() (
 
   private val updateButton = dialogPane().lookupButton(ButtonType.OK)
   private def updateValidity(): Unit =
-    updateButton.setDisable(!configEditor.isValid || !typeEditor.valid.value)
+    updateButton.setDisable(!configEditor.isValid)
   configEditor.onAnyFieldChange(() => updateValidity())
-  typeEditor.valid.onChange { (_, _, _) => updateValidity() }
+  endTimeEditor.valid.onChange { (_, _, _) => updateValidity() }
   updateValidity()
   updateButton.addEventFilter(
     javafx.event.ActionEvent.ACTION,

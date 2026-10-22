@@ -7,7 +7,7 @@ import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.FunSuite
 
-import java.time.Instant
+import java.time.{Instant, LocalDateTime}
 
 class ContestConfigVersionTest extends FunSuite:
   private val stamp = Instant.parse("2026-10-22T12:00:00Z")
@@ -51,6 +51,7 @@ class ContestConfigVersionTest extends FunSuite:
       saved.copy(ourCallsign = Callsign("K9DRS")),
       saved.copy(transmitters = 2), saved.copy(ourClass = "I"), saved.copy(ourSection = "IL"),
       saved.copy(club = "Club"), saved.copy(location = "Site"),
+      saved.copy(endTime = Some(LocalDateTime.parse("2027-01-24T16:00:00"))),
       saved.copy(contestType = contest.copy(name = "CUSTOM")),
       saved.copy(contestType = contest.copy(displayName = "Changed")),
       saved.copy(contestType = contest.copy(cabrilloContestName = "Changed")),
@@ -72,3 +73,13 @@ class ContestConfigVersionTest extends FunSuite:
   test("malformed date rules are rejected when decoding"):
     val json = config.contestType.asJson.mapObject(_.add("compute", io.circe.Json.obj()))
     assert(decode[ContestType](json.noSpaces).isLeft)
+
+  test("optional local end time round trips, and missing end time means no countdown"):
+    val noEnd = config.updated(stamp)
+    assertEquals(noEnd.endTime, None)
+    val legacyJson = noEnd.asJson.mapObject(_.remove("endTime"))
+    assertEquals(decode[ContestConfig](legacyJson.noSpaces), Right(noEnd))
+    val saved = config.copy(endTime = Some(LocalDateTime.parse("2027-01-24T16:30:00"))).updated(stamp)
+    assertEquals(decode[ContestConfig](saved.asJson.noSpaces), Right(saved))
+    assertEquals(saved.withFingerPrint, saved)
+    assertNotEquals(saved.fingerPrint, noEnd.fingerPrint)

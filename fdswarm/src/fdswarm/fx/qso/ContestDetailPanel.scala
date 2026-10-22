@@ -18,9 +18,8 @@
 
 package fdswarm.fx.qso
 
-import fdswarm.ContestDates
 import fdswarm.fx.GridColumns
-import fdswarm.fx.contest.{ContestConfigManager, ContestType}
+import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.discovery.ContestConfigDialog
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.util.DurationFormat
@@ -31,8 +30,7 @@ import scalafx.scene.control.{Button, Label}
 import scalafx.scene.layout.VBox
 import scalafx.util.Duration
 
-import java.time.{ZonedDateTime, Duration as JDuration}
-import scala.compiletime.uninitialized
+import java.time.{LocalDateTime, ZonedDateTime, Duration as JDuration}
 
 @Singleton
 class ContestDetailPanel @Inject()(
@@ -48,8 +46,6 @@ class ContestDetailPanel @Inject()(
 
   private val _node = new VBox()
 
-  private var contestType: ContestType = uninitialized
-  private var contestDates: ContestDates = uninitialized
   private val setupContestLabel = new Label:
     text = "Contest has not been setup."
     styleClass += "contest-timer"
@@ -77,25 +73,25 @@ class ContestDetailPanel @Inject()(
       )
       timerTimeline.stop()
     else
-      contestType = config.get.contestType
-      contestDates = contestType.dates()
+      val current = config.get
       updateContestTimeDisplay()
       _node.children = Seq(
         GridColumns.fieldSet(
-          s"${contestType.displayName} ${contestDates.startUtc.getYear}",
+          current.contestType.displayName,
           contestTimerLabel
         )
       )
-      timerTimeline.play()
+      if current.endTime.isDefined then timerTimeline.play()
+      else timerTimeline.stop()
 
   contestManager.contestConfigProperty.onChange((_, _, _) => refreshDisplay())
 
   private val contestTimerLabel = new Label:
     styleClass += "contest-timer"
-    minWidth = scalafx.scene.layout.Region.USE_PREF_SIZE
-
-  enum TimeMode:
-    case Before, During, After
+    wrapText = true
+    minWidth = 0
+    maxWidth = Double.MaxValue
+    minHeight = scalafx.scene.layout.Region.USE_PREF_SIZE
 
   private var useMockTime: Boolean = false
   private var mockTime: ZonedDateTime = ZonedDateTime.now()
@@ -105,32 +101,29 @@ class ContestDetailPanel @Inject()(
     mockTime = time
     updateContestTimeDisplay()
 
-  /**
-   * show contest time stuff.
-   *
-   * @param contestDates
-   */
   private def updateContestTimeDisplay(): Unit =
-    if !contestManager.hasConfiguration.value then return
-    val now = if useMockTime then mockTime else ZonedDateTime.now()
-
-    val mode =
-      if now.isBefore(contestDates.startUtc) then TimeMode.Before
-      else if now.isAfter(contestDates.endUtc) then TimeMode.After
-      else TimeMode.During
-
-    val (msg, style) = mode match
-      case TimeMode.Before =>
-        (s"${contestType.displayName} ${contestDates.startUtc.getYear} starts in ${DurationFormat(JDuration.between(now, contestDates.startUtc))}", "contest-before")
-      case TimeMode.After =>
-        (s"${contestType.displayName} ${contestDates.startUtc.getYear} ended ${DurationFormat(JDuration.between(contestDates.endUtc, now))} ago.", "contest-after")
-      case TimeMode.During =>
-        (s"${contestType.displayName} ${contestDates.startUtc.getYear} ends in ${DurationFormat(JDuration.between(now, contestDates.endUtc))}", "contest-during")
-
-    contestTimerLabel.text = msg
+    val message = contestManager.contestConfigProperty.value.flatMap { config =>
+      val now = if useMockTime then mockTime.toLocalDateTime else LocalDateTime.now()
+      ContestDetailPanel.endMessage(config.contestType.displayName, config.endTime, now)
+    }
+    contestTimerLabel.visible = message.isDefined
+    contestTimerLabel.managed = message.isDefined
     contestTimerLabel.styleClass.removeAll("contest-before", "contest-during", "contest-after")
-    contestTimerLabel.styleClass.add(style)
+    contestTimerLabel.text = message.map(_._1).getOrElse("")
+    message.foreach { (_, style) => contestTimerLabel.styleClass.add(style) }
 
   refreshDisplay()
 
   def node: Node = _node
+
+object ContestDetailPanel:
+  private[qso] def endMessage(
+      contestName: String,
+      endTime: Option[LocalDateTime],
+      now: LocalDateTime): Option[(String, String)] =
+    endTime.map { end =>
+      if now.isBefore(end) then
+        (s"$contestName ends in ${DurationFormat(JDuration.between(now, end))}", "contest-during")
+      else
+        (s"$contestName ended ${DurationFormat(JDuration.between(end, now))} ago.", "contest-after")
+    }

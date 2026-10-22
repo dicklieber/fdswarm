@@ -89,4 +89,5 @@ final class ContestConfigManager @Inject() (
 
   private def load(): Option[ContestConfig] =
     fileHelper.loadOrDefault[Option[ContestConfig]](file)(None)
-      .map(config => if config.fingerPrint.isEmpty then config.withFingerPrint else config)
+      // Recompute when the persisted schema gains a field, even if it defaults to None.
+      .map(_.withFingerPrint)
