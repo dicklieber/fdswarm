@@ -40,7 +40,7 @@ class StatusMessageTest extends FunSuite:
 //    val hp = NodeIdentity("localhost", 8080, name =)
     val sm = StatusMessage(storeStats = StoreStats(),
       bandNodeOperator = dummyBno,
-      contestConfig = Some(dummyContestConfig),
+      contestConfig = Some(fdswarm.fx.contest.ContestConfigVersion(dummyContestConfig)),
       contestStart = Instant.parse("2026-03-16T20:11:04Z"),
       metrics = Seq.empty)
     
@@ -54,7 +54,7 @@ class StatusMessageTest extends FunSuite:
   test("fromPacket should deserialize from gzipped packet") {
     val sm = StatusMessage(storeStats = StoreStats(),
       bandNodeOperator = dummyBno,
-      contestConfig = Some(dummyContestConfig),
+      contestConfig = Some(fdswarm.fx.contest.ContestConfigVersion(dummyContestConfig)),
       contestStart = Instant.parse("2026-03-16T20:11:04Z"),
       metrics = Seq.empty)
     
@@ -79,4 +79,13 @@ class StatusMessageTest extends FunSuite:
       metrics = Seq.empty
     )
     assertEquals(status.asJson.hcursor.downField("contestConfig").focus, Some(io.circe.Json.Null))
+    assertEquals(StatusMessage(status.toPacket), status)
+
+  test("status packets advertise versions without the full contest definition"):
+    val config = dummyContestConfig.updated(Instant.parse("2026-10-22T12:00:00Z"))
+    val status = StatusMessage(StoreStats(), dummyBno,
+      Some(fdswarm.fx.contest.ContestConfigVersion(config)), Instant.EPOCH, Seq.empty)
+    val advertised = status.asJson.hcursor.downField("contestConfig").focus.get
+    assertEquals(advertised.asObject.get.keys.toSet, Set("fingerPrint", "timeStamp"))
+    assert(!status.asJson.noSpaces.contains("compute"))
     assertEquals(StatusMessage(status.toPacket), status)

@@ -21,6 +21,9 @@ final class ContestConfigManager @Inject() (
   lazy val hasConfiguration: ReadOnlyBooleanProperty = _hasConfiguration.readOnlyProperty
   private val file = "contest.json"
   private val _contestConfig: ObjectProperty[Option[ContestConfig]] = ObjectProperty(load())
+  @volatile private var savedConfig: Option[ContestConfig] = _contestConfig.value
+  /** Immutable snapshot for HTTP and broadcast threads. */
+  def snapshot: Option[ContestConfig] = savedConfig
   private val _hasConfiguration =
     new ReadOnlyBooleanWrapper(this, "hasConfiguration", _contestConfig.value.isDefined)
 
@@ -38,7 +41,10 @@ final class ContestConfigManager @Inject() (
 
   def ourClass: String = current.ourClass
 
-  _contestConfig.onChange((_, _, config) => _hasConfiguration.value = config.isDefined)
+  _contestConfig.onChange { (_, _, config) =>
+    savedConfig = config
+    _hasConfiguration.value = config.isDefined
+  }
 
   nodeStatusDispatcher
     .addListener(service = Service.SyncContest)((_, newConfig) =>
@@ -65,12 +71,22 @@ final class ContestConfigManager @Inject() (
     setConfig(updated)
     updated
 
+  /** Called on the FX thread, including a final check after an HTTP response. */
+  def adoptIfNewer(newConfig: ContestConfig): Boolean =
+    val version = ContestConfigVersion(newConfig)
+    if newConfig.withFingerPrint.fingerPrint == newConfig.fingerPrint &&
+        version.isNewerThan(snapshot.map(ContestConfigVersion.apply)) then
+      setConfig(newConfig)
+      true
+    else false
+
   private def removePersistedConfig(): Unit =
     fileHelper.remove(file)
 
   private def handleContestConfigUpdate(newConfig: ContestConfig): Unit =
     logger.debug("Received Contest", "ContestConfig" -> newConfig)
-    Platform.runLater { setConfig(newConfig) }
+    Platform.runLater { adoptIfNewer(newConfig) }
 
   private def load(): Option[ContestConfig] =
     fileHelper.loadOrDefault[Option[ContestConfig]](file)(None)
+      .map(config => if config.fingerPrint.isEmpty then config.withFingerPrint else config)

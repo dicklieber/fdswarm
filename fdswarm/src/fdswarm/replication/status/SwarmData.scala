@@ -19,6 +19,7 @@
 package fdswarm.replication.status
 
 import fdswarm.{FdSwarmUi, Ports}
+import fdswarm.fx.contest.{ContestConfig, ContestConfigVersion}
 import fdswarm.fx.station.StationEditor
 import fdswarm.fx.{GridBuilder}
 import fdswarm.logging.LazyStructuredLogging
@@ -53,6 +54,15 @@ class SwarmData @Inject() (
   type CellNodeListener = (NodeStatus, String, Node) => Unit
   val knownNodeIdentity: ObservableBuffer[NodeIdentity] = ObservableBuffer.empty[NodeIdentity]
   val nodeMap: TrieMap[NodeIdentity, NodeStatus] = TrieMap.empty[NodeIdentity, NodeStatus]
+  private val contestConfigs = TrieMap.empty[ContestConfigVersion, ContestConfig]
+
+  /** Resolve UI details without putting the complete definition in UDP packets. */
+  def rememberContestConfig(config: ContestConfig): Unit =
+    val version = ContestConfigVersion(config)
+    contestConfigs.put(version, config)
+    nodeMap.values.toSeq.filter(_.statusMessage.contestConfig.contains(version)).foreach { status =>
+      update(status.copy(contestConfig = Some(config)))
+    }
   val size: IntegerProperty = new IntegerProperty(
     this,
     "size",
@@ -171,7 +181,8 @@ class SwarmData @Inject() (
     val changed = stylesByNodeAndField != contestConfigFieldStyleByNodeAndField
     contestConfigFieldStyleByNodeAndField = stylesByNodeAndField
     updateOnFxThread {
-      contestConfigMismatchProperty.value = stylesByNodeAndField.nonEmpty
+      contestConfigMismatchProperty.value = stylesByNodeAndField.nonEmpty ||
+        allNodeStatuses.flatMap(_.statusMessage.contestConfig).distinct.size > 1
       if changed then
         refreshContestConfigFieldCellStyles()
     }
@@ -208,8 +219,14 @@ class SwarmData @Inject() (
       .foreach(key => renderedCellNodes.remove(key))
 
   def update(nodeStatus: NodeStatus): Unit =
+    nodeStatus.contestConfig.foreach { config =>
+      contestConfigs.put(ContestConfigVersion(config), config)
+    }
+    val resolved = nodeStatus.copy(contestConfig = nodeStatus.contestConfig.orElse(
+      nodeStatus.statusMessage.contestConfig.flatMap(contestConfigs.get)
+    ))
     val normalizedNodeStatus = SwarmData.normalizeLocalNodeStatus(
-      nodeStatus = nodeStatus,
+      nodeStatus = resolved,
       localNodeIdentity = NodeIdentityManager.nodeIdentity
     )
     val nodeIdentity = normalizedNodeStatus.nodeIdentity
@@ -443,7 +460,8 @@ class SwarmData @Inject() (
 
   private def staticFieldValues(nodeStatus: NodeStatus): Map[NodeDataField, String] =
     val bno = nodeStatus.statusMessage.bandNodeOperator
-    val contest = nodeStatus.statusMessage.contestConfig
+    val contest = nodeStatus.contestConfig
+    val missingDetails = if nodeStatus.statusMessage.contestConfig.isDefined then "Details pending" else ""
     Map(
       NodeDataField.HostIp -> nodeStatus.nodeIdentity.hostIp,
       NodeDataField.Port -> nodeStatus.nodeIdentity.port.toString,
@@ -459,7 +477,7 @@ class SwarmData @Inject() (
       NodeDataField.Mode -> bno.bandMode.mode.toString,
       NodeDataField.BandMode -> bno.bandMode.toString,
       NodeDataField.BandModeStamp -> stampFormatter.format(bno.stamp),
-      NodeDataField.ContestType -> contest.map(_.contestType.toString).getOrElse(""),
+      NodeDataField.ContestType -> contest.map(_.contestType.toString).getOrElse(missingDetails),
       NodeDataField.ContestCallsign -> contest.map(_.ourCallsign.toString).getOrElse(""),
       NodeDataField.ContestTransmitters -> contest.map(_.transmitters.toString).getOrElse(""),
       NodeDataField.ContestClass -> contest.map(_.ourClass).getOrElse(""),
@@ -565,17 +583,17 @@ object SwarmData:
       case NodeDataField.Hash =>
         Some(nodeStatus.statusMessage.storeStats.hash)
       case NodeDataField.ContestType =>
-        nodeStatus.statusMessage.contestConfig.map(_.contestType.toString)
+        nodeStatus.contestConfig.map(_.contestType.toString)
       case NodeDataField.ContestCallsign =>
-        nodeStatus.statusMessage.contestConfig.map(_.ourCallsign.toString)
+        nodeStatus.contestConfig.map(_.ourCallsign.toString)
       case NodeDataField.ContestTransmitters =>
-        nodeStatus.statusMessage.contestConfig.map(_.transmitters.toString)
+        nodeStatus.contestConfig.map(_.transmitters.toString)
       case NodeDataField.ContestClass =>
-        nodeStatus.statusMessage.contestConfig.map(_.ourClass)
+        nodeStatus.contestConfig.map(_.ourClass)
       case NodeDataField.ContestSection =>
-        nodeStatus.statusMessage.contestConfig.map(_.ourSection)
+        nodeStatus.contestConfig.map(_.ourSection)
       case NodeDataField.Exchange =>
-        nodeStatus.statusMessage.contestConfig.map(_.exchange)
+        nodeStatus.contestConfig.map(_.exchange)
       case NodeDataField.ContestStart =>
         Some(nodeStatus.statusMessage.contestStart.toString)
       case _ =>

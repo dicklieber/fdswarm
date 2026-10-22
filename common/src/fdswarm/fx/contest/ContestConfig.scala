@@ -23,7 +23,7 @@ import fdswarm.util.HamPhonetic.fromString
 import fdswarm.util.FingerPrint
 import io.circe.Codec
 import java.time.Instant
-add import java.util.Base64
+import java.util.Base64
 import scalafx.geometry.Insets
 import scalafx.scene.Node
 import scalafx.scene.control.Label

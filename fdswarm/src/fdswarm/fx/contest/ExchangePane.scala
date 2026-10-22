@@ -24,11 +24,11 @@ import scalafx.Includes.*
 import scalafx.beans.binding.Bindings
 import scalafx.beans.property.{BooleanProperty, ReadOnlyObjectProperty}
 import scalafx.scene.control.{CheckBox, Label}
-import scalafx.scene.layout.HBox
+import scalafx.scene.layout.{Region, VBox}
 
 final class ExchangePane @Inject()(val userConfig: UserConfig) :
 
-  def pane(contestConfig: ReadOnlyObjectProperty[ContestConfig]): HBox = {
+  def pane(contestConfig: ReadOnlyObjectProperty[ContestConfig]): VBox = {
     val phoneticProp: BooleanProperty = userConfig.getProperty[BooleanProperty]("usePhonetic")
 
     val weAreText = Bindings.createStringBinding(
@@ -37,14 +37,21 @@ final class ExchangePane @Inject()(val userConfig: UserConfig) :
       phoneticProp.delegate
     )
 
-    new HBox(spacing = 8) {
+    new VBox(spacing = 8) {
+      fillWidth = true
+      maxWidth = Double.MaxValue
       children ++= Seq(
         new CheckBox {
           text = "Use Phonetic"
+          minWidth = Region.USE_PREF_SIZE
           selected <==> phoneticProp
         },
         new Label {
           text <== weAreText
+          wrapText = true
+          minWidth = 0
+          maxWidth = Double.MaxValue
+          minHeight = Region.USE_PREF_SIZE
         }
       )
     }

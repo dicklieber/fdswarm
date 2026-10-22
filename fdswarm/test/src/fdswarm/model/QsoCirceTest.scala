@@ -59,22 +59,7 @@ class QsoCirceTest extends FunSuite:
                                |      "hostName" : "testHost",
                                |      "instanceId" : "qO-"
                                |    },
-                               |    "contest" : {
-                               |      "name" : "WFD",
-                               |      "displayName" : "Winter Field Day",
-                               |      "compute" : {
-                               |        "endUtc" : "21:59",
-                               |        "fullWeekend" : 4,
-                               |        "month" : 1,
-                               |        "setup" : {
-                               |          "daysFromSaturday" : -1,
-                               |          "maxCumulativeDuration" : "12h",
-                               |          "startUtc" : "16:00"
-                               |        },
-                               |        "startUtc" : "16:00"
-                               |      },
-                               |      "cabrilloContestName" : "WFD"
-                               |    },
+                               |    "contest" : "WFD",
                                |    "v" : "${BuildInfo.version}"
                                |  },
                                |  "stamp" : "1970-01-01T00:00:00Z",
@@ -103,5 +88,14 @@ class QsoCirceTest extends FunSuite:
     val station = StationConfig(operator = Callsign("N9VTB"), rig = "IC-7300", antenna = "Dipole")
     val metadata = fdswarm.model.QsoMetadata.testQsoMetadata
     val json = metadata.asJson.noSpaces
+    assertEquals(metadata.asJson.hcursor.get[String]("contest"), Right("WFD"))
     val decoded = decode[QsoMetadata](json).getOrElse(fail("failed to decode"))
     assertEquals(decoded, metadata)
+
+  test("import metadata stores only the contest name and supports custom names"):
+    val contest = fdswarm.fx.contest.ContestTypes.configured("WFD")
+      .copy(name = "CUSTOM", displayName = "Local contest")
+    val metadata = QsoMetadata.adifImportQsoMetadata(contest)
+    assertEquals(metadata.contest, "CUSTOM")
+    assertEquals(metadata.asJson.hcursor.get[String]("contest"), Right("CUSTOM"))
+    assertEquals(decode[QsoMetadata](metadata.asJson.noSpaces), Right(metadata))

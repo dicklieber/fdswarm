@@ -32,13 +32,14 @@ import io.circe.Codec
  *
  * @param station can be edited by the user.
  * @param node    what node, in the cluster this came from.
+ * @param contest the originating ContestType.name, without its definition.
  *                // * @param contestId so old data can't by accident be mixed with current.
  * @param v       FdSwarm Version that built this so we can detect mismatched versions.
  */
 
 case class QsoMetadata(station: StationConfig,
                        node: NodeIdentity,
-                       contest: ContestType,
+                       contest: String,
                        v: String = BuildInfo.version) derives CanEqual, Codec.AsObject, sttp.tapir.Schema:
 
   def withOperator(operator: Callsign): QsoMetadata =
@@ -47,7 +48,7 @@ case class QsoMetadata(station: StationConfig,
 object QsoMetadata:
   def testQsoMetadata: QsoMetadata = QsoMetadata(station = StationConfig(),
     node = NodeIdentity(hostIp = "44.0.0.1", port = 8888, hostName = "testHost", instanceId = "qO-"),
-    contest = fdswarm.fx.contest.ContestTypes.configured("WFD"))
+    contest = fdswarm.fx.contest.ContestTypes.configured("WFD").name)
   def adifImportQsoMetadata(contestType: ContestType): QsoMetadata = QsoMetadata(station = StationConfig(),
     node = NodeIdentity.adifImportIdentity,
-    contest = contestType)
+    contest = contestType.name)

@@ -31,3 +31,22 @@ class ContestConfigManagerTest extends TempDirFileHelperSuite:
     service.setConfig(received)
     assertEquals(service.current, received)
     assertEquals(manager.current, received)
+
+  test("a delayed HTTP response cannot replace a newer configuration"):
+    val service = manager
+    val oldResponse = config.updated(Instant.EPOCH)
+    val newer = config.copy(club = "Newer").updated(Instant.EPOCH.plusSeconds(1))
+    service.setConfig(newer)
+    assert(!service.adoptIfNewer(oldResponse))
+    assertEquals(service.current, newer)
+    assertEquals(service.snapshot, Some(newer))
+
+  test("new remote versions are adopted once and invalid fingerprints are rejected"):
+    val service = manager
+    service.clearContestConfig()
+    val received = config.updated(Instant.EPOCH)
+    assert(!service.adoptIfNewer(received.copy(fingerPrint = "invalid")))
+    assertEquals(service.snapshot, None)
+    assert(service.adoptIfNewer(received))
+    assert(!service.adoptIfNewer(received))
+    assertEquals(manager.current, received)

@@ -42,7 +42,7 @@ class ContestScoringServiceTest extends FunSuite:
   test("score is independent of the contest in QSO metadata"):
     val qsos = Seq(qso(Mode.PH), qso(Mode.CW), qso(Mode.DIGI))
     val arrlQsos = qsos.map(q =>
-      q.copy(qsoMetadata = q.qsoMetadata.copy(contest = ContestTypes.configured("ARRL")))
+      q.copy(qsoMetadata = q.qsoMetadata.copy(contest = ContestTypes.configured("ARRL").name))
     )
     assertEquals(ContestScorer.score(qsos).totalScore, 5)
     assertEquals(ContestScorer.score(arrlQsos), ContestScorer.score(qsos))

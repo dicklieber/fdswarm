@@ -48,6 +48,7 @@ class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModu
 
     bind[fdswarm.util.NodeIdentityManager].asEagerSingleton()
     bind[fdswarm.replication.StatusProcessor].asEagerSingleton()
+    bind[fdswarm.replication.ContestConfigSync].asEagerSingleton()
     bind[fdswarm.store.QsosSource].to[fdswarm.store.QsoStore]
 
     val pkgs = Seq("fdswarm.api", "fdswarm.grafana", "fdswarm.exporter")

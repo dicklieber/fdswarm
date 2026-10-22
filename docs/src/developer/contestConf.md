@@ -39,17 +39,40 @@ The date rule contains `month`, `fullWeekend`, `startUtc`, `endUtc`, and optiona
 identify the final operational minute, inclusive. `maxCumulativeDuration` is a
 duration string, such as `"12h"`.
 
-Contest types in saved logs and replication messages encode as complete objects:
+Contest types in `ContestConfig` persistence and HTTP responses encode as complete objects:
 `name`, `displayName`, `cabrilloContestName`, and `compute` (the date-rule object).
 Edits therefore survive persistence and replication without resolving the type
 against the receiving node's bundled definitions. The old name-only format is
 not supported.
 
+Each QSO's `QsoMetadata.contest` stores only `ContestType.name` as a JSON string,
+such as `"WFD"`; it does not embed or resolve a contest definition.
+
 `ContestConfig` also contains `timeStamp` and `fingerPrint`. Each local save sets
 a fresh timestamp and calculates an 11-character fingerprint using the first
-eight bytes of SHA-256. Its input is canonical JSON for the complete configuration,
-including the nested contest definition and timestamp, excluding `fingerPrint`.
+eight bytes of SHA-256. Its input is the case-class fields, recursively including
+the nested contest definition and timestamp, excluding the outer `fingerPrint`.
+Config object keys are sorted so their ordering does not affect the fingerprint.
 Receiving or adopting a saved version preserves both fields.
+
+UDP status messages advertise only `fingerPrint` and `timeStamp` for the contest
+configuration. The advertised timestamp is URL-safe, unpadded Base64 of signed,
+big-endian epoch nanoseconds (11 characters for contemporary dates). Nodes decode
+it before comparing versions; Base64 string ordering does not indicate recency.
+Equal timestamps are resolved by lexical fingerprint order.
+
+On discovering a newer version, a node fetches the full configuration from
+`GET /contestConfig` on the advertising node. Only one configuration request is
+in flight at a time. The response fingerprint is checked and its version must
+be at least the advertised version and newer than the current local version.
+HTTP runs asynchronously; adoption and UI updates run on the JavaFX thread.
+Periodic status broadcasts retry failures and allow reconnecting nodes to catch
+up. Local edits advertise their new version immediately. Recency assumes
+reasonably synchronized node clocks. All nodes need the updated status format.
+
+The swarm display resolves full configuration details from an in-memory cache.
+An uncached older version displays `Details pending` until its details are known;
+only newer versions trigger automatic HTTP requests.
 
 The configuration dialog has an expandable **Edit contest definition** section
 for names, UTC date rules, and the optional setup period. Contest names remain

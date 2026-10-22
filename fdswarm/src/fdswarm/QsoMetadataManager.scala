@@ -34,7 +34,7 @@ class QsoMetadataManager @Inject() (
     QsoMetadata(
       station = stationConfigManager.stationConfig,
       node    = NodeIdentityManager.nodeIdentity,
-      contest = config.contestType
+      contest = config.contestType.name
     )
   }
 

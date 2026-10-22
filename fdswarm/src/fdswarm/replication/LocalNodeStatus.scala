@@ -21,7 +21,7 @@ package fdswarm.replication
 import fdswarm.StationConfigManager
 import fdswarm.bandmodes.SelectedBandModeManager
 import fdswarm.contestStart.ContestStartManager
-import fdswarm.fx.contest.ContestConfigManager
+import fdswarm.fx.contest.{ContestConfigManager, ContestConfigVersion}
 import fdswarm.metric.{MetricSnapshotFactory, MetricStat}
 import fdswarm.model.BandModeOperator
 import fdswarm.replication.status.SwarmData
@@ -51,7 +51,7 @@ final class LocalNodeStatus @Inject()(
   @volatile private var lastStoreStats: StoreStats = StoreStats()
 
   def statusMessage: StatusMessage =
-    val contestConfig = contestConfigManager.contestConfigProperty.value
+    val contestConfig = contestConfigManager.snapshot
     val bandNodeOperator =
       BandModeOperator(
         stationManager.stationConfig.operator,
@@ -59,7 +59,7 @@ final class LocalNodeStatus @Inject()(
       )
     StatusMessage(storeStats = lastStoreStats,
       bandNodeOperator = bandNodeOperator,
-      contestConfig = contestConfig,
+      contestConfig = contestConfig.map(ContestConfigVersion.apply),
       contestStart = contestStartManager.contestStart.value.start,
       metrics = metricSnapshots)
 
@@ -103,6 +103,7 @@ final class LocalNodeStatus @Inject()(
       NodeStatus(
         statusMessage = statusMessage,
         nodeIdentity = NodeIdentityManager.nodeIdentity,
-        isLocal = true
+        isLocal = true,
+        contestConfig = contestConfigManager.contestConfigProperty.value
       )
     swarmData.update(next)

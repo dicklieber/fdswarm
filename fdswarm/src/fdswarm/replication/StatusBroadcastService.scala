@@ -73,8 +73,8 @@ class StatusBroadcastService @Inject() (
 
   private def currentPeriodMillis: Long = defaultBroadcastPeriodSec * 1000L
 
-  private def broadcastStatus(): Unit =
-    if !contestConfigManager.hasConfiguration.value then return
+  def broadcastStatus(): Unit =
+    if contestConfigManager.snapshot.isEmpty then return
     try
       val operator = stationManager.stationConfig.operator
       val bandMode = selectedBandModeStore.selected.value
@@ -83,7 +83,8 @@ class StatusBroadcastService @Inject() (
       val statusMessage: StatusMessage = localNodeStatus.statusMessage
       val gzipBytes = statusMessage.toPacket
       transport.send(Service.Status, gzipBytes)
-    catch case e: Exception => logger.error("Error broadcasting node status", e)
+    catch case e: Exception =>
+      logger.error("Error broadcasting node status", e)
 
   def stop(): Unit = this.synchronized {
     stopRequested = true

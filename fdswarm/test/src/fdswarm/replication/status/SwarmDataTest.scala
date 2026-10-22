@@ -377,7 +377,7 @@ class SwarmDataTest extends FunSuite:
           operator = Callsign("N0CALL"),
           bandMode = BandMode("20M SSB")
         ),
-        contestConfig = Some(contestConfig),
+        contestConfig = Some(fdswarm.fx.contest.ContestConfigVersion(contestConfig)),
         contestStart = Instant.parse("2026-01-01T00:00:00Z"),
         metrics = Seq.empty
       ),
@@ -387,5 +387,6 @@ class SwarmDataTest extends FunSuite:
         hostName = hostName,
         instanceId = s"$hostName-id"
       ),
-      isLocal = false
+      isLocal = false,
+      contestConfig = Some(contestConfig)
     )

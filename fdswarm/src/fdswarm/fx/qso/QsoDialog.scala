@@ -57,7 +57,7 @@ object QsoDialog:
     addRow("Node:", qso.qsoMetadata.node.toString, 7)
     addRow("Rig:", qso.qsoMetadata.station.rig, 8)
     addRow("Antenna:", qso.qsoMetadata.station.antenna, 9)
-    addRow("Contest:", qso.qsoMetadata.contest.toString, 10)
+    addRow("Contest:", qso.qsoMetadata.contest, 10)
     addRow("UUID:", qso.uuid.toString, 11)
 
     dialog.dialogPane().setContent(grid)

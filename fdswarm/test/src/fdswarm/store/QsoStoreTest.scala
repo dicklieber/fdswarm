@@ -82,7 +82,7 @@ class QsoStoreTest extends FunSuite:
       qsoMetadata = QsoMetadata(
         station = StationConfig(),
         node = node,
-        contest = ContestTypes.configured("WFD")
+        contest = ContestTypes.configured("WFD").name
       )
     )
 

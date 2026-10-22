@@ -19,6 +19,7 @@
 package fdswarm.replication
 
 import fdswarm.util.NodeIdentity
+import fdswarm.fx.contest.ContestConfig
 
 import java.time.Instant
 
@@ -37,7 +38,8 @@ case class NodeStatus(
     statusMessage: StatusMessage,
     nodeIdentity: NodeIdentity,
     received: Instant = Instant.now,
-    isLocal: Boolean
+    isLocal: Boolean,
+    contestConfig: Option[ContestConfig] = None
 ) extends Ordered[NodeStatus]:
 
   override def compare(that: NodeStatus): Int =

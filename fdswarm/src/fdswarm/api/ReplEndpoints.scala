@@ -19,6 +19,8 @@
 package fdswarm.api
 
 import cats.effect.IO
+import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
+import sttp.tapir.json.circe.*
 import fdswarm.logging.Locus
 import fdswarm.model.Qso
 import fdswarm.replication.{LocalNodeStatus, StatusMessage}
@@ -40,12 +42,14 @@ import java.util.Locale
 @Singleton
 final class ReplEndpoints @Inject()(
     qsoStore: QsoStore,
-    localNodeStatus: LocalNodeStatus
+    localNodeStatus: LocalNodeStatus,
+    contestConfigManager: ContestConfigManager
 ) extends ApiEndpoints:
 
   override def endpoints: List[ServerEndpoint[Any, IO]] = List(
     allQsos,
-    statusMessage
+    statusMessage,
+    contestConfig
   )
 
   private val allQsos: ServerEndpoint[Any, IO] =
@@ -84,6 +88,11 @@ final class ReplEndpoints @Inject()(
     ReplEndpoints.statusMessageDef
       .serverLogicSuccess[IO](statusMessageResponse)
 
+  private val contestConfig: ServerEndpoint[Any, IO] =
+    ReplEndpoints.contestConfigDef.serverLogicSuccess[IO] { _ =>
+      IO.delay(contestConfigManager.snapshot)
+    }
+
   private def statusMessageResponse(
       acceptEncoding: Option[String]
   ): IO[(String, String, Option[String], String, Array[Byte])] =
@@ -108,6 +117,9 @@ final class ReplEndpoints @Inject()(
     }
 
 object ReplEndpoints:
+  val contestConfigDef: PublicEndpoint[Unit, Unit, Option[ContestConfig], Any] =
+    endpoint.get.in("contestConfig").out(jsonBody[Option[ContestConfig]])
+
   val printer: Printer = Printer.spaces2
   val MaxAllQsosJsonBytes: Int = 64 * 1024 * 1024
 

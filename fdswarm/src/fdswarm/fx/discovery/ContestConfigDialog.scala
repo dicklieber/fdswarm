@@ -4,8 +4,7 @@ import fdswarm.fx.contest.*
 import fdswarm.fx.sections.SectionsProvider
 import fdswarm.fx.utils.{BootstrapIcons, StyledDialog}
 import fdswarm.fx.utils.editor.{CallsignCustomField, CaseClassPropertyEditor, IntSpinner}
-import fdswarm.replication.{Service, Transport}
-import io.circe.syntax.EncoderOps
+import fdswarm.replication.StatusBroadcastService
 import jakarta.inject.Inject
 import javafx.stage.Modality
 import scalafx.Includes.*
@@ -15,7 +14,6 @@ import scalafx.scene.control.{ButtonType, Label, ScrollPane, TitledPane}
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.scene.paint.Color
 
-import java.nio.charset.StandardCharsets
 
 /**
  * Dialog for configuring contest settings.
@@ -26,7 +24,7 @@ class ContestConfigDialog @Inject() (
     sectionsProvider: SectionsProvider,
     contestManager: ContestConfigManager,
     exchangePane: ExchangePane,
-    transport: Transport)
+    statusBroadcastService: StatusBroadcastService)
     extends StyledDialog[ButtonType]:
 
   private val configEditor: CaseClassPropertyEditor[ContestConfig] =
@@ -104,10 +102,6 @@ class ContestConfigDialog @Inject() (
   updateButton.addEventFilter(
     javafx.event.ActionEvent.ACTION,
     (_: javafx.event.ActionEvent) =>
-      val config = contestManager.updateConfig(configEditor.finish())
-      val payload = config.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)
-      transport.send(
-        service = Service.SyncContest,
-        data = payload
-      )
+      contestManager.updateConfig(configEditor.finish())
+      statusBroadcastService.broadcastStatus()
   )

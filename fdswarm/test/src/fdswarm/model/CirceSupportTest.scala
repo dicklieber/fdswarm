@@ -74,7 +74,7 @@ class CirceSupportTest extends FunSuite:
     val config = ContestConfig(ContestTypes.configured("ARRL"), Callsign("WA9NNN"), 1, "A", "IL")
     val status = StatusMessage(storeStats = fdswarm.replication.StoreStats(),
       bandNodeOperator = bno,
-      contestConfig = Some(config),
+      contestConfig = Some(fdswarm.fx.contest.ContestConfigVersion(config)),
       contestStart = Instant.parse("2026-03-16T15:00:00Z"),
       metrics = Seq.empty)
     val json = status.asJson.noSpaces

@@ -18,7 +18,7 @@
 
 package fdswarm.replication
 
-import fdswarm.fx.contest.ContestConfig
+import fdswarm.fx.contest.ContestConfigVersion
 import fdswarm.metric.MetricStat
 import fdswarm.model.BandModeOperator
 import fdswarm.util.Gzip
@@ -38,15 +38,14 @@ import java.time.Instant
   * @param bandNodeOperator
   *   An instance of BandModeOperator containing information about the operator, frequency band, and timestamp.
   * @param contestConfig
-  *   Configuration details of the contest, such as callsign, class, section,
-  *   and other metadata.
+  *   Fingerprint and compact timestamp; full configuration is fetched over HTTP.
   *   @param contestStart
   *   When we think the contest was started.
   */
 case class StatusMessage(
     storeStats: StoreStats,
     bandNodeOperator: BandModeOperator,
-    contestConfig: Option[ContestConfig],
+    contestConfig: Option[ContestConfigVersion],
     contestStart: Instant,
     metrics: Seq[MetricStat]
 )

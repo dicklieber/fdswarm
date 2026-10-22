@@ -20,10 +20,10 @@ package fdswarm.fx.discovery
 
 import com.google.inject.name.Named
 import fdswarm.contestStart.{ContestStart, ContestStartManager}
-import fdswarm.fx.contest.{ContestConfig, ContestConfigManager}
+import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.logging.LazyStructuredLogging
 import fdswarm.replication.status.SwarmData
-import fdswarm.replication.{Service, Transport}
+import fdswarm.replication.{ContestConfigSync, Service, Transport}
 import jakarta.inject.Inject
 import javafx.application.Platform
 
@@ -58,6 +58,7 @@ class ContestDiscovery @Inject() (
     contestConfigManager: ContestConfigManager,
     contestStartManager: ContestStartManager,
     swarmData: SwarmData,
+    contestConfigSync: ContestConfigSync,
     @Named("fdswarm.contestDiscoveryTimeout") val timeout: Duration)
     extends LazyStructuredLogging:
 
@@ -104,33 +105,22 @@ class ContestDiscovery @Inject() (
     logger.whenTraceEnabled {
       allNodeStatuses.foreach(nodeStatus =>
         logger.trace(
-          s"Node status: ${nodeStatus.nodeIdentity} ContestType: ${nodeStatus.statusMessage.contestConfig.map(_.contestType)}"
+          s"Node status: ${nodeStatus.nodeIdentity} Contest version: ${nodeStatus.statusMessage.contestConfig}"
         )
       )
     }
 
+    contestConfigSync.discover()
     val selectedStatus = allNodeStatuses
-      .filter(nodeStatus =>
-        nodeStatus.statusMessage.contestConfig.isDefined
-      )
+      .filter(_.statusMessage.contestConfig.isDefined)
+      .filter(status => scala.util.Try(status.statusMessage.contestConfig.get.epochNanos).isSuccess)
+      .sortWith { (a, b) =>
+        a.statusMessage.contestConfig.get > b.statusMessage.contestConfig.get
+      }
       .headOption
-    selectedStatus.foreach(nodeStatus =>
-      logger.debug(s"Selected status: $nodeStatus")
-      val selectedConfig = nodeStatus.statusMessage.contestConfig.get
-      val selectedStart = ContestStart(start = nodeStatus.statusMessage.contestStart)
-      updateContestFromStatus(selectedConfig = selectedConfig, selectedStart = selectedStart)
-      logger.info(
-        s"Contest discovery selected config ${selectedConfig.contestType} and start ${selectedStart.start} from ${nodeStatus.nodeIdentity}"
-      )
-    )
+    selectedStatus.foreach { status =>
+      val selectedStart = ContestStart(start = status.statusMessage.contestStart)
+      Platform.runLater(() => contestStartManager.update(nextContestStart = selectedStart))
+    }
     if selectedStatus.isEmpty then
-      logger.info(
-        "Contest discovery did not find a contest config in swarm data."
-      )
-
-  private def updateContestFromStatus(selectedConfig: ContestConfig, selectedStart: ContestStart): Unit =
-    def update(): Unit =
-      contestConfigManager.setConfig(selectedConfig)
-      contestStartManager.update(nextContestStart = selectedStart)
-    if Platform.isFxApplicationThread then update()
-    else Platform.runLater(() => update())
+      logger.info("Contest discovery did not find a contest config in swarm data.")

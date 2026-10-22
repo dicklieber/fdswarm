@@ -67,7 +67,7 @@ final class BigQsosGenerator @Inject()(qsoStore: QsoStore, bandModeBuilder: Band
 
       val qsoMetadata = QsoMetadata(
         station = StationConfig(operator = Callsign(randomOperator)),
-        contest = contestTypes("WFD"),
+        contest = contestTypes("WFD").name,
         node = NodeIdentityManager.nodeIdentity)
       val exchange = Exchange(FdClass(randomTransmitters, randomClassLetter))
       Qso(callsign = Callsign(callsign),

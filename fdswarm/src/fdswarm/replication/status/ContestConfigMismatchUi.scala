@@ -3,19 +3,16 @@ package fdswarm.replication.status
 import fdswarm.fx.contest.ContestConfigManager
 import fdswarm.fx.utils.{IconButton, StyledDialog}
 import fdswarm.logging.LazyStructuredLogging
-import fdswarm.replication.{Service, Transport}
-import io.circe.generic.auto.deriveEncoder
-import io.circe.syntax.EncoderOps
+import fdswarm.replication.StatusBroadcastService
 import jakarta.inject.{Inject, Singleton}
 import scalafx.Includes.*
 import scalafx.scene.control.{Button, ButtonType}
 import scalafx.scene.paint.Color
 
-import java.nio.charset.StandardCharsets
 
 @Singleton
 class ContestConfigMismatchUi @Inject() (swarmData: SwarmData,
-                                         transport: Transport,
+                                         statusBroadcastService: StatusBroadcastService,
                                          contestConfigManager: ContestConfigManager) extends LazyStructuredLogging():
 
   def warningButton(size: Double = 18): Button =
@@ -58,13 +55,12 @@ class ContestConfigMismatchUi @Inject() (swarmData: SwarmData,
           syncButton.style = baseStyle
           syncButton.onMouseEntered = _ => syncButton.style = hoverStyle
           syncButton.onMouseExited = _ => syncButton.style = baseStyle
+          syncButton.disable = swarmData.nodeMap.get(nodeIdentity).flatMap(_.contestConfig).isEmpty
           syncButton.onAction = _ =>
-            swarmData.nodeMap.get(nodeIdentity).flatMap(_.statusMessage.contestConfig).foreach(contestConfig =>
-              // Need to update ourself as we don't handle UDPMessges from ourself.
-              contestConfigManager.setConfig(contestConfig)
-              val payload = contestConfig.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)
-              logger.info("Sending SyncContest", "ContestConfig" -> contestConfig)
-              transport.send(service = Service.SyncContest, data = payload))
+            swarmData.nodeMap.get(nodeIdentity).flatMap(_.contestConfig).foreach(contestConfig =>
+              // Selecting an older definition is a new local edit so it can converge.
+              contestConfigManager.updateConfig(contestConfig)
+              statusBroadcastService.broadcastStatus())
           syncButton
       ))
     )
