@@ -26,7 +26,7 @@ class ContestChooser(contestTypes: ContestTypes) extends CustomFieldEditor:
         val tg = new ToggleGroup()
 
         val buttons: Seq[(ContestType, RadioButton)] =
-          contestTypes.values.filter(_.allowChosing).toSeq.map { contestType =>
+          contestTypes.values.map { contestType =>
             val button = new RadioButton:
               text = contestType.displayName
               toggleGroup = tg

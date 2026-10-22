@@ -29,7 +29,7 @@ We are 1H IL
 Contest types are loaded at startup by the injectable `ContestTypes` singleton.
 The bundled files `common/resources/contestTypes/ARRL.json` and
 `common/resources/contestTypes/WFD.json` each include
-`name`, `displayName`, `cabrilloContestName`, `allowChosing`,
+`name`, `displayName`, `cabrilloContestName`,
 `classChoices`, and a `dates` object. Contest definitions are no longer read from
 `reference.conf` or application configuration overrides. `ContestTypes` loads
 the two resources explicitly in ARRL, WFD order, including when packaged in a JAR.

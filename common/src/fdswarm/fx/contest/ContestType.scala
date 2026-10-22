@@ -28,8 +28,7 @@ case class ContestType(
     name: String,
     displayName: String,
     compute: ContestDateRule,
-    cabrilloContestName: String,
-    allowChosing: Boolean = true):
+    cabrilloContestName: String):
   def dates(zdt: ZonedDateTime = ZonedDateTime.now()): ContestDates = compute(zdt.getYear)
   override def toString: String = name
 

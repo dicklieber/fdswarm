@@ -2,7 +2,6 @@
   "name": "ARRL",
   "displayName": "ARRL Field Day",
   "cabrilloContestName": "ARRL-FD",
-  "allowChosing": true,
   "dates": {
     "month": 6,
     "fullWeekend": 4,

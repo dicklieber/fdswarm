@@ -19,8 +19,7 @@ final class ContestTypes @Inject()():
       name = contest.getString("name"),
       displayName = contest.getString("displayName"),
       compute = ContestDateRule(contest.getConfig("dates")),
-      cabrilloContestName = contest.getString("cabrilloContestName"),
-      allowChosing = !contest.hasPath("allowChosing") || contest.getBoolean("allowChosing")
+      cabrilloContestName = contest.getString("cabrilloContestName")
     )
   }
   require(values.forall(ct => ct.name.nonEmpty), "Contest names must be nonempty")
