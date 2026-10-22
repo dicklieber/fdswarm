@@ -74,7 +74,13 @@ class StatusProcessor @Inject() (
       val localStoreStats = localNodeStatus.statusMessage.storeStats
 
       if remoteStoreStats.needsUpdate(localStoreStats) then
-        val qsoCountDiff = remoteStoreStats.qsoCount - localStoreStats.qsoCount
+        logger.info("Fetching QSOs because store statistics differ",
+          "remoteNode" -> nodeStatus.nodeIdentity,
+          "remoteQsoCount" -> remoteStoreStats.qsoCount,
+          "localQsoCount" -> localStoreStats.qsoCount,
+          "remoteHash" -> remoteStoreStats.hash,
+          "localHash" -> localStoreStats.hash
+        )
         given fdswarm.util.NodeIdentity = nodeStatus.nodeIdentity
         val allQsosContext = allQsosFetchAndApplyTimer.time()
         try

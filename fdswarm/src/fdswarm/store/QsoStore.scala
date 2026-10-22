@@ -112,12 +112,14 @@ class QsoStore @Inject() (
     val received = batch.size
     val dups = received - added
     val storeStats = localNodeStatus.statusMessage.storeStats
-    logger.info("batch",
+    val logFields: Seq[(String, Any)] = Seq(
       "received" -> received,
       "added" -> added,
       "dups" -> dups,
       "newCount" -> storeStats.qsoCount
     )
+    if added == 0 then logger.debug("batch", logFields*)
+    else logger.info("batch", logFields*)
   }
 
   def addReplicated(batch: Seq[Qso]): Unit = addBatch(batch = batch, markLocalEntries = false)
