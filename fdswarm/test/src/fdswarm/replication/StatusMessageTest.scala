@@ -89,3 +89,12 @@ class StatusMessageTest extends FunSuite:
     assertEquals(advertised.asObject.get.keys.toSet, Set("fingerPrint", "timeStamp"))
     assert(!status.asJson.noSpaces.contains("compute"))
     assertEquals(StatusMessage(status.toPacket), status)
+
+  test("traffic metrics travel in existing status packets"):
+    val traffic = new fdswarm.metric.NetworkTraffic(new io.dropwizard.metrics5.MetricRegistry)
+    traffic.udp(Service.Status, "sent", 200)
+    traffic.qsoFetchApplied(0)
+    val status = StatusMessage(StoreStats(), dummyBno, None, Instant.EPOCH, traffic.snapshot)
+    val decoded = StatusMessage(status.toPacket)
+    assertEquals(fdswarm.metric.NetworkTraffic.report(decoded.metrics),
+      fdswarm.metric.NetworkTraffic.report(status.metrics))

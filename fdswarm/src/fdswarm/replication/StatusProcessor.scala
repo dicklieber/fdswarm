@@ -25,6 +25,7 @@ import fdswarm.logging.Locus.Replication
 import fdswarm.replication.status.NodeBandOpPane
 import fdswarm.store.QsoStore
 import fdswarm.util.StatsSource
+import fdswarm.metric.NetworkTraffic
 import jakarta.inject.{Inject, Singleton}
 
 /** This is the logic that synchronizes the local QSO store with a remote node.
@@ -36,7 +37,8 @@ class StatusProcessor @Inject() (
                                   replEndpoints: ReplEndpoints,
                                   callEndpoint: CallEndpoint,
                                   nodeBandOpPane: NodeBandOpPane,
-                                  nodeStatusDispatcher: NodeStatusDispatcher)
+                                  nodeStatusDispatcher: NodeStatusDispatcher,
+                                  traffic: NetworkTraffic)
     extends LazyStructuredLogging()
     with StatsSource(Replication):
 
@@ -100,9 +102,10 @@ class StatusProcessor @Inject() (
           allQsosResponseBytesHistogram.update(
             responseBytes.length
           )
-          qsoStore.addReplicated(
+          val added = qsoStore.addReplicated(
             remoteAllQsos.qsos
           )
+          traffic.qsoFetchApplied(added)
           nodeBandOpPane.refreshIfDue()
         finally allQsosContext.stop()
     finally processTimerContext.stop()

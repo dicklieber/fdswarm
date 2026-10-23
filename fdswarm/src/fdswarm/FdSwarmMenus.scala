@@ -28,7 +28,7 @@ import fdswarm.fx.tools.*
 import fdswarm.fx.{AboutMenuItem, UserConfig, UserConfigEditor}
 import fdswarm.fx.utils.editor.HelpBrowser
 import fdswarm.logging.LazyStructuredLogging
-import fdswarm.metric.StatsManager
+import fdswarm.metric.{NetworkTrafficDialog, StatsManager}
 import fdswarm.replication.status.ContestConfigMismatchUi
 import fdswarm.scoring.ContestScoreResultsDialog
 import _root_.io.circe.parser.decode
@@ -71,6 +71,7 @@ final class FdSwarmMenus @Inject()(
                                    metricsDialog: MetricsDialog,
                                    portsDialog: PortsDialog,
                                    statsManager: StatsManager,
+                                   networkTrafficDialog: NetworkTrafficDialog,
                                    contestScoreResultsDialog: ContestScoreResultsDialog,
                                    startContestDialog: StartContestDialog,
                                    contestConfigMismatchUi: ContestConfigMismatchUi,
@@ -169,6 +170,9 @@ final class FdSwarmMenus @Inject()(
             statsManager.show(
               FdSwarmUi.primaryStage
             )
+        ,
+        new MenuItem("Network Traffic"):
+          onAction = _ => networkTrafficDialog.show(FdSwarmUi.primaryStage)
         ,
         new MenuItem("Clear Contest"):
           onAction = _ => contestConfigManager.clearContestConfig()

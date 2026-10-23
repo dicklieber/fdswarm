@@ -23,6 +23,7 @@ import cats.effect.IO
 import com.organization.BuildInfo
 import com.comcast.ip4s.*
 import fdswarm.logging.LazyStructuredLogging
+import fdswarm.metric.{NetworkTraffic, NetworkTrafficHttp}
 import fdswarm.util.NodeIdentityManager
 import jakarta.inject.{Inject, Singleton}
 import org.http4s.ember.server.EmberServerBuilder
@@ -37,7 +38,8 @@ import scala.jdk.CollectionConverters.*
 @Singleton
 class ApiServer @Inject()(
                            nodeIdentityManager: NodeIdentityManager,
-                           endpointsSet: Set[ApiEndpoints]
+                           endpointsSet: Set[ApiEndpoints],
+                           traffic: NetworkTraffic
                          ) extends LazyStructuredLogging:
 
   def start(): IO[Unit] =
@@ -60,7 +62,7 @@ class ApiServer @Inject()(
     ).orNotFound
 
     val loggedRoutes =
-      HttpLogger.httpApp[IO](logHeaders = true, logBody = false)(finalRoutes)
+      HttpLogger.httpApp[IO](logHeaders = true, logBody = false)(new NetworkTrafficHttp(traffic).server(finalRoutes))
 
     val port = nodeIdentityManager.port
     

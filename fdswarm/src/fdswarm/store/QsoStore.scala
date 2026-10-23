@@ -92,7 +92,7 @@ class QsoStore @Inject() (
 
   def add(batch: Seq[Qso]): Unit = addBatch(batch = batch, markLocalEntries = true)
 
-  private def addBatch(batch: Seq[Qso], markLocalEntries: Boolean): Unit = {
+  private def addBatch(batch: Seq[Qso], markLocalEntries: Boolean): Int = {
     val toAdd = batch.filter { qso =>
       val uuid = qso.uuid
       map.putIfAbsent(uuid, qso).isEmpty
@@ -120,9 +120,10 @@ class QsoStore @Inject() (
     )
     if added == 0 then logger.debug("batch", logFields*)
     else logger.info("batch", logFields*)
+    added
   }
 
-  def addReplicated(batch: Seq[Qso]): Unit = addBatch(batch = batch, markLocalEntries = false)
+  def addReplicated(batch: Seq[Qso]): Int = addBatch(batch = batch, markLocalEntries = false)
 
   def get(uuid: Id): Option[Qso] = map.get(uuid)
 

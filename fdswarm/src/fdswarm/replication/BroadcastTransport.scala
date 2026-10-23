@@ -19,6 +19,7 @@
 package fdswarm.replication
 
 import fdswarm.logging.{LazyStructuredLogging, Locus}
+import fdswarm.metric.NetworkTraffic
 import fdswarm.util.{NodeIdentityManager, StatsSource}
 import jakarta.inject.{Inject, Singleton}
 
@@ -32,7 +33,7 @@ import scala.compiletime.uninitialized
   *   [[fdswarm.util.NodeIdentityManager.nodeIdentity]]
   */
 @Singleton
-class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager)
+class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager, traffic: NetworkTraffic)
     extends Transport
     with StatsSource(Locus.UDP)
     with Runnable
@@ -73,7 +74,14 @@ class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager)
         val senderAddr = packet.getAddress
         val senderPort = packet.getPort
         logger.trace(s"Received a UDP packet from $senderAddr:$senderPort")
-        val udpHeaderData = UDPHeader.parse(packet)
+        val udpHeaderData =
+          try UDPHeader.parse(packet)
+          catch
+            case error: Exception =>
+              traffic.bytes("udp.other", "received", packet.getLength)
+              traffic.event("udp.other", "received")
+              throw error
+        traffic.udp(udpHeaderData.service, "received", packet.getLength)
 
         incomingQueue.offer(udpHeaderData)
       catch
@@ -96,6 +104,7 @@ class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager)
       val packet =
         new DatagramPacket(packetBytes, packetBytes.length, broadcastAddr, port)
       socket.send(packet)
+      traffic.udp(service, "sent", packetBytes.length)
       sendCounter.inc()
 
     catch

@@ -20,6 +20,7 @@ package fdswarm.replication
 
 import cats.effect.IO
 import fdswarm.logging.LazyStructuredLogging
+import fdswarm.metric.{NetworkTraffic, NetworkTrafficHttp}
 import fdswarm.util.NodeIdentity
 import jakarta.inject.Singleton
 import org.http4s.Uri
@@ -29,7 +30,8 @@ import sttp.tapir.client.http4s.Http4sClientInterpreter
 import scala.concurrent.duration.*
 
 @Singleton
-class CallEndpoint @jakarta.inject.Inject()() extends LazyStructuredLogging:
+class CallEndpoint @jakarta.inject.Inject()(traffic: NetworkTraffic) extends LazyStructuredLogging:
+  private val trafficHttp = new NetworkTrafficHttp(traffic)
 
   private val maxRetries = 3
   private val retryDelay = 2.seconds
@@ -51,11 +53,15 @@ class CallEndpoint @jakarta.inject.Inject()() extends LazyStructuredLogging:
 
     val interpreter = Http4sClientInterpreter[IO]()
     val (req, parseResponse) = interpreter.toRequest(endpoint, Some(baseUri)).apply(input)
+    val category = NetworkTraffic.httpCategory(req.uri.path.renderString)
+    val countedRequest = req.withBodyStream(trafficHttp.body(req.body, category, "sent"))
     
     def executeRequest(attempt: Int): IO[O] =
       logger.debug(s"Calling remote endpoint: ${req.method} ${req.uri} with input: $input (attempt: $attempt)")
       EmberClientBuilder.default[IO].build.use { client =>
-        client.run(req).use(parseResponse).flatMap {
+        IO(traffic.event(category, "sent")) *> client.run(countedRequest).use { response =>
+          parseResponse(response.withBodyStream(trafficHttp.body(response.body, category, "received")))
+        }.flatMap {
           case sttp.tapir.DecodeResult.Value(Right(result: O)) =>
             logger.debug(s"Endpoint call succeeded: ${req.uri} response: $result")
             IO.pure(result)
