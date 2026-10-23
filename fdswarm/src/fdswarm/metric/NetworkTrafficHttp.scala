@@ -11,9 +11,10 @@ final class NetworkTrafficHttp(traffic: NetworkTraffic):
     stream.chunks.evalTap(chunk => IO(traffic.bytes(category, direction, chunk.size))).unchunks
 
   def server(app: HttpApp[IO]): HttpApp[IO] = Kleisli { request =>
-    val category = NetworkTraffic.httpCategory(request.uri.path.renderString)
-    IO(traffic.event(category, "received")) *> app(request.withBodyStream(
-      body(request.body, category, "received"))).map { response =>
-      response.withBodyStream(body(response.body, category, "sent"))
-    }
+    for
+      category = NetworkTraffic.httpCategory(request.uri.path.renderString)
+      countedRequest = request.withBodyStream(body(request.body, category, "received"))
+      _ <- IO(traffic.event(category, "received"))
+      response <- app(countedRequest)
+    yield response.withBodyStream(body(response.body, category, "sent"))
   }

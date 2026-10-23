@@ -28,6 +28,14 @@ class AdifRecordParserTest extends FunSuite:
 
   private val parser = AdifRecordParser(() => fdswarm.model.QsoMetadata.adifImportQsoMetadata(ContestTypes.configured("ARRL")))
 
+  test("older fdswarm DATA exports import as digital rather than phone"):
+    val record = "<CALL:5>K1ABC <BAND:3>20M <MODE:4>DATA <CLASS:2>1A <ARRL_SECT:2>IL <EOR>"
+    assertEquals(parser.parseRecord(record).get.bandMode.mode, Mode.DIGI)
+
+  test("a standard MODE takes precedence over an application mode field"):
+    val record = "<CALL:5>K1ABC <BAND:3>20M <MODE:2>CW <APP_FDSWARM_MODE:4>DIGI <CLASS:2>1A <ARRL_SECT:2>IL <EOR>"
+    assertEquals(parser.parseRecord(record).get.bandMode.mode, Mode.CW)
+
   /** Replicates AdifParser's body-splitting logic to obtain raw record strings from a file. */
   private def recordsFromFile(path: os.Path): Seq[String] =
     val content = os.read(path)

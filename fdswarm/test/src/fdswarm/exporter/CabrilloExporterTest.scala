@@ -60,3 +60,14 @@ class CabrilloExporterTest extends FunSuite:
     val arrlConfig = testConfig.copy(contestType = ContestTypes.configured("ARRL"))
     val resultArrl = exporter.exportQsos(Seq.empty, arrlConfig)
     assert(resultArrl.contains("CONTEST: ARRL-FD\n"))
+
+  test("the reported missing-band contacts retain UTC times and complete Cabrillo fields"):
+    val cases = Seq(("WA9AAE", "23cm PH", "2026-10-23T13:59:00.473310Z", "1.2G", "PH", "1359"),
+      ("WA9AAB", "4m DIGI", "2026-10-23T15:11:00.473310Z", "70", "DG", "1511"),
+      ("WA9AAA", "3cm CW", "2026-10-23T15:35:00.473310Z", "10G", "CW", "1535"))
+    cases.foreach { (call, bandMode, stamp, frequency, mode, time) =>
+      val qso = Qso(Callsign(call), Exchange(FdClass("1O"), "IL"), BandMode(bandMode),
+        fdswarm.model.QsoMetadata.testQsoMetadata, Instant.parse(stamp))
+      val fields = exporter.qsoLines(Seq(qso), testConfig).head.trim.split("\\s+").toSeq
+      assertEquals(fields, Seq("QSO:", frequency, mode, "2026-10-23", time, "W1AW", "1A", "CT", call, "1O", "IL"))
+    }

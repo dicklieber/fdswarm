@@ -27,11 +27,11 @@ import sttp.tapir.Schema
  * Allows storing band and mode in a compact why in a [[Qso]]
  */
 case class BandMode private[fdswarm] (band: Band, mode: Mode) derives CanEqual:
-  def cabMode: Mode =
+  def cabMode: String =
     mode match
-      case Mode.CW => Mode.CW
-      case Mode.PH => Mode.PH
-      case Mode.DIGI => Mode.DIGI
+      case Mode.CW => "CW"
+      case Mode.PH => "PH"
+      case Mode.DIGI => "DG"
 
   override def toString: String =
     s"${band.name} $mode"
@@ -45,14 +45,23 @@ object BandMode:
     Seq(
       Band.Band_160m -> "1810",
       Band.Band_80m -> "3530",
+      Band.Band_60m -> "5357",
       Band.Band_40m -> "7030",
+      Band.Band_30m -> "10100",
       Band.Band_20m -> "14035",
       Band.Band_15m -> "21030",
       Band.Band_10m -> "28030",
-      Band.Band_6m -> "28030",
-      Band.Band_2m -> "144000",
-      Band.Band_1_25m -> "224000",
-      Band.Band_70cm -> "442000",
+      Band.Band_6m -> "50",
+      Band.Band_4m -> "70",
+      Band.Band_2m -> "144",
+      Band.Band_1_25m -> "222",
+      Band.Band_70cm -> "432",
+      Band.Band_33cm -> "902",
+      Band.Band_23cm -> "1.2G",
+      Band.Band_13cm -> "2.3G",
+      Band.Band_9cm -> "3.4G",
+      Band.Band_6cm -> "5.7G",
+      Band.Band_3cm -> "10G",
     ).toMap
   }
   private val Parse = """\s*([\d.]+[a-zA-Z]+)\s+([a-zA-Z]{1,5})\s*""".r
@@ -67,10 +76,10 @@ object BandMode:
       case _ => throw new IllegalArgumentException(s"Can't parse $s")
 
   def bandToFreq(band: Band): String =
-    bandFreqMap.getOrElse(band, "")
+    bandFreqMap.getOrElse(band, throw new IllegalArgumentException(s"Cannot export Cabrillo band: $band"))
 
   def bandToFreq(band: String): String =
-    Band.fromStringOption(band).flatMap(bandFreqMap.get).getOrElse("")
+    bandToFreq(Band.fromString(band))
 
   given Schema[BandMode] = Schema.string
   given Encoder[BandMode] = Encoder.encodeString.contramap(_.toString)

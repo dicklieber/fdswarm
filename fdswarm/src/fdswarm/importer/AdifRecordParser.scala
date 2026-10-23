@@ -48,8 +48,8 @@ class AdifRecordParser(
   @Inject() def this(qsoMetadataManager: QsoMetadataManager, modeMappingManager: ModeMappingManager) =
     this(() => qsoMetadataManager.current, modeMappingManager.fromString)
 
-  /** Parses a single ADIF record string into an [[Option]] of [[Qso]].
-    * Returns [[None]] if any required field (CALL, BAND, MODE, CLASS, ARRL_SECT) is missing or invalid.
+  /** Parses a single ADIF record string into a [[Try]] of [[Qso]].
+    * MODE can be replaced by APP_FDSWARM_MODE for generic digital exports.
     */
   def parseRecord(record: String): Try[Qso] =
     val qsoMetadata = getMetadata()
@@ -57,11 +57,18 @@ class AdifRecordParser(
     Try {
       val callStr  = fields("CALL")
       val bandStr  = fields("BAND")
-      val modeStr  = fields("MODE")
+      val mode = fields.get("MODE") match
+        // Older fdswarm exports used DATA, which is not a standard ADIF mode.
+        case Some(raw) if raw.trim.equalsIgnoreCase("DATA") => Mode.DIGI
+        case Some(raw) => modeFromString(raw)
+        case None =>
+          val stored = fields("APP_FDSWARM_MODE").trim.toUpperCase
+          Mode.values.find(_.toString == stored)
+            .getOrElse(throw new IllegalArgumentException(s"Unknown fdswarm mode: $stored"))
       val classStr = fields("CLASS").toUpperCase
       val sectStr  = fields("ARRL_SECT").toUpperCase
       val callsign = Callsign(callStr)
-      val bandMode = new BandMode(Band.fromString(bandStr), modeFromString(modeStr))
+      val bandMode = new BandMode(Band.fromString(bandStr), mode)
       val exchange = Exchange(FdClass(classStr), sectStr)
       val stamp    = parseStamp(fields)
       val uuid     = fields.getOrElse("APP_FDSWARM_UUID", Ids.generateId())

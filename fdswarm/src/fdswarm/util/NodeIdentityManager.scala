@@ -34,6 +34,7 @@ class NodeIdentityManager @Inject()(@Named("fdswarm.httpPort") httpPort: Int,
                                     instanceIdManager: InstanceIdManager) extends LazyStructuredLogging:
 
   def currentIp: String =LocalAddressPicker.bestIp
+  def current: NodeIdentity = NodeIdentityManager.nodeIdentity
 //  def currentIp: String = LocalAddressPicker.best()
 
   // Override port with PORT env var if present
