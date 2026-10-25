@@ -1,4 +1,4 @@
-integratopinpackage fdswarm.api
+package fdswarm.api
 
 import cats.effect.IO
 import fdswarm.{QsoMetadataManager, StartupInfo}

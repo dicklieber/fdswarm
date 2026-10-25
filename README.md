@@ -109,11 +109,24 @@ To run the shared-module tests as well:
 ### Multi-node Integration Test
 
 Run the real application swarm test separately from the MUnit suite. It requires
-Python 3, BellSoft Liberica JDK 21 Full, and a desktop session for the four JavaFX
-application windows. No additional Python packages or UI testing framework are required.
+Scala CLI, BellSoft Liberica JDK 21 Full, and a desktop session for the four JavaFX
+application windows. The scripts use the project's Scala, Circe, and MUnit versions
+(tested with Scala CLI 1.18.0). No UI testing framework is required.
+
+On macOS with Homebrew, install Scala CLI and verify it is available:
 
 ```sh
-python3 scripts/swarm-integration.py
+brew install scala-cli
+scala-cli version
+```
+
+See the [official installation instructions](https://scala-cli.virtuslab.org/install/)
+for other installation methods. If it is already installed, use
+`brew upgrade scala-cli` to update it. The scripts use the system JDK, so keep
+BellSoft Liberica JDK 21 Full selected when running them.
+
+```sh
+scala-cli run scripts/swarm-integration.scala --server=false --
 ```
 
 The script builds `fdswarm.jar` using `./mill --no-server fdswarm.assembly`, then:
@@ -137,14 +150,14 @@ Build output defaults to `/private/tmp/fdswarm-swarm-build`; set `MILL_OUTPUT_DI
 to choose another location. To repeat with the existing JAR, or test WFD:
 
 ```sh
-python3 scripts/swarm-integration.py --skip-build
-python3 scripts/swarm-integration.py --contest WFD
+scala-cli run scripts/swarm-integration.scala --server=false -- --skip-build
+scala-cli run scripts/swarm-integration.scala --server=false -- --contest WFD
 ```
 
 To collect coverage from the four application JVMs and open both HTML reports on macOS:
 
 ```sh
-python3 scripts/swarm-integration.py --coverage --open
+scala-cli run scripts/swarm-integration.scala --server=false -- --coverage --open
 ```
 
 Coverage mode builds a separate instrumented JAR with
@@ -155,7 +168,7 @@ This mode requires a new build and cannot be combined with `--skip-build` or
 `--jar`; the fresh compilation adds time compared with a cached normal run.
 
 The artifact directory also contains `coverage/index.html`, `coverage.xml`, and
-`coverage.log`. Coverage reports are generated after stopping the nodes, including
+`coverage-html.log` and `coverage-xml.log`. Coverage reports are generated after stopping the nodes, including
 when a scenario fails after launching nodes. The scope matches existing application
 coverage (`fdswarm` sources; the shared `common` module is not instrumented).
 Omit `--open` to generate the reports without opening the browser. `--open` also
@@ -175,24 +188,33 @@ Test controls are registered only when the node also receives `--integration-tes
 they require the matching per-run token. Normal app and manager launches retain
 the normal data directories, UDP port, and API routes.
 
+Run the script/report MUnit tests without launching application nodes:
+
+```sh
+scala-cli test scripts --server=false
+```
+
+Version the `.scala` source files and these tests. Scala CLI's `.scala-build/` and
+`.bsp/` directories are generated and ignored by Git.
+
 ### Test Results Report
 
 Application test runs automatically generate a JUnit XML report. Convert it to a
-self-contained HTML report with Python 3 (standard library only). The report shows
+self-contained HTML report with Scala CLI. The report shows
 counts, pass/fail results, skipped tests, execution times, full failure details,
 and any output captured in the XML.
 
 After running `fdswarm.test`, generate and open the HTML report on macOS:
 
 ```sh
-python3 scripts/junit-to-html.py "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.xml" &&
+scala-cli run scripts/junit-to-html.scala --server=false -- "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.xml" &&
   open "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.html"
 ```
 
 After running `fdswarm.test.testOnly`, use:
 
 ```sh
-python3 scripts/junit-to-html.py "$MILL_OUTPUT_DIR/fdswarm/test/testOnly.dest/test-report.xml" &&
+scala-cli run scripts/junit-to-html.scala --server=false -- "$MILL_OUTPUT_DIR/fdswarm/test/testOnly.dest/test-report.xml" &&
   open "$MILL_OUTPUT_DIR/fdswarm/test/testOnly.dest/test-report.html"
 ```
 
@@ -214,7 +236,7 @@ test failure status:
   export MILL_OUTPUT_DIR=/private/tmp/fdswarm-tests
   test_status=0
   ./mill --no-server fdswarm.test || test_status=$?
-  python3 scripts/junit-to-html.py "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.xml" &&
+  scala-cli run scripts/junit-to-html.scala --server=false -- "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.xml" &&
     ./mill --no-server fdswarm.scoverage.htmlReport &&
     open "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.html" \
          "$MILL_OUTPUT_DIR/fdswarm/scoverage/htmlReport.dest/index.html" &&

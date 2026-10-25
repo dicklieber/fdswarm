@@ -86,7 +86,10 @@ object SwarmIntegration:
     else
       val options = parseOptions(arguments)
       val test = new SwarmTest(options, repositoryRoot)
-      val hook = new Thread(() => test.finish(true), "swarm-test-cleanup")
+      val hook = new Thread(() => {
+        test.finish(true)
+        ()
+      }, "swarm-test-cleanup")
       Runtime.getRuntime.addShutdownHook(hook)
       var failed = true
       try
@@ -95,7 +98,9 @@ object SwarmIntegration:
       catch case NonFatal(error) => test.log(s"Integration run failed: ${error.getMessage}")
       finally
         try failed = test.finish(failed)
-        finally Runtime.getRuntime.removeShutdownHook(hook)
+        finally
+          try Runtime.getRuntime.removeShutdownHook(hook)
+          catch case _: IllegalStateException => () // JVM shutdown already started (e.g. Ctrl-C).
       if failed then 1 else 0
 
   final class SwarmTest(options: Options, root: Path):
@@ -240,7 +245,9 @@ object SwarmIntegration:
             .flatMap(_.getInterfaceAddresses.asScala).flatMap(address => Option(address.getBroadcast).map(_.getHostAddress))
           (detected :+ "255.255.255.255").distinct
         case explicit => explicit
-      for address <- candidates do
+      val addresses = candidates.iterator
+      while addresses.hasNext && broadcastAddress.isEmpty do
+        val address = addresses.next()
         val sockets = ArrayBuffer.empty[DatagramChannel]
         try
           for _ <- 0 until 2 do
@@ -263,10 +270,10 @@ object SwarmIntegration:
           if delivered then
             broadcastAddress = address
             log(s"Broadcast preflight passed: $address; test UDP port $udpPort")
-            return
         catch case error: IOException => log(s"Broadcast preflight $address: ${error.getMessage}")
         finally sockets.foreach(_.close())
-      throw new IOException("No working UDP broadcast address. Check network access or supply --broadcast-address with your LAN broadcast address.")
+      if broadcastAddress.isEmpty then
+        throw new IOException("No working UDP broadcast address. Check network access or supply --broadcast-address with your LAN broadcast address.")
 
     private def launch(index: Int): Node =
       val name = ('A' + index).toChar.toString
@@ -430,7 +437,7 @@ object SwarmIntegration:
       failed
     }
 
-@main def swarmIntegration(arguments: String*): Unit =
+@main def runSwarmIntegration(arguments: String*): Unit =
   try sys.exit(SwarmIntegration.run(arguments))
   catch case NonFatal(error) =>
     Console.err.println(error.getMessage)
