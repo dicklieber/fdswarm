@@ -80,19 +80,88 @@ To compile all the modules:
 ```
 
 ### Running Tests
-To run the project tests:
-```bash
-./mill fdswarm.test.testLocal
+
+Run these commands from the repository root, using BellSoft Liberica JDK 21 Full
+(which includes JavaFX). UI tests and the QSO export/import integration test need
+an available desktop session.
+
+Keep test output separate from IntelliJ's build output:
+
+```sh
+export MILL_OUTPUT_DIR=/private/tmp/fdswarm-tests
+./mill --no-server fdswarm.test
 ```
+
+The application suite includes `fdswarm.integration.QsoExportImportTest`. To run
+only that test (generate 100 QSOs, export ADIF and Cabrillo, clear the temporary
+store, import ADIF, and compare against saved JSON):
+
+```sh
+./mill --no-server fdswarm.test.testOnly fdswarm.integration.QsoExportImportTest
+```
+
+To run the shared-module tests as well:
+
+```sh
+./mill --no-server common.test
+```
+
+### Test Results Report
+
+Application test runs automatically generate a JUnit XML report. Convert it to a
+self-contained HTML report with Python 3 (standard library only). The report shows
+counts, pass/fail results, skipped tests, execution times, full failure details,
+and any output captured in the XML.
+
+After running `fdswarm.test`, generate and open the HTML report on macOS:
+
+```sh
+python3 scripts/junit-to-html.py "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.xml" &&
+  open "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.html"
+```
+
+After running `fdswarm.test.testOnly`, use:
+
+```sh
+python3 scripts/junit-to-html.py "$MILL_OUTPUT_DIR/fdswarm/test/testOnly.dest/test-report.xml" &&
+  open "$MILL_OUTPUT_DIR/fdswarm/test/testOnly.dest/test-report.html"
+```
+
+These commands assume `MILL_OUTPUT_DIR` was exported as shown above. Otherwise,
+replace `$MILL_OUTPUT_DIR` with `out`. The original XML remains available for tools
+that support JUnit reports. Each HTML report is written beside its XML input.
 
 ### Test Coverage Reports
-This project uses Scoverage for code coverage.
 
-To generate an HTML coverage report:
-```bash
-./mill fdswarm.scoverage.htmlReport
+The application tests collect Scoverage data automatically. Run the full suite
+before generating a report; running only one test gives partial coverage.
+
+On macOS, run the tests, generate both HTML reports, and open both in the default
+browser. Reports are generated even if tests fail; the final command retains the
+test failure status:
+
+```sh
+(
+  export MILL_OUTPUT_DIR=/private/tmp/fdswarm-tests
+  test_status=0
+  ./mill --no-server fdswarm.test || test_status=$?
+  python3 scripts/junit-to-html.py "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.xml" &&
+    ./mill --no-server fdswarm.scoverage.htmlReport &&
+    open "$MILL_OUTPUT_DIR/fdswarm/test/testForked.dest/test-report.html" \
+         "$MILL_OUTPUT_DIR/fdswarm/scoverage/htmlReport.dest/index.html" &&
+    test "$test_status" -eq 0
+)
 ```
-The report will be available at: `out/fdswarm/scoverage/htmlReport.dest/index.html`
+
+Use the same `MILL_OUTPUT_DIR` for testing and reporting. Without that environment
+variable, the report is written to `out/fdswarm/scoverage/htmlReport.dest/index.html`.
+The `open` command is macOS-specific.
+
+Other coverage report formats:
+
+- **XML Report**: `./mill --no-server fdswarm.scoverage.xmlReport`
+- **Console Report**: `./mill --no-server fdswarm.scoverage.consoleReport`
+- **Cobertura XML**: `./mill --no-server fdswarm.scoverage.xmlCoberturaReport`
 
 ## Releases and Artifacts
 ### Build & Release fdswarm.jar
@@ -303,11 +372,6 @@ Running `manager.run` keeps that Mill process alive. Using a dedicated `MILL_OUT
 
 ## Logging
 For information on how to configure and change log levels, see [docs/logging.md](docsOLD/logging.md).
-
-Other coverage report formats:
-- **XML Report**: `./mill fdswarm.scoverage.xmlReport`
-- **Console Report**: `./mill fdswarm.scoverage.consoleReport`
-- **Cobertura XML**: `./mill fdswarm.scoverage.xmlCoberturaReport`
 
 ## Documentation
 
