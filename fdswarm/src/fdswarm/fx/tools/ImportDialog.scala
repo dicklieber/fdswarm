@@ -83,6 +83,14 @@ final class ImportDialog @Inject()(
     progressLabel.managed = false
     progressLabel.visible = false
 
+    val includeOlderCheckBox = new CheckBox("Include QSOs older than two months"):
+      selected = false
+      tooltip = new Tooltip("This helps avoiding importing from a previous Field Day."):
+        wrapText = true
+      wrapText = true
+      minHeight = Region.USE_PREF_SIZE
+
+    val resultIgnoredLabel = reportLabel()
     val resultTotalLabel = reportLabel()
     val resultParsedLabel = reportLabel()
     val resultSuccessLabel = reportLabel()
@@ -119,7 +127,7 @@ final class ImportDialog @Inject()(
 
     val resultsBox = new VBox(4,
       new Separator, reportLabel("Import Results:"), resultTotalLabel, resultParsedLabel,
-      resultSuccessLabel, resultDupLabel, resultErrorLabel, errorListArea, saveFailedButton):
+      resultSuccessLabel, resultIgnoredLabel, resultDupLabel, resultErrorLabel, errorListArea, saveFailedButton):
       managed = false
       visible = false
       padding = Insets(8, 0, 0, 0)
@@ -127,7 +135,7 @@ final class ImportDialog @Inject()(
     val contentPane = new VBox(8,
       reportLabel("Import File:"), fileRow,
       reportLabel("JSON journals merge by UUID and preserve original timestamps and metadata, just like node synchronization. ADIF retains its existing callsign/band/mode duplicate checks."),
-      progressBar, progressLabel, resultsBox):
+      includeOlderCheckBox, progressBar, progressLabel, resultsBox):
       padding = Insets(20)
 
     val importButtonType = new ButtonType("Import", ButtonBar.ButtonData.OKDone)
@@ -167,6 +175,8 @@ final class ImportDialog @Inject()(
         event.consume()
         val filePath = selectedPath.value
         if filePath.nonEmpty then
+          val includeOlder = includeOlderCheckBox.selected.value
+          includeOlderCheckBox.disable = true
           running = true
           importNode.disable = true
           browseButton.disable = true
@@ -175,10 +185,10 @@ final class ImportDialog @Inject()(
           val task = new JfxTask[QsoImportResult]:
             override def call(): QsoImportResult =
               updateMessage("Reading import file…")
-              importer.importFile(new java.io.File(filePath), (processed, total) =>
+              importer.importFile(new java.io.File(filePath), (processed, total) => {
                 updateProgress(processed, total)
                 updateMessage(s"$processed of $total records processed")
-              )
+              }, includeOlderThanTwoMonths = includeOlder)
           progressBar.progress <== task.progressProperty()
           progressLabel.text <== task.messageProperty()
 
@@ -195,6 +205,7 @@ final class ImportDialog @Inject()(
             val journal = result.format == QsoImportFormat.Journal
             resultTotalLabel.text = s"Total records in file: ${fmt(result.totalRecords)}"
             resultParsedLabel.text = s"Parsed QSO records: ${fmt(result.parsedRecords)}"
+            resultIgnoredLabel.text = s"Ignored (older than two months): ${fmt(result.ignoredOlder)}"
             resultSuccessLabel.text = s"Successfully added: ${fmt(result.added)}"
             val policy = if journal then "same UUID" else "same callsign/band/mode"
             resultDupLabel.text = s"Duplicates rejected ($policy): ${fmt(result.duplicates)}"
@@ -222,6 +233,7 @@ final class ImportDialog @Inject()(
             progressBar.progress = 0
             progressLabel.text = s"Import failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}"
             importNode.disable = false
+            includeOlderCheckBox.disable = false
             browseButton.disable = false
             cancelNode.disable = false
 

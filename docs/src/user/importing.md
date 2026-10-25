@@ -4,6 +4,12 @@ Choose **File → Import…**, then use **Browse…** to select a file. The file
 accepts `.json`, `.adi` and `.adif` files. Its extension selects the importer.
 Import runs in the background, with progress and a completion report in the dialog.
 
+**Include QSOs older than two months** is unchecked by default for both formats.
+Contacts older than two calendar months before the import begins (calculated in UTC)
+are skipped; contacts exactly at the cutoff are included. Check it when importing older data for testing.
+The report and log show the number ignored separately from duplicates and parse errors.
+Imported contacts that are accepted remain available after restarting the application.
+
 ## QSO journals
 
 A `.json` file must contain one complete FDSwarm QSO JSON object per line, as in
@@ -16,12 +22,13 @@ Journal import uses the same store merge as node synchronization:
 - A record is rejected as a duplicate only if its UUID is already in the store,
   including a UUID accepted earlier in the same file. The first record wins.
 - Different UUIDs are accepted even when callsign, band and mode are identical.
-- No contest-start date filter is applied, matching synchronization behavior.
+- The optional two-month age filter runs before the UUID merge.
 - Invalid lines are reported with their physical line numbers; other valid lines
   continue to be imported.
 
 The report shows total nonblank records, parsed QSO records, records added,
-duplicates rejected and line parse errors. Added plus duplicates equals parsed;
+duplicates rejected, older records ignored and line parse errors. Added plus duplicates
+plus ignored equals parsed;
 parsed plus parse errors equals total. Full rejected lines are shown and can be
 saved as JSON lines for inspection or repair. Duplicate lines are counted, rather
 than included in this failed-line file.

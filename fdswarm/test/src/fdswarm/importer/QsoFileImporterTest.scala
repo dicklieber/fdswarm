@@ -20,6 +20,44 @@ class QsoFileImporterTest extends FunSuite:
 
   private def importer(store: QsoStore) = new QsoFileImporter(store, ContestTypes.configured)
 
+  test("journal age filter defaults on, includes the two-month boundary, and can be disabled"):
+    val store = mock(classOf[QsoStore])
+    when(store.addReplicated(any[Seq[Qso]]())).thenAnswer(invocation =>
+      invocation.getArgument[Seq[Qso]](0).size)
+    val now = Instant.parse("2026-10-25T18:00:00Z")
+    val boundary = first.copy(stamp = Instant.parse("2026-08-25T18:00:00Z"), uuid = "boundary")
+    val old = first.copy(stamp = boundary.stamp.minusNanos(1))
+    val recent = first.copy(stamp = now.minusSeconds(60), uuid = "recent")
+    withFile("journal.json", Seq(old, boundary, recent).map(_.asJsonCompact).mkString("\n")) { file =>
+      val filtered = importer(store).importFile(file, now = now)
+      assertEquals(filtered.added, 2)
+      assertEquals(filtered.ignoredOlder, 1)
+      assertEquals(filtered.parsedRecords, 3)
+      assertEquals(filtered.duplicates, 0)
+      val unfiltered = importer(store).importFile(file, includeOlderThanTwoMonths = true, now = now)
+      assertEquals(unfiltered.added, 3)
+      assertEquals(unfiltered.ignoredOlder, 0)
+    }
+    val captured = ArgumentCaptor.forClass(classOf[Seq[Qso]])
+    verify(store, times(2)).addReplicated(captured.capture())
+    assertEquals(captured.getAllValues.get(0), Seq(boundary, recent))
+
+  test("ADIF age filter skips old contacts before duplicate checks and can be disabled"):
+    val store = mock(classOf[QsoStore])
+    when(store.add(any[Qso]())).thenReturn(StyledMessage("Added", "addQsoOk"))
+    val base = "<CALL:5>K1ABC <BAND:3>20M <MODE:2>CW <CLASS:2>1A <ARRL_SECT:2>IL <QSO_DATE:8>20260627 "
+    withFile("contacts.adi", "<EOH>" + base + "<TIME_ON:6>115959 <EOR>" + base + "<TIME_ON:6>120000 <EOR>") { file =>
+      val now = Instant.parse("2026-08-27T12:00:00Z")
+      val filtered = importer(store).importFile(file, now = now)
+      assertEquals(filtered.added, 1)
+      assertEquals(filtered.ignoredOlder, 1)
+      assertEquals(filtered.duplicates, 0)
+      val unfiltered = importer(store).importFile(file, includeOlderThanTwoMonths = true, now = now)
+      assertEquals(unfiltered.added, 2)
+      assertEquals(unfiltered.ignoredOlder, 0)
+    }
+    verify(store, times(3)).add(any[Qso]())
+
   private def withFile[A](name: String, text: String)(run: File => A): A =
     val directory = os.temp.dir(prefix = "fdswarm-import-test-", deleteOnExit = false)
     val path = directory / name
@@ -34,14 +72,14 @@ class QsoFileImporterTest extends FunSuite:
     val service = importer(store)
     val records = Seq(first, second, first)
     withFile("qsosJournal.JSON", records.map(_.asJson.noSpaces).mkString("\n")) { file =>
-      val initial = service.importFile(file)
+      val initial = service.importFile(file, includeOlderThanTwoMonths = true)
       assertEquals(initial.format, QsoImportFormat.Journal)
       assertEquals(initial.totalRecords, 3)
       assertEquals(initial.parsedRecords, 3)
       assertEquals(initial.added, 2)
       assertEquals(initial.duplicates, 1)
       assertEquals(initial.parseErrors, Nil)
-      val repeated = service.importFile(file)
+      val repeated = service.importFile(file, includeOlderThanTwoMonths = true)
       assertEquals(repeated.added, 0)
       assertEquals(repeated.duplicates, 3)
     }
@@ -60,7 +98,7 @@ class QsoFileImporterTest extends FunSuite:
     val text = Seq(first.asJson.noSpaces, malformed, "   ", invalid, second.asJson.noSpaces, "{}").mkString("\n")
     var progress = Vector.empty[(Int, Int)]
     withFile("journal.json", text) { file =>
-      val result = importer(store).importFile(file, (done, total) => progress :+= (done, total))
+      val result = importer(store).importFile(file, (done, total) => progress :+= (done, total), includeOlderThanTwoMonths = true)
       assertEquals(result.totalRecords, 5)
       assertEquals(result.parsedRecords, 2)
       assertEquals(result.added, 2)
@@ -78,14 +116,14 @@ class QsoFileImporterTest extends FunSuite:
   test("empty and all-invalid journals never call the merge"):
     val store = mock(classOf[QsoStore])
     withFile("empty.json", "\n  \n") { file =>
-      val result = importer(store).importFile(file)
+      val result = importer(store).importFile(file, includeOlderThanTwoMonths = true)
       assertEquals(result.totalRecords, 0)
       assertEquals(result.added, 0)
       assertEquals(result.duplicates, 0)
       assertEquals(result.parseErrors, Nil)
     }
     withFile("invalid.json", "{}\nnot JSON\n") { file =>
-      val result = importer(store).importFile(file)
+      val result = importer(store).importFile(file, includeOlderThanTwoMonths = true)
       assertEquals(result.totalRecords, 2)
       assertEquals(result.parsedRecords, 0)
       assertEquals(result.parseErrors.size, 2)
@@ -99,7 +137,7 @@ class QsoFileImporterTest extends FunSuite:
     val good = "<CALL:5>K1ABC <BAND:3>20M <MODE:2>CW <CLASS:2>1A <ARRL_SECT:2>IL <EOR>"
     val bad = "<BAND:3>20M <MODE:2>CW <CLASS:2>1A <ARRL_SECT:2>IL <EOR>"
     withFile("contacts.AdIf", "<ADIF_VER:5>3.1.4 <EOH>" + good + good + bad) { file =>
-      val result = importer(store).importFile(file)
+      val result = importer(store).importFile(file, includeOlderThanTwoMonths = true)
       assertEquals(result.format, QsoImportFormat.Adif)
       assertEquals(result.totalRecords, 3)
       assertEquals(result.parsedRecords, 2)
@@ -133,7 +171,7 @@ class QsoFileImporterTest extends FunSuite:
     logger.setLevel(org.apache.logging.log4j.Level.INFO)
     try
       withFile("journal.json", first.asJson.noSpaces + "\ninvalid JSON\n") { file =>
-        val result = importer(store).importFile(file)
+        val result = importer(store).importFile(file, includeOlderThanTwoMonths = true)
         val events = appender.getEvents.asScala.toVector
           .map(event => io.circe.parser.parse(event.getMessage.getFormattedMessage).toOption.get)
         val summary = events.find(_.hcursor.get[String]("message").contains("QSO import completed")).get.hcursor
