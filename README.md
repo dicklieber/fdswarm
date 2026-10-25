@@ -106,6 +106,75 @@ To run the shared-module tests as well:
 ./mill --no-server common.test
 ```
 
+### Multi-node Integration Test
+
+Run the real application swarm test separately from the MUnit suite. It requires
+Python 3, BellSoft Liberica JDK 21 Full, and a desktop session for the four JavaFX
+application windows. No additional Python packages or UI testing framework are required.
+
+```sh
+python3 scripts/swarm-integration.py
+```
+
+The script builds `fdswarm.jar` using `./mill --no-server fdswarm.assembly`, then:
+
+1. Starts three nodes with fresh, separate application directories and instance IDs.
+2. Configures a contest on one node and verifies the full configuration propagates.
+3. Enters three QSOs on each node and checks that all nodes have identical records.
+4. Starts an empty fourth node and checks it receives the configuration and all QSOs.
+5. Starts a contest on one node and checks every node clears its QSOs and stays cleared.
+6. Changes another node's contest configuration and checks full convergence.
+7. Enters new QSOs on all four nodes and verifies replication still works.
+
+The run prints progress and the location of its temporary artifact directory.
+That directory contains `progress.log` (which can be followed with `tail -f`),
+`build.log`, per-node startup settings and application logs, expected QSO JSON,
+and `test-report.xml` / `test-report.html`. Failed runs also capture each node's
+state through the replication APIs. Artifacts are retained for inspection;
+the script stops only the processes it launched, including after Ctrl-C.
+
+Build output defaults to `/private/tmp/fdswarm-swarm-build`; set `MILL_OUTPUT_DIR`
+to choose another location. To repeat with the existing JAR, or test WFD:
+
+```sh
+python3 scripts/swarm-integration.py --skip-build
+python3 scripts/swarm-integration.py --contest WFD
+```
+
+To collect coverage from the four application JVMs and open both HTML reports on macOS:
+
+```sh
+python3 scripts/swarm-integration.py --coverage --open
+```
+
+Coverage mode builds a separate instrumented JAR with
+`fdswarm.integrationCoverageAssembly`. Each run uses a fresh `coverage-build`
+directory inside its artifact directory, so its measurements are not mixed with
+unit tests or earlier runs. All four nodes contribute to the combined report.
+This mode requires a new build and cannot be combined with `--skip-build` or
+`--jar`; the fresh compilation adds time compared with a cached normal run.
+
+The artifact directory also contains `coverage/index.html`, `coverage.xml`, and
+`coverage.log`. Coverage reports are generated after stopping the nodes, including
+when a scenario fails after launching nodes. The scope matches existing application
+coverage (`fdswarm` sources; the shared `common` module is not instrumented).
+Omit `--open` to generate the reports without opening the browser. `--open` also
+works without `--coverage` to open just the test results.
+
+Use `--java /path/to/java` to select the Java executable, `--timeout 90` to increase
+the deadline per convergence check, or `--skip-build --jar /absolute/path/fdswarm.jar`
+to test an existing build. Open the retained HTML report with macOS `open`.
+
+Before launching, the harness verifies UDP broadcast delivery. On macOS it detects
+a working interface broadcast address; use `--broadcast-address 192.168.1.255`
+(with your LAN’s address) to select one explicitly. Nodes use an isolated UDP port
+and OS-assigned HTTP ports. The harness uses
+`--startupInfo` with `StartupConfig` for each node's operator, band/mode, instance
+ID, clear-QSO flag, discovery setting, and optional `integrationTest` settings.
+Test controls are registered only when the node also receives `--integration-test`;
+they require the matching per-run token. Normal app and manager launches retain
+the normal data directories, UDP port, and API routes.
+
 ### Test Results Report
 
 Application test runs automatically generate a JUnit XML report. Convert it to a

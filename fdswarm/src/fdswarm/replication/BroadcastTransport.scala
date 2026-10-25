@@ -33,7 +33,8 @@ import scala.compiletime.uninitialized
   *   [[fdswarm.util.NodeIdentityManager.nodeIdentity]]
   */
 @Singleton
-class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager, traffic: NetworkTraffic)
+class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager, traffic: NetworkTraffic,
+    startupInfo: fdswarm.StartupInfo)
     extends Transport
     with StatsSource(Locus.UDP)
     with Runnable
@@ -44,7 +45,7 @@ class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager, traffic: 
   override val mode: String = "Broadcast"
   val buffer = new Array[Byte](65535)
 
-  val port = 8090
+  val port = startupInfo.integrationTest.map(_.udpPort).getOrElse(8090)
   val thread = new Thread(this, "Broadcast-Receiver")
 
   private val sendCounter = addCounter("send")
@@ -100,7 +101,8 @@ class BroadcastTransport @Inject() (nodeIdentity: NodeIdentityManager, traffic: 
   ): Unit =
     try
       val packetBytes = UDPHeader(service, NodeIdentityManager.nodeIdentity, data)
-      val broadcastAddr = InetAddress.getByName("255.255.255.255")
+      val broadcastAddr = InetAddress.getByName(
+        startupInfo.integrationTest.map(_.broadcastAddress).getOrElse("255.255.255.255"))
       val packet =
         new DatagramPacket(packetBytes, packetBytes.length, broadcastAddr, port)
       socket.send(packet)

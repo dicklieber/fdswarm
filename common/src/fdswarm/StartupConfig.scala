@@ -37,7 +37,12 @@ case class StartupConfig(enable: Boolean = true,
                          clearQsos: Boolean = false,
                          skipInitDiscover: Boolean = false,
                          debugMode: DebugMode = DebugMode.Off,
-                         id: Id = Ids.generateInstanceId()) derives Codec.AsObject {
+                         id: Id = Ids.generateInstanceId(),
+                         integrationTest: Option[IntegrationTestConfig] = None) derives Codec.AsObject {
   override def toString: String =
     s"DebugConfig(operator=$operator, bandMode=$bandMode, clearQsos=$clearQsos, skipInitDiscover=$skipInitDiscover, id=$id)"
 }
+
+/** Used only with the explicit --integration-test command-line option. */
+case class IntegrationTestConfig(dataDirectory: String, udpPort: Int, token: String,
+    broadcastAddress: String = "255.255.255.255") derives Codec.AsObject

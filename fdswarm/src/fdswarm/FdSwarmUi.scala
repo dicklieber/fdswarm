@@ -127,13 +127,15 @@ final class FdSwarmUi @Inject()(
     )
 
     def showWelcome(): Unit =
-      menus.withMenuItemsDisabled {
-        welcomeDialog.showAndWait(stage)
-      }
+      if startupInfo.integrationTest.isEmpty then
+        menus.withMenuItemsDisabled {
+          welcomeDialog.showAndWait(stage)
+        }
 
     val shouldRunDiscovery =
-      !contestConfigManager.contestConfigProperty.value.isDefined ||
-        !contestStartManager.contestStart.value.isStarted
+      !startupInfo.info.exists(_.skipInitDiscover) &&
+        (!contestConfigManager.contestConfigProperty.value.isDefined ||
+          !contestStartManager.contestStart.value.isStarted)
 
     if shouldRunDiscovery then
       val discoveryAlert = new Alert(Alert.AlertType.Information):

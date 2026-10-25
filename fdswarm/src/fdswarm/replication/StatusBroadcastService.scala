@@ -81,7 +81,7 @@ class StatusBroadcastService @Inject() (
       val bandModeOperator = BandModeOperator(operator, bandMode)
 
       val statusMessage: StatusMessage = localNodeStatus.statusMessage
-      val gzipBytes = statusMessage.toPacket
+      val gzipBytes = statusMessage.forBroadcast.toPacket
       transport.send(Service.Status, gzipBytes)
     catch case e: Exception =>
       logger.error("Error broadcasting node status", e)

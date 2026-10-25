@@ -36,12 +36,15 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 class ConfigModule(rawArgs: Array[String]) extends AbstractModule with ScalaModule with LazyStructuredLogging:
 
   override def configure(): Unit =
-    val fileHelper = new FileHelper()
+    val startupInfo = new StartupInfo(rawArgs)
+    val fileHelper = startupInfo.integrationTest match
+      case Some(settings) => new FileHelper:
+        override val directory: os.Path = os.Path(settings.dataDirectory)
+      case None => new FileHelper()
     val loggingManager = new fdswarm.util.LoggingManager(fileHelper)
     bind[fdswarm.util.LoggingManager].toInstance(loggingManager)
     bind[FileHelper].toInstance(fileHelper)
 
-    val startupInfo = new StartupInfo(rawArgs)
     bind[StartupInfo].toInstance(startupInfo)
     fdswarm.util.LoggingConfigurator.addFileAppender(fileHelper)
     loggingManager.applyInitialConfig()

@@ -50,6 +50,11 @@ case class StatusMessage(
     metrics: Seq[MetricStat]
 )
     derives Codec.AsObject, Schema:
+  /** Remote nodes consume network usage; diagnostic histograms remain available over HTTP.
+    * Sending every local diagnostic metric can exceed the broadcast interface MTU.
+    */
+  def forBroadcast: StatusMessage = copy(metrics = metrics.filter(_.metricName.startsWith("network.")))
+
   def toPacket: Array[Byte] =
     val jsonBytes = this.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)
     Gzip.compress(jsonBytes)

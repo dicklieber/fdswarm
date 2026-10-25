@@ -28,6 +28,25 @@ import munit.FunSuite
 import java.time.Instant
 
 class StatusMessageTest extends FunSuite:
+  test("broadcasts retain all traffic metrics and synchronization fields without diagnostic histograms"):
+    import fdswarm.metric.{CounterSnapshot, MeterSnapshot, NetworkTraffic, TimerSnapshot}
+    val traffic = NetworkTraffic.categories.zipWithIndex.flatMap { case ((category, _), index) =>
+      Seq("sent", "received").flatMap { direction =>
+        Seq(MeterSnapshot(s"network.$category.$direction.bytes", index * 12345L,
+          index * 1.2345, index * 2.3456, index * 3.4567),
+          CounterSnapshot(s"network.$category.$direction.events", index * 123L))
+      }
+    } ++ Seq(CounterSnapshot("network.qsoFetch.completed", 10), CounterSnapshot("network.qsoFetch.noChange", 3))
+    val diagnostics = (0 until 40).map(index => TimerSnapshot.empty.copy(metricName = s"diagnostic.timer.$index"))
+    val original = StatusMessage(StoreStats("hash", 9, 3),
+      BandModeOperator(Callsign("W1AW"), BandMode("20m CW")), None,
+      Instant.parse("2026-10-25T19:00:00Z"), traffic ++ diagnostics)
+    val broadcast = original.forBroadcast
+    assertEquals(broadcast, original.copy(metrics = traffic))
+    assertEquals(StatusMessage(broadcast.toPacket), broadcast)
+    assertEquals(original.metrics.size, traffic.size + diagnostics.size)
+    val packet = UDPHeader(Service.Status, fdswarm.model.QsoMetadata.testQsoMetadata.node, broadcast.toPacket)
+    assert(packet.length <= 1472, s"Broadcast must fit a 1500-byte interface MTU: ${packet.length}")
   private val dummyBno = BandModeOperator(Callsign("WA9NNN"), BandMode("40M", "CW"), Instant.parse("2026-03-16T20:11:04Z"))
   private val dummyContestConfig = ContestConfig(ContestTypes.configured("ARRL"),
     Callsign("WA9NNN"),

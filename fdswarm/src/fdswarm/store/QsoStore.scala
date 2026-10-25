@@ -218,6 +218,7 @@ class QsoStore @Inject() (
     val currentQsos = map.values.toSeq
     val (removed, kept) = currentQsos.partition(_.stamp.isBefore(cutoff))
     if removed.nonEmpty then
+      os.makeDir.all(archiveDirectory)
       val timestampedFile = archiveDirectory / s"${filenameStamp.build()}.qsosJournal.json"
       if os.isFile(path) then os.move(path, timestampedFile)
       val orderedKept = kept.sorted

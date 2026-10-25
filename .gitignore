@@ -1,4 +1,5 @@
-/.bsp/
+.bsp/
+.scala-build/
 /.idea/
 /out*/
 /fdswarm-runtimes/

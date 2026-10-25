@@ -46,6 +46,9 @@ class StartupConfigTest extends FunSuite {
     assert(jsonStr.contains("\"id\":\"ABC\""))
     val parsed = parse(jsonStr).flatMap(_.as[StartupConfig])
     assertEquals(parsed, Right(original))
+    // Existing manager configuration files predate the optional integration settings.
+    val legacy = original.asJson.mapObject(_.remove("integrationTest")).noSpaces
+    assertEquals(decode[StartupConfig](legacy), Right(original))
   }
 
   test("StartupConfig round-trips through JSON with non-defaults") {
@@ -83,7 +86,8 @@ class StartupConfigTest extends FunSuite {
                             |  "clearQsos" : false,
                             |  "skipInitDiscover" : false,
                             |  "debugMode" : "Wait",
-                            |  "id" : "ABC"
+                            |  "id" : "ABC",
+                            |  "integrationTest" : null
                             |}""".stripMargin)
     val parsed = parse(jsonStr).flatMap(_.as[StartupConfig])
     assertEquals(parsed, Right(original))

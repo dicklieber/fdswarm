@@ -34,7 +34,7 @@ final class SelectedBandModeManager @Inject()(fileHelper: FileHelper,
 
   private val fileName = "selected-bandmode.json"
 
-  val selected: ObjectProperty[BandMode] = ObjectProperty(load())
+  val selected: ObjectProperty[BandMode] = ObjectProperty(startupInfo.info.map(_.bandMode).getOrElse(load()))
 
   selected.onChange { (_, _, newValue) =>
     persist(newValue)

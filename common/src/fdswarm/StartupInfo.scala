@@ -58,5 +58,13 @@ class StartupInfo(rawArgs: Array[String]) extends LazyStructuredLogging():
         case e: Exception =>
           logger.debug(s"Failed to read startup info file '$pathString': ${e.getClass.getSimpleName}: ${e.getMessage}")
           None
-  
-  
+  val integrationTest: Option[IntegrationTestConfig] =
+    if rawArgs.contains("--integration-test") then
+      val settings = info.flatMap(_.integrationTest).getOrElse(
+        throw new IllegalArgumentException("--integration-test requires integrationTest settings in --startupInfo"))
+      require(java.nio.file.Paths.get(settings.dataDirectory).isAbsolute, "Integration dataDirectory must be absolute")
+      require(settings.udpPort > 1024 && settings.udpPort <= 65535 && settings.udpPort != 8090,
+        "Integration UDP port must be between 1025 and 65535 and different from the normal port 8090")
+      require(settings.token.length >= 32, "Integration token must contain at least 32 characters")
+      Some(settings)
+    else None

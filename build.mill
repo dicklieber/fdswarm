@@ -11,6 +11,7 @@ import mill.*
 import mill.contrib.buildinfo.BuildInfo
 import mill.contrib.scoverage.*
 import mill.scalalib.*
+import scala.jdk.CollectionConverters.*
 
 object common extends CommonSettings with BuildInfo:
   def buildInfoPackageName = "com.organization"
@@ -92,6 +93,35 @@ object fdswarm
   }
 
   def scoverageVersion = scoverageV
+
+  /** Preserve the release JAR's manifest/resources while replacing app classes with
+    * their instrumented counterparts. Scala 3's coverage runtime is in scala-library.
+    */
+  def integrationCoverageAssembly = Task {
+    val application = assembly().path
+    val instrumented = scoverage.compile().classes.path
+    val destination = Task.dest / "fdswarm-coverage.jar"
+    val replacements = os.walk(instrumented).filter(os.isFile(_)).map { path =>
+      path.relativeTo(instrumented).toString -> path
+    }.toMap
+    // Mill prepends a shell launcher to its assembly. The JDK jar update command
+    // does not preserve that archive, so create a standard runnable JAR directly.
+    scala.util.Using.resources(new java.util.zip.ZipFile(application.toIO),
+      new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(destination.toIO.toPath))) { (input, output) =>
+      input.entries().asScala.filterNot(entry => replacements.contains(entry.getName)).foreach { entry =>
+        output.putNextEntry(new java.util.zip.ZipEntry(entry.getName))
+        if !entry.isDirectory then
+          scala.util.Using.resource(input.getInputStream(entry))(_.transferTo(output))
+        output.closeEntry()
+      }
+      replacements.toSeq.sortBy(_._1).foreach { (name, path) =>
+        output.putNextEntry(new java.util.zip.ZipEntry(name))
+        java.nio.file.Files.copy(path.toIO.toPath, output)
+        output.closeEntry()
+      }
+    }
+    PathRef(destination)
+  }
 
   def mvnDeps = Seq(
     mvn"org.apache.logging.log4j:log4j-api:$log4jV",
