@@ -30,6 +30,19 @@ import java.time.Instant
 
 class QsoStoreTest extends FunSuite:
 
+  test("journal reload retains imported contacts predating contest start and ignores repeated UUIDs"):
+    val directory = os.temp.dir(prefix = "fdswarm-import-restart-", deleteOnExit = false)
+    try
+      val imported = Seq(qsoForStamp("2026-06-27T19:24:00Z"), qsoForStamp("2026-06-28T12:00:00Z"))
+      val path = directory / "qsosJournal.json"
+      os.write(path, (imported :+ imported.head).map(_.asJsonCompact).mkString("\n"))
+      val saved = os.read(path)
+      val restored = QsoStore.readJournal(path)
+      assertEquals(restored, imported)
+      assert(restored.forall(_.stamp.isBefore(Instant.parse("2026-10-22T19:21:12Z"))))
+      assertEquals(os.read(path), saved)
+    finally os.remove.all(directory)
+
   test("sameBandMode matches band and mode case-insensitively"):
     val left = BandMode("20M SSB")
     val right = BandMode("20m SSB")

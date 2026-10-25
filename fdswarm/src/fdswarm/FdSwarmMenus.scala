@@ -61,7 +61,7 @@ final class FdSwarmMenus @Inject()(
                                    userConfig: UserConfig,
                                    userConfigEditor: UserConfigEditor,
                                    exportDialog: ExportDialog,
-                                   adifImportDialog: AdifImportDialog,
+                                   importDialog: ImportDialog,
                                    sectionsProvider: fdswarm.fx.sections.SectionsProvider,
                                    sectionPanel: fdswarm.fx.sections.SectionPanel,
                                    swarmStatusAdmin: fdswarm.fx.admin.SwarmStatusAdmin,
@@ -229,8 +229,8 @@ final class FdSwarmMenus @Inject()(
 
   private def fileMenu: Menu =
     new Menu("File"):
-      private val importItem = new MenuItem("Import ADIF…"):
-        onAction = _ => adifImportDialog.show(FdSwarmUi.primaryStage)
+      private val importItem = new MenuItem("Import…"):
+        onAction = _ => importDialog.show(FdSwarmUi.primaryStage)
       private val exportItem = new MenuItem("Export"):
         onAction = _ =>
           exportDialog.show(

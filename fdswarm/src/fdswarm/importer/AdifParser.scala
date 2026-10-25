@@ -21,8 +21,11 @@ import fdswarm.fx.contest.ContestType
 import fdswarm.model.*
 import java.io.InputStream
 
-/** Carries the raw ADIF record string and the exception thrown when parsing it. */
-case class QsoError(record: String, exception: Exception)
+/** Carries a complete rejected record and, for journals, its physical line number. */
+case class QsoError(record: String, exception: Exception, lineNumber: Option[Int] = None):
+  def message: String =
+    val detail = Option(exception.getMessage).getOrElse(exception.getClass.getSimpleName)
+    lineNumber.map(line => s"Line $line: $detail").getOrElse(detail)
 
 /** Parses an ADIF (.adi) file from an [[InputStream]] into individual [[Qso]] objects
   * via a callback, enabling streaming progress reporting.

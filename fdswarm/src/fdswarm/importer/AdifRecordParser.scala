@@ -65,8 +65,17 @@ class AdifRecordParser(
           val stored = fields("APP_FDSWARM_MODE").trim.toUpperCase
           Mode.values.find(_.toString == stored)
             .getOrElse(throw new IllegalArgumentException(s"Unknown fdswarm mode: $stored"))
-      val classStr = fields("CLASS").toUpperCase
-      val sectStr  = fields("ARRL_SECT").toUpperCase
+      // N3FJP's FT8 Field Day export stores the received exchange in RST_RCVD/SRX.
+      // Restrict these fallbacks to Field Day records; ordinary signal reports are not classes.
+      val fieldDay = Seq("CONTEST_ID", "COMMENT").exists(key =>
+        fields.get(key).exists(value => Set("ARRL-FD", "WFD").contains(value.trim.toUpperCase)))
+      def exchangeField(primary: String, alternatives: String*): String =
+        fields.get(primary)
+          .orElse(if fieldDay then alternatives.iterator.flatMap(fields.get).find(_.nonEmpty) else None)
+          .getOrElse(throw new IllegalArgumentException(s"Missing received exchange field: $primary"))
+          .trim.toUpperCase
+      val classStr = exchangeField("CLASS", "RST_RCVD")
+      val sectStr  = exchangeField("ARRL_SECT", "SRX", "N3FJP_SERIAL_NO_RCVD", "N3FJP_SPCNUM")
       val callsign = Callsign(callStr)
       val bandMode = new BandMode(Band.fromString(bandStr), mode)
       val exchange = Exchange(FdClass(classStr), sectStr)

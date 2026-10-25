@@ -187,24 +187,17 @@ class QsoStore @Inject() (
   )
 
   if os.isFile(path) then
-    val cutoff = activeContestStart
+    // Imports may intentionally contain contacts from before the current contest start.
+    // Restore everything persisted; advancing contest start handles explicit pruning.
     var loaded = 0
-    var ignoredOlderThanContestStart = 0
-    os.read.lines(path).iterator.map(_.trim).filter(_.nonEmpty).foreach { line =>
-      decode[Qso](line) match
-        case Right(qso) =>
-          if QsoStore.isBeforeContestStart(qso, cutoff) then ignoredOlderThanContestStart += 1
-          else
-            Ports.port(qso.qsoMetadata.node)
-            if map.putIfAbsent(qso.uuid, qso).isEmpty then
-              loaded += 1
-              mutateQsoCollection(qsoCollection.prepend(qso))
-        case Left(error) => logger.error(s"Failed to decode Qso from line: $line", error)
+    QsoStore.readJournal(path).foreach { qso =>
+      Ports.port(qso.qsoMetadata.node)
+      if map.putIfAbsent(qso.uuid, qso).isEmpty then
+        loaded += 1
+        mutateQsoCollection(qsoCollection.prepend(qso))
     }
     logger.info("qso-journal-load",
-      "contestStart" -> cutoff,
-      "loaded" -> loaded,
-      "ignoredOlderThanContestStart" -> ignoredOlderThanContestStart
+      "loaded" -> loaded
     )
     calculateStats()
   else if os.exists(path) then
@@ -220,8 +213,6 @@ class QsoStore @Inject() (
     if Platform.isFxApplicationThread then mutation else Platform.runLater(() => mutation)
 
   def size: Int = map.size
-
-  private def activeContestStart: Instant = contestStartManager.contestStart.value.start
 
   private def removeOlderThanAndRewrite(cutoff: Instant): Unit =
     val currentQsos = map.values.toSeq
@@ -253,7 +244,16 @@ class QsoStore @Inject() (
         "kept" -> currentQsos.size
       )
 
-object QsoStore:
+object QsoStore extends LazyStructuredLogging:
+  private[store] def readJournal(path: Path): Seq[Qso] =
+    os.read.lines(path).iterator.map(_.trim).filter(_.nonEmpty).flatMap { line =>
+      decode[Qso](line) match
+        case Right(qso) => Some(qso)
+        case Left(error) =>
+          logger.error(s"Failed to decode Qso from line: $line", error)
+          None
+    }.toVector.distinctBy(_.uuid)
+
   private[store] def isBeforeContestStart(qso: Qso, contestStart: Instant): Boolean =
     qso.stamp.isBefore(contestStart)
 

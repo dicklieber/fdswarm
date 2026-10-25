@@ -28,6 +28,35 @@ class AdifRecordParserTest extends FunSuite:
 
   private val parser = AdifRecordParser(() => fdswarm.model.QsoMetadata.adifImportQsoMetadata(ContestTypes.configured("ARRL")))
 
+  private val ft8Record =
+    "<Call:3>K2I <QSO_Date:8>20260627 <Time_On:6>192400 <Band:3>40M " +
+      "<Comment:7>ARRL-FD <Mode:3>FT8 <RST_Sent:2>5A <RST_Rcvd:2>4A " +
+      "<SRX:3>NNY <N3FJP_Serial_No_Rcvd:3>NNY <N3FJP_SPCNum:3>NNY <STX:2>IL <EOR>"
+
+  test("N3FJP FT8 Field Day records use the received class and section"):
+    val qso = parser.parseRecord(ft8Record).get
+    assertEquals(qso.exchange.fdClass.toString, "4A")
+    assertEquals(qso.exchange.sectionCode, "NNY")
+    assertEquals(qso.bandMode.mode, Mode.DIGI)
+    assertEquals(qso.stamp, Instant.parse("2026-06-27T19:24:00Z"))
+    assertEquals(parser.parseRecord(ft8Record.replace("<RST_Rcvd:2>4A", "<RST_Rcvd:3>10A")).get.exchange.fdClass.toString, "10A")
+
+  test("explicit exchange fields take precedence over N3FJP fallbacks"):
+    val qso = parser.parseRecord(ft8Record + "<CLASS:2>1D <ARRL_SECT:2>OH").get
+    assertEquals(qso.exchange.fdClass.toString, "1D")
+    assertEquals(qso.exchange.sectionCode, "OH")
+
+  test("N3FJP section alternatives are used when SRX is absent"):
+    val withoutSrx = ft8Record.replace("<SRX:3>NNY", "")
+    assertEquals(parser.parseRecord(withoutSrx).get.exchange.sectionCode, "NNY")
+    assertEquals(parser.parseRecord(withoutSrx.replace("<N3FJP_Serial_No_Rcvd:3>NNY", "")).get.exchange.sectionCode, "NNY")
+
+  test("exchange fallbacks require Field Day identification and a valid received class"):
+    assert(parser.parseRecord(ft8Record.replace("<Comment:7>ARRL-FD", "")).isFailure)
+    assert(parser.parseRecord(ft8Record.replace("<RST_Rcvd:2>4A", "<RST_Rcvd:2>59")).isFailure)
+    assert(parser.parseRecord(ft8Record.replace("<RST_Rcvd:2>4A", "")).isFailure)
+    assert(parser.parseRecord(ft8Record.replace("<SRX:3>NNY", "").replace("<N3FJP_Serial_No_Rcvd:3>NNY", "").replace("<N3FJP_SPCNum:3>NNY", "")).isFailure)
+
   test("older fdswarm DATA exports import as digital rather than phone"):
     val record = "<CALL:5>K1ABC <BAND:3>20M <MODE:4>DATA <CLASS:2>1A <ARRL_SECT:2>IL <EOR>"
     assertEquals(parser.parseRecord(record).get.bandMode.mode, Mode.DIGI)
