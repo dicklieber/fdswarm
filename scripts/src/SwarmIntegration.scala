@@ -1,5 +1,3 @@
-//> using file support/ScriptSupport.scala support/JunitReport.scala
-
 import fdswarm.scripts.{JunitReport, ScriptSupport}
 import ScriptSupport.*
 import io.circe.Json
@@ -23,9 +21,9 @@ object SwarmIntegration:
       broadcastAddress: Option[String] = None, timeoutSeconds: Double = 60):
     def buildDirectory(directory: Path): Path =
       if coverage then directory.resolve("coverage-build")
-      else Path.of(sys.env.getOrElse("MILL_OUTPUT_DIR", "/private/tmp/fdswarm-swarm-build")).toAbsolutePath.normalize()
+      else Path.of(sys.env.getOrElse("FDSWARM_SWARM_BUILD_DIR", "/private/tmp/fdswarm-swarm-build")).toAbsolutePath.normalize()
 
-  val help = """Usage: scala-cli run scripts/swarm-integration.scala -- [options]
+  val help = """Usage: ./mill --no-server scripts.runMain runSwarmIntegration [options]
   --coverage                 Build an instrumented JAR; combine coverage from all nodes
   --open                     Open generated HTML reports in the default browser (macOS)
   --skip-build               Reuse the existing application assembly

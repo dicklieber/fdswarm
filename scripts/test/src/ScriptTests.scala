@@ -1,4 +1,4 @@
-with import fdswarm.scripts.{JunitReport, ScriptSupport}
+import fdswarm.scripts.{JunitReport, ScriptSupport}
 import ScriptSupport.*
 import io.circe.Json
 import io.circe.syntax.*

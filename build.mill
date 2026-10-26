@@ -236,3 +236,15 @@ object rigctlTool extends CommonSettings:
   )
 
 object docs extends DocsModule(common, fdswarm)
+
+object scripts extends ScalaModule:
+  def scalaVersion = Versions.scala
+
+  def mvnDeps = Seq(
+    mvn"io.circe::circe-parser:0.14.10"
+  )
+
+  override def forkWorkingDir = Task { moduleDir / os.up }
+
+  object test extends ScalaTests with TestModule.Munit:
+    def munitVersion = Versions.munit

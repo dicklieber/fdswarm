@@ -1,8 +1,3 @@
-//> using scala "3.10.0"
-//> using jvm "system"
-//> using dep "io.circe::circe-parser:0.14.10"
-//> using test.dep "org.scalameta::munit:1.0.0"
-
 package fdswarm.scripts
 
 import io.circe.Json

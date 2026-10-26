@@ -1,11 +1,9 @@
-//> using file support/ScriptSupport.scala support/JunitReport.scala
-
 import fdswarm.scripts.JunitReport
 import java.nio.file.Path
 import scala.util.control.NonFatal
 
 @main def junitToHtml(arguments: String*): Unit =
-  val help = "Usage: scala-cli run scripts/junit-to-html.scala -- REPORT.xml [--output REPORT.html]"
+  val help = "Usage: ./mill --no-server scripts.runMain junitToHtml REPORT.xml [--output REPORT.html]"
   if arguments.contains("--help") then println(help)
   else
     try
