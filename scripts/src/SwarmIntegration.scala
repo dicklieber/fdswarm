@@ -21,8 +21,6 @@ import scala.util.control.NonFatal
  * parsing options, evaluating configurations, checking exit codes, measuring 
  * runtimes, and executing commands.
  *
- * @constructor Creates a new instance of SwarmIntegration.
- * @param help A descriptive message or help text associated with the system. */
 object SwarmIntegration:
   val coverageJarDirectory: Path = Path.of("/private/tmp/fdswarm-swarm-coverage")
 
