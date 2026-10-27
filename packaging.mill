@@ -285,7 +285,7 @@ trait FdSwarmPackaging extends JpackageModule:
     val (inputDir, mainJarName) =
       getJpackageInput(Task.dest, assembly())
 
-  val baseArgs = Seq(
+    val baseArgs = Seq(
       "jpackage",
       "--type",
       "msi",
@@ -394,6 +394,16 @@ trait FdSwarmPackaging extends JpackageModule:
       runtime = runtimeLinuxAarch64().path,
       dest = Task.dest,
       jar = assembly().path
+    )
+  }
+
+  def distAll = Task {
+    Seq(
+      distWindowsX64(),
+      distWindowsArm64(),
+      distMacosAarch64(),
+      distLinuxX64(),
+      distLinuxAarch64()
     )
   }
 
