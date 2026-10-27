@@ -149,7 +149,7 @@ object SwarmIntegration:
     private var expected = Map.empty[String, Json]
     private var config = Json.Null
     private var broadcastAddress = ""
-    private var jar: Path = null
+    private var jar: Option[Path] = None
     private var coverageExecutable: Option[CoverageExecutable] = None
     private var finished = false
     private var finalFailed = true
@@ -207,20 +207,25 @@ object SwarmIntegration:
       require(process.exitValue() == 0, s"Mill $target failed with exit code ${process.exitValue()}; see $logPath")
 
     private def build(): Unit =
-      if options.skipBuild then
-        jar = options.jar.getOrElse(buildDir.resolve("fdswarm/assembly.dest/fdswarm.jar"))
-      else
-        log(s"Building fdswarm.jar; detailed output: ${directory.resolve("build.log")}")
-        mill(if options.coverage then "fdswarm.integrationCoverageAssembly" else "fdswarm.assembly",
-          directory.resolve("build.log"), progress = true)
-        jar = buildDir.resolve(if options.coverage then "fdswarm/integrationCoverageAssembly.dest/fdswarm-coverage.jar"
-          else "fdswarm/assembly.dest/fdswarm.jar")
-      require(Files.isRegularFile(jar), s"Application JAR not found: $jar")
-      if options.coverage then
-        val executable = new CoverageExecutable(coverageJarDirectory)
-        coverageExecutable = Some(executable)
-        jar = executable.stage(jar)
-        log(s"Coverage executable: $jar")
+      val applicationJar =
+        if options.skipBuild then
+          options.jar.getOrElse(buildDir.resolve("fdswarm/assembly.dest/fdswarm.jar"))
+        else
+          log(s"Building fdswarm.jar; detailed output: ${directory.resolve("build.log")}")
+          mill(if options.coverage then "fdswarm.integrationCoverageAssembly" else "fdswarm.assembly",
+            directory.resolve("build.log"), progress = true)
+          buildDir.resolve(if options.coverage then "fdswarm/integrationCoverageAssembly.dest/fdswarm-coverage.jar"
+            else "fdswarm/assembly.dest/fdswarm.jar")
+      require(Files.isRegularFile(applicationJar), s"Application JAR not found: $applicationJar")
+      val executableJar =
+        if options.coverage then
+          val executable = new CoverageExecutable(coverageJarDirectory)
+          coverageExecutable = Some(executable)
+          val staged = executable.stage(applicationJar)
+          log(s"Coverage executable: $staged")
+          staged
+        else applicationJar
+      jar = Some(executableJar)
 
     private def request(node: Node, path: String, body: Option[Json] = None, control: Boolean = false): Json =
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:${node.port}/$path"))
@@ -329,7 +334,8 @@ object SwarmIntegration:
       val home = Files.createDirectory(nodeDir.resolve("home"))
       reservation.close()
       if index == 0 then udpReservation.foreach(_.close())
-      val command = Seq(options.javaCommand, s"-Duser.home=$home", "-Xmx512m", "-jar", jar.toString,
+      val applicationJar = jar.getOrElse(throw new IllegalStateException("Build the application JAR before launching nodes"))
+      val command = Seq(options.javaCommand, s"-Duser.home=$home", "-Xmx512m", "-jar", applicationJar.toString,
         "--startupInfo", startupPath.toString, "--integration-test")
       log(s"Launching node $name: HTTP $port, shared UDP $udpPort, logs $nodeDir")
       val process = spawn(command, nodeDir, nodeDir.resolve("stdout.log"), Some(nodeDir.resolve("stderr.log")),
