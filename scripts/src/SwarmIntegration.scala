@@ -15,12 +15,7 @@ import scala.jdk.CollectionConverters.*
 import scala.util.{Using, Try}
 import scala.util.control.NonFatal
 
-/**
- * SwarmIntegration is a class responsible for managing and integrating 
- * various functionalities required for a swarm-based system, such as 
- * parsing options, evaluating configurations, checking exit codes, measuring 
- * runtimes, and executing commands.
- *
+/** Runs multi-node integration scenarios and collects test and coverage reports. */
 object SwarmIntegration:
   val coverageJarDirectory: Path = Path.of("/private/tmp/fdswarm-swarm-coverage")
 
@@ -60,7 +55,7 @@ object SwarmIntegration:
       if coverage then directory.resolve("coverage-build")
       else Path.of(sys.env.getOrElse("FDSWARM_SWARM_BUILD_DIR", "/private/tmp/fdswarm-swarm-build")).toAbsolutePath.normalize()
 
-  val help = """Usage: ./mill --no-server scripts.runMain runSwarmIntegration [options]
+  val help: String = """Usage: ./mill --no-server scripts.runMain runSwarmIntegration [options]
   --coverage                 Build an instrumented JAR; combine coverage from all nodes
   --open                     Open generated HTML reports in the default browser (macOS)
   --skip-build               Reuse the existing application assembly

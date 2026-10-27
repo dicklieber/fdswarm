@@ -9,7 +9,7 @@ trait CommonSettings extends ScalaModule:
   private val versionPattern = raw"\d+\.\d+\.\d+(?:-(?:SNAPSHOT|\d+))?"
   private val releaseBuildVersionPattern = raw"\d+\.\d+\.\d+-(\d+)".r
 
-  def version = BuildCtx.watchValue {
+  def version: String = BuildCtx.watchValue {
     if !os.exists(versionFile) then
       throw new RuntimeException(s"Missing version file: $versionFile")
 
@@ -25,28 +25,28 @@ trait CommonSettings extends ScalaModule:
     text
   }
 
-  def installerVersion = version.takeWhile(_ != '-')
-  def buildNumber = version match
+  def installerVersion: String = version.takeWhile(_ != '-')
+  def buildNumber: String = version match
     case releaseBuildVersionPattern(n) => n
     case _                             => "0"
-  def displayVersion = version
-  def artifactVersion = version
-  def majorVersion = installerVersion.takeWhile(_ != '.')
+  def displayVersion: String = version
+  def artifactVersion: String = version
+  def majorVersion: String = installerVersion.takeWhile(_ != '.')
   // User-facing display name for windows, menus, native packaging, and app data directories.
-  val appName = "FdSwarm"
+  val appName: String = "FdSwarm"
   // Machine-facing token for file names, launchers, metrics, logs, and artifact identifiers.
-  val productName = appName.toLowerCase(java.util.Locale.ROOT)
+  val productName: String = appName.toLowerCase(java.util.Locale.ROOT)
 
-  val log4jV = Versions.log4j
-  val scalaV = Versions.scala
-  val jacksonV = Versions.jackson
-  val tapirV = Versions.tapir
-  val http4sV = Versions.http4s
-  val otelV = Versions.otel
-  val otelAlphaV = Versions.otelAlpha
-  val scoverageV = Versions.scoverage
-  val munitV = Versions.munit
-  val scalaFxDep =
+  val log4jV: String = Versions.log4j
+  val scalaV: String = Versions.scala
+  val jacksonV: String = Versions.jackson
+  val tapirV: String = Versions.tapir
+  val http4sV: String = Versions.http4s
+  val otelV: String = Versions.otel
+  val otelAlphaV: String = Versions.otelAlpha
+  val scoverageV: String = Versions.scoverage
+  val munitV: String = Versions.munit
+  val scalaFxDep: Dep =
     mvn"org.scalafx:scalafx_3:${Versions.scalaFx}"
       .exclude(
         "org.openjfx" -> "javafx-base",
@@ -58,9 +58,9 @@ trait CommonSettings extends ScalaModule:
         "org.openjfx" -> "javafx-web"
       )
 
-  def scalaVersion = scalaV
+  def scalaVersion: T[String] = Task { scalaV }
 
-  def scalacOptions =
+  def scalacOptions: T[Seq[String]] = Task {
     Seq(
       "-feature",
       "-deprecation",
@@ -69,8 +69,10 @@ trait CommonSettings extends ScalaModule:
       "-Wconf:msg=method -> in class ArrowAssoc is deprecated:s",
       "-Wconf:msg=Implicit parameters should be provided with a `using` clause:s"
     )
+  }
 
-  override def javacOptions =
+  override def javacOptions: T[Seq[String]] = Task {
     Seq(
       "-Xlint:-options"
     )
+  }
