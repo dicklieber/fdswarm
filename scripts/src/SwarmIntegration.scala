@@ -15,6 +15,14 @@ import scala.jdk.CollectionConverters.*
 import scala.util.{Using, Try}
 import scala.util.control.NonFatal
 
+/**
+ * SwarmIntegration is a class responsible for managing and integrating 
+ * various functionalities required for a swarm-based system, such as 
+ * parsing options, evaluating configurations, checking exit codes, measuring 
+ * runtimes, and executing commands.
+ *
+ * @constructor Creates a new instance of SwarmIntegration.
+ * @param help A descriptive message or help text associated with the system. */
 object SwarmIntegration:
   case class Options(coverage: Boolean = false, open: Boolean = false, skipBuild: Boolean = false,
       jar: Option[Path] = None, javaCommand: String = "java", contest: String = "ARRL",
