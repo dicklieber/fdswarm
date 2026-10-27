@@ -56,6 +56,39 @@ class ScriptTests extends FunSuite:
     assertNotEquals(options.buildDirectory(first), options.buildDirectory(second))
     assertEquals(options.buildDirectory(first).getParent, first)
 
+  test("coverage executable path is stable, exclusive, and reusable after cleanup"):
+    withDirectory { directory =>
+      val source = directory.resolve("source.jar")
+      val stable = directory.resolve("executable")
+      write(source, "first run")
+      val first = new SwarmIntegration.CoverageExecutable(stable)
+      val jar = try
+        val jar = first.stage(source)
+        assertEquals(jar, stable.resolve("fdswarm-coverage.jar"))
+        assertEquals(Files.readString(jar), "first run")
+        val error = intercept[IllegalStateException](new SwarmIntegration.CoverageExecutable(stable))
+        assert(error.getMessage.contains("Another coverage integration run"))
+        assertEquals(Files.readString(jar), "first run")
+        jar
+      finally first.close()
+      write(source, "second run")
+      val second = new SwarmIntegration.CoverageExecutable(stable)
+      try
+        assertEquals(second.stage(source), jar)
+        assertEquals(Files.readString(jar), "second run")
+      finally second.close()
+      assert(Files.isRegularFile(jar))
+    }
+
+  test("coverage executable lease can be released after staging fails"):
+    withDirectory { directory =>
+      val executable = new SwarmIntegration.CoverageExecutable(directory)
+      try intercept[java.nio.file.NoSuchFileException](executable.stage(directory.resolve("missing.jar")))
+      finally executable.close()
+      val next = new SwarmIntegration.CoverageExecutable(directory)
+      next.close()
+    }
+
   test("coverage rejects reusing a JAR before starting nodes"):
     Seq(Seq("--coverage", "--skip-build"), Seq("--coverage", "--jar", "existing.jar")).foreach { args =>
       val error = intercept[IllegalArgumentException](SwarmIntegration.parseOptions(args))

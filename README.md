@@ -155,6 +155,12 @@ Coverage mode builds a separate instrumented JAR with
 `fdswarm.integrationCoverageAssembly`. Each run uses a fresh `coverage-build`
 directory inside its artifact directory, so its measurements are not mixed with
 unit tests or earlier runs. All four nodes contribute to the combined report.
+The nodes execute a copy at the persistent path
+`/private/tmp/fdswarm-swarm-coverage/fdswarm-coverage.jar`, allowing a persistent
+Little Snitch path rule. A filesystem lock protects that copy until cleanup
+finishes; an overlapping coverage run fails with a retry message rather than
+replacing a running JAR. Cleanup releases the lock but retains the JAR and lock
+file. Per-run builds, measurements, node directories, and reports remain separate.
 This mode requires a new build and cannot be combined with `--skip-build` or
 `--jar`; the fresh compilation adds time compared with a cached normal run.
 

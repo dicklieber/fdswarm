@@ -24,6 +24,37 @@ import scala.util.control.NonFatal
  * @constructor Creates a new instance of SwarmIntegration.
  * @param help A descriptive message or help text associated with the system. */
 object SwarmIntegration:
+  val coverageJarDirectory: Path = Path.of("/private/tmp/fdswarm-swarm-coverage")
+
+  /** Hold this lease until all nodes have stopped. Never unlink the lock file:
+    * another process may already have opened it while trying to acquire the lock.
+    */
+  final class CoverageExecutable(directory: Path) extends AutoCloseable:
+    Files.createDirectories(directory)
+    val jar: Path = directory.resolve("fdswarm-coverage.jar")
+    private val channel = java.nio.channels.FileChannel.open(directory.resolve("executable.lock"),
+      java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE)
+    private val lock =
+      try
+        val acquired =
+          try channel.tryLock()
+          catch case _: java.nio.channels.OverlappingFileLockException => null
+        if acquired == null then
+          throw new IllegalStateException(s"Another coverage integration run is using $jar; retry after it finishes")
+        acquired
+      catch
+        case error: Throwable =>
+          channel.close()
+          throw error
+
+    def stage(source: Path): Path =
+      Files.copy(source, jar, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+      jar
+
+    def close(): Unit =
+      try lock.release()
+      finally channel.close()
+
   case class Options(coverage: Boolean = false, open: Boolean = false, skipBuild: Boolean = false,
       jar: Option[Path] = None, javaCommand: String = "java", contest: String = "ARRL",
       broadcastAddress: Option[String] = None, timeoutSeconds: Double = 60):
@@ -126,6 +157,7 @@ object SwarmIntegration:
     private var config = Json.Null
     private var broadcastAddress = ""
     private var jar: Path = null
+    private var coverageExecutable: Option[CoverageExecutable] = None
     private var finished = false
     private var finalFailed = true
     private var udpReservation: Option[DatagramSocket] = None
@@ -191,6 +223,11 @@ object SwarmIntegration:
         jar = buildDir.resolve(if options.coverage then "fdswarm/integrationCoverageAssembly.dest/fdswarm-coverage.jar"
           else "fdswarm/assembly.dest/fdswarm.jar")
       require(Files.isRegularFile(jar), s"Application JAR not found: $jar")
+      if options.coverage then
+        val executable = new CoverageExecutable(coverageJarDirectory)
+        coverageExecutable = Some(executable)
+        jar = executable.stage(jar)
+        log(s"Coverage executable: $jar")
 
     private def request(node: Node, path: String, body: Option[Json] = None, control: Boolean = false): Json =
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:${node.port}/$path"))
@@ -399,48 +436,51 @@ object SwarmIntegration:
     def finish(initialFailed: Boolean): Boolean = synchronized {
       if finished then return finalFailed
       finished = true
-      var failed = initialFailed
-      if failed then
-        for node <- nodes.toVector; endpoint <- Seq("qsos", "contestConfig", "statusMessage") do
-          try write(node.directory.resolve(s"failure-$endpoint.json"), request(node, endpoint).spaces2)
-          catch case NonFatal(error) => log(s"Could not snapshot ${node.name}/$endpoint: ${error.getMessage}")
-      processes.synchronized { processes.toVector.reverse }.foreach { process =>
-        try ScriptSupport.stop(process)
-        catch case NonFatal(error) =>
-          log(s"Could not stop process ${process.pid()}: ${error.getMessage}")
-          failed = true
-      }
-      nodes.foreach(node => log(s"Stopped node ${node.name}"))
-      reservations.foreach(_.close())
-      udpReservation.foreach(_.close())
-      if options.coverage && nodes.nonEmpty then
-        try phase("8. Combine node coverage and generate reports")(coverageReport())
-        catch case NonFatal(error) =>
-          log(s"Coverage generation failed: ${error.getMessage}; see coverage-html.log and coverage-xml.log")
-          failed = true
-      val document = xmlFactory.newDocumentBuilder().newDocument()
-      val suite = document.createElement("testsuite")
-      document.appendChild(suite)
-      Seq("name" -> "fdswarm.swarmIntegration", "tests" -> results.size.toString,
-        "failures" -> results.count(_.error.nonEmpty).toString, "errors" -> "0", "skipped" -> "0",
-        "time" -> "%.3f".formatLocal(java.util.Locale.ROOT, results.map(_.seconds).sum))
-        .foreach((name, value) => suite.setAttribute(name, value))
-      results.foreach { result =>
-        val test = append(document, suite, "testcase", "classname" -> "fdswarm.swarmIntegration",
-          "name" -> result.name, "time" -> "%.3f".formatLocal(java.util.Locale.ROOT, result.seconds))
-        result.error.foreach(error => append(document, test, "failure", "message" -> "Integration phase failed").setTextContent(error))
-      }
-      val xml = directory.resolve("test-report.xml")
-      writeXml(document, xml)
-      JunitReport.convert(xml)
-      log(s"${if failed then "FAILED" else "PASSED"} — artifacts and HTML report: $directory")
-      logFile.close()
-      if options.open then
-        val reports = Seq(directory.resolve("test-report.html"), directory.resolve("coverage/index.html")).filter(Files.exists(_))
-        val browser = new ProcessBuilder((Seq("open") ++ reports.map(_.toString)).asJava).inheritIO().start()
-        require(browser.waitFor() == 0, "Could not open HTML reports")
-      finalFailed = failed
-      failed
+      try
+        var failed = initialFailed
+        if failed then
+          for node <- nodes.toVector; endpoint <- Seq("qsos", "contestConfig", "statusMessage") do
+            try write(node.directory.resolve(s"failure-$endpoint.json"), request(node, endpoint).spaces2)
+            catch case NonFatal(error) => log(s"Could not snapshot ${node.name}/$endpoint: ${error.getMessage}")
+        processes.synchronized { processes.toVector.reverse }.foreach { process =>
+          try ScriptSupport.stop(process)
+          catch case NonFatal(error) =>
+            log(s"Could not stop process ${process.pid()}: ${error.getMessage}")
+            failed = true
+        }
+        nodes.foreach(node => log(s"Stopped node ${node.name}"))
+        reservations.foreach(_.close())
+        udpReservation.foreach(_.close())
+        if options.coverage && nodes.nonEmpty then
+          try phase("8. Combine node coverage and generate reports")(coverageReport())
+          catch case NonFatal(error) =>
+            log(s"Coverage generation failed: ${error.getMessage}; see coverage-html.log and coverage-xml.log")
+            failed = true
+        val document = xmlFactory.newDocumentBuilder().newDocument()
+        val suite = document.createElement("testsuite")
+        document.appendChild(suite)
+        Seq("name" -> "fdswarm.swarmIntegration", "tests" -> results.size.toString,
+          "failures" -> results.count(_.error.nonEmpty).toString, "errors" -> "0", "skipped" -> "0",
+          "time" -> "%.3f".formatLocal(java.util.Locale.ROOT, results.map(_.seconds).sum))
+          .foreach((name, value) => suite.setAttribute(name, value))
+        results.foreach { result =>
+          val test = append(document, suite, "testcase", "classname" -> "fdswarm.swarmIntegration",
+            "name" -> result.name, "time" -> "%.3f".formatLocal(java.util.Locale.ROOT, result.seconds))
+          result.error.foreach(error => append(document, test, "failure", "message" -> "Integration phase failed").setTextContent(error))
+        }
+        val xml = directory.resolve("test-report.xml")
+        writeXml(document, xml)
+        JunitReport.convert(xml)
+        log(s"${if failed then "FAILED" else "PASSED"} — artifacts and HTML report: $directory")
+        logFile.close()
+        if options.open then
+          val reports = Seq(directory.resolve("test-report.html"), directory.resolve("coverage/index.html")).filter(Files.exists(_))
+          val browser = new ProcessBuilder((Seq("open") ++ reports.map(_.toString)).asJava).inheritIO().start()
+          require(browser.waitFor() == 0, "Could not open HTML reports")
+        finalFailed = failed
+        failed
+      finally
+        coverageExecutable.foreach(_.close())
     }
 
 @main def runSwarmIntegration(arguments: String*): Unit =
