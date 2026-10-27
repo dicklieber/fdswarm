@@ -29,6 +29,7 @@ import scalafx.scene.Node
 import scalafx.scene.control.Label
 import scalafx.scene.layout.GridPane
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.*
 
 trait ContestConfigFields:
@@ -63,7 +64,7 @@ case class ContestConfig(
     fingerPrint: String = "",
     endTime: Option[LocalDateTime] = None)
     extends ContestConfigFields
-    derives Codec.AsObject, sttp.tapir.Schema:
+    derives Codec.AsObject:
   require(ourClass.nonEmpty, "ourClass must not be empty")
   require(ourSection.nonEmpty, "ourSection must not be empty")
 
@@ -109,6 +110,10 @@ case class ContestConfig(
     exchange
 
 object ContestConfig:
+  // Schema derivation generates a deprecated ArrowAssoc call on Scala 3.10.
+  @nowarn("msg=method ArrowAssoc in object Predef is deprecated")
+  given sttp.tapir.Schema[ContestConfig] = sttp.tapir.Schema.derived
+
   private lazy val config = fdswarm.ApplicationConfig.value
 
   private[contest] def withDetails(
