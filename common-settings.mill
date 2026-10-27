@@ -64,6 +64,9 @@ trait CommonSettings extends ScalaModule:
     Seq(
       "-feature",
       "-deprecation",
+      // Tapir 1.13.8 inline schema derivation emits this deprecated Scala 3.10 call.
+      "-Wconf:msg=method ArrowAssoc in object Predef is deprecated:s",
+      "-Wconf:msg=method -> in class ArrowAssoc is deprecated:s",
       "-Wconf:msg=Implicit parameters should be provided with a `using` clause:s"
     )
 

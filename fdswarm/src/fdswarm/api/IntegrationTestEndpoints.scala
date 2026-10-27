@@ -16,14 +16,11 @@ import sttp.tapir.json.circe.*
 import sttp.tapir.server.ServerEndpoint
 
 import java.time.Instant
-import scala.annotation.nowarn
 
 case class IntegrationQso(callsign: String, exchange: String, bandMode: String, stamp: Instant)
     derives Codec.AsObject
 
 object IntegrationQso:
-  // Schema derivation generates a deprecated ArrowAssoc call on Scala 3.10.
-  @nowarn("msg=method ArrowAssoc in object Predef is deprecated")
   given Schema[IntegrationQso] = Schema.derived
 
 case class IntegrationContest(name: String, ourCallsign: String, transmitters: Int,

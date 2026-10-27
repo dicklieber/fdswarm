@@ -229,7 +229,7 @@ object SwarmIntegration:
 
     private def request(node: Node, path: String, body: Option[Json] = None, control: Boolean = false): Json =
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:${node.port}/$path"))
-        .timeout(Duration.ofSeconds(3)).header("Accept", "*/*")
+        .timeout(Duration.ofSeconds(3)).header("Accept", "*/")
       if control then builder.header("X-Fdswarm-Test-Token", token)
       body match
         case Some(json) => builder.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(json.noSpaces))

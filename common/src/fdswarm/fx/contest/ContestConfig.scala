@@ -29,7 +29,6 @@ import scalafx.scene.Node
 import scalafx.scene.control.Label
 import scalafx.scene.layout.GridPane
 
-import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.*
 
 trait ContestConfigFields:
@@ -110,8 +109,6 @@ case class ContestConfig(
     exchange
 
 object ContestConfig:
-  // Schema derivation generates a deprecated ArrowAssoc call on Scala 3.10.
-  @nowarn("msg=method ArrowAssoc in object Predef is deprecated")
   given sttp.tapir.Schema[ContestConfig] = sttp.tapir.Schema.derived
 
   private lazy val config = fdswarm.ApplicationConfig.value
