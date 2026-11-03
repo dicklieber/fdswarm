@@ -269,7 +269,10 @@ It increments `build.number`, builds a version such as `0.0.4-12` in an isolated
 temporary Mill output directory, verifies the JAR version and embedded documentation,
 and saves `release/fdswarm.jar`. It restores `version.txt` to its original snapshot
 version before committing the build number, prompts before pushing the commit,
-and creates or updates the GitHub release with the JAR. It does not run tests;
+creates or updates the GitHub release with the JAR, and then dispatches the Windows
+installer workflow. The workflow must already be on GitHub's default branch and
+in the release commit. The GitHub CLI login needs permission to dispatch Actions.
+The release script does not run tests;
 run the existing test suites before releasing. If publication fails after the
 commit, the commit and JAR are retained for manual recovery.
 
@@ -289,12 +292,6 @@ debugging local packaging issues:
 FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
 ```
 
-On Windows, run:
-```powershell
-$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
-.\scripts\ci\package-windows.ps1
-```
-
 ## Local Package Builds
 
 Build the assembly JAR first. This also builds and embeds the documentation site:
@@ -310,90 +307,68 @@ On macOS, build the PKG installer:
 FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
 ```
 
-To publish the generated MSI files to the macOS web root, set
-`FDSWARM_MSI_SSH_HOST` to a macOS SSH target, for example `user@mac-host`. The
-script creates `/Library/WebServer/Documents/fdswarm` on the target and copies
-the MSI files there with `scp`. Set `FDSWARM_MSI_DIR` to publish somewhere else,
-or `FDSWARM_SKIP_MSI_PUBLISH=1` to leave the files only under
-`out/release/artifacts`.
-
 The PKG is written to:
 
 ```text
 out/fdswarm/macPkg.dest/jpackage/
 ```
 
-On Windows, build the MSI installer from PowerShell:
+## Windows Installer
 
-```powershell
-.\mill.bat --no-daemon fdswarm.assembly
-bash .\scripts\ci\verify-docs-in-jar.sh out/fdswarm/assembly.dest/fdswarm.jar
-$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
-.\scripts\ci\package-windows.ps1
-```
+`Release.scala` queues `.github/workflows/windows-installer.yml` after uploading
+`fdswarm.jar`. The action downloads that exact release asset, verifies its manifest
+version against the requested tag, and packages it without rebuilding Scala sources.
+It uses Inno Setup on `windows-2022` and bundles the latest Liberica JDK 21 Full
+for Windows x64, including JavaFX WebView. Java does not need to be installed on
+the user's computer, and normal operation requires no Internet connection.
 
-The MSI files are written to:
+The installer supports Windows 10/11 x64. It also allows Windows 11 ARM64 to use
+Windows' x64 emulation; native ARM64 installers are not currently built. Windows
+10 ARM64 is not supported by this x64 installer. Windows 10 and ARM64 compatibility
+still require manual testing on those operating systems.
 
-```text
-out/release/artifacts/FdSwarm-<version>-windows-x64.msi
-```
+Installation is per user, under `%LOCALAPPDATA%\Programs\FdSwarm`, without
+administrator privileges. It creates a Start menu shortcut and an optional desktop
+shortcut. Upgrades retain the same application identity. User data under
+`%LOCALAPPDATA%\FdSwarm` is preserved during installation and uninstallation.
+Existing installations made by the former MSI installer should be uninstalled
+separately; Inno Setup does not migrate Windows Installer registrations.
 
-To publish Windows `.exe` installers with Inno Setup for both Windows x64 and
-Windows ARM64, install Inno Setup 6 on the Windows build machine and run:
-
-```powershell
-.\scripts\publish-inno-installers.ps1
-```
-
-The Inno installers consume `fdswarm.jar` from the latest GitHub release,
-extract `Implementation-Version` from its manifest, build from the local
-Windows runtimes under `fdswarm-runtimes`, and upload to the matching
-`v<version>` GitHub release. The installers are written to:
+The action checks silent installation, reinstallation, bundled Java/JavaFX,
+shortcut targets, uninstallation, and preservation of user data before uploading:
 
 ```text
-out/release/inno-installers/artifacts/FdSwarm-<version>-windows-x64-setup.exe
-out/release/inno-installers/artifacts/FdSwarm-<version>-windows-arm64-setup.exe
+FdSwarm-<version>-windows-x64-setup.exe
+FdSwarm-<version>-windows-x64-setup.exe.sha256
 ```
 
-To Authenticode-sign the Windows installer artifacts, pass a certificate
-thumbprint:
+The installer is currently unsigned. Windows may display an unknown-publisher or
+SmartScreen prompt. These checks do not replace a manual application/UI test.
+
+To retry packaging an already published release (without rerunning `Release.scala`
+and incrementing the build number):
+
+```sh
+gh workflow run windows-installer.yml --ref v0.0.4-12 -f tag=v0.0.4-12
+gh run list --workflow windows-installer.yml
+```
+
+The workflow can also be started from the GitHub Actions **Run workflow** button.
+It attaches the installer and SHA-256 checksum to the same release and keeps
+installer verification logs as workflow artifacts. A failed Windows build leaves
+the published JAR available; retry packaging after fixing the failure.
+
+For local packaging on Windows, install PowerShell 7 and Inno Setup 6.3 or later,
+then run from the repository root:
 
 ```powershell
-.\scripts\publish-inno-installers.ps1 -CertificateThumbprint '0123456789ABCDEF0123456789ABCDEF01234567'
+pwsh -File ./scripts/ci/package-windows.ps1 -AssemblyJar release/fdswarm.jar
 ```
 
-To download `fdswarm.jar` from a specific source release instead of the latest
-release:
-
-```powershell
-.\scripts\publish-inno-installers.ps1 -Tag 'v1.2.3'
-```
-
-To build self-contained Windows Launch4j ZIP packages from an existing assembly
-JAR and bundled Windows runtimes, run:
-
-```powershell
-$env:FDSWARM_ASSEMBLY_JAR = 'out/fdswarm/assembly.dest/fdswarm.jar'
-.\scripts\build-launch4j-installers.ps1
-```
-
-The script uses `LAUNCH4J` or `LAUNCH4J_HOME` when set. Otherwise, it downloads
-a local Launch4j copy under `out/fdswarm/launch4j.dest/tools`.
-
-The Launch4j ZIP files are written to:
-
-```text
-out/release/artifacts/FdSwarm-<version>-windows-x64-launch4j.zip
-out/release/artifacts/FdSwarm-<version>-windows-arm64-launch4j.zip
-```
-
-The generated Launch4j ZIP files are also copied to:
-
-```text
-/Library/WebServer/Documents/fdswarm/launch4j
-```
-
-Set `FDSWARM_LAUNCH4J_DIR` to publish them somewhere else.
+The script downloads and verifies a Windows x64 Liberica runtime. To use an existing
+Java 21 Full runtime instead, pass `-RuntimeDirectory C:\path\to\jdk`. Set `ISCC`
+or pass `-Iscc` if `ISCC.exe` is outside its usual installation directory.
+Installers are written to `out/release/artifacts`.
 
 ## Zip Distribution Builds
 

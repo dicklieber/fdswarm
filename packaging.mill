@@ -26,8 +26,6 @@ trait FdSwarmPackaging extends JpackageModule:
   )
 
   private val macIconIcns = repoPath("fdswarm/resources/icons/icon.icns")
-  private val winIconIco = repoPath("fdswarm/resources/icons/icon.ico")
-  private val winUpgradeUuid = "8F095DE2-D316-43A7-94C3-7702217CAE1D"
 
   private val macJavaOptions = Seq(
     "--java-options",
@@ -36,11 +34,6 @@ trait FdSwarmPackaging extends JpackageModule:
     "-Dapple.laf.useScreenMenuBar=true",
     "--java-options",
     "-Dapple.awt.application.appearance=system"
-  )
-
-  private val preserveNativeCommandsJlinkOptions = Seq(
-    "--jlink-options",
-    "--strip-debug --no-man-pages --no-header-files"
   )
 
   private val jpackageRuntimeModules = Seq(
@@ -261,81 +254,11 @@ trait FdSwarmPackaging extends JpackageModule:
     PathRef(dest)
   }
 
-  def winMsi = Task {
-    val osName = sys.props("os.name").toLowerCase
-    if !osName.contains("win") then
-      throw new RuntimeException(
-        "fdswarm.winMsi can only run on Windows (it calls the Windows jpackage backend)."
-      )
-
-    val rawArch = sys.props.getOrElse("os.arch", "").toLowerCase
-    val arch =
-      if rawArch.contains("aarch64") || rawArch.contains("arm64") then "arm64"
-      else if rawArch.contains("amd64") || rawArch.contains("x86_64") then "x64"
-      else rawArch
-
-    if arch == "arm64" then
-      throw new RuntimeException(
-        "Windows ARM64 MSI packaging is currently disabled because jpackage/WiX emits x64 Windows Installer custom actions. Use fdswarm.distWindowsArm64 for native ARM64 Windows releases."
-      )
-
-    val dest = Task.dest / s"jpackage-win-$arch"
-    os.makeDir.all(dest)
-
-    val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, assembly())
-
-    val baseArgs = Seq(
-      "jpackage",
-      "--type",
-      "msi",
-      "--name",
-      jpackageName(),
-      "--app-version",
-      installerVersion,
-      "--dest",
-      dest.toString,
-      "--input",
-      inputDir.toString,
-      "--main-jar",
-      mainJarName,
-      "--main-class",
-      jpackageMainClass()
-    ) ++ jpackageRuntimeModules ++ preserveNativeCommandsJlinkOptions ++ Seq(
-      "--win-menu",
-      "--win-shortcut"
-    )
-
-    val iconArgs =
-      if os.exists(winIconIco) then Seq("--icon", winIconIco.toString)
-      else Seq.empty
-
-    val winUpgradeUuidArgs = Seq("--win-upgrade-uuid", winUpgradeUuid)
-
-    val cmd = baseArgs ++ iconArgs ++ winUpgradeUuidArgs
-    println(cmd.mkString(" "))
-
-    val exit =
-      os.proc(cmd).call(stdout = os.Inherit, stderr = os.Inherit).exitCode
-    if exit != 0 then
-      throw new RuntimeException(s"jpackage failed with exit code $exit")
-
-    val produced =
-      os.list(dest).filter(_.ext == "msi").sortBy(_.last).lastOption
-
-    produced.foreach { msi =>
-      val renamed = dest / s"${jpackageName()}-${artifactVersion}-windows-$arch.msi"
-      os.move(msi, renamed, replaceExisting = true)
-      println(s"MSI: $renamed")
-    }
-
-    PathRef(dest)
-  }
-
   override def jpackageType = Task {
     val osName = sys.props("os.name").toLowerCase
-    if osName.contains("mac") then "dmg"
-    else if osName.contains("win") then "msi"
+    if osName.contains("win") then
+      throw new RuntimeException("Use scripts/ci/package-windows.ps1 for Windows Inno Setup installers.")
+    else if osName.contains("mac") then "dmg"
     else "deb"
   }
 

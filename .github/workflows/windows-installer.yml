@@ -1,0 +1,70 @@
+name: Windows installer
+run-name: Windows x64 installer for ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag containing fdswarm.jar (for example v0.0.4-12)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-installer-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Validate release tag
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?$') {
+            throw 'Expected a release tag such as v0.0.4-12.'
+          }
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Download the published JAR
+        run: |
+          gh release download $env:RELEASE_TAG --pattern fdswarm.jar --dir release
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot download release JAR.' }
+
+      - name: Build installer from the release JAR
+        run: |
+          ./scripts/ci/package-windows.ps1 -AssemblyJar release/fdswarm.jar -ExpectedVersion $env:RELEASE_TAG.Substring(1)
+
+      - name: Verify installation, reinstallation, and uninstallation
+        run: |
+          $installer = "out/release/artifacts/FdSwarm-$($env:RELEASE_TAG.Substring(1))-windows-x64-setup.exe"
+          ./scripts/ci/test-windows-installer.ps1 -Installer $installer -AssemblyJar release/fdswarm.jar
+
+      - name: Preserve installer and verification logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-${{ inputs.tag }}
+          path: |
+            out/release/artifacts/*
+            out/release/windows-installer-test/*.log
+          if-no-files-found: warn
+
+      - name: Attach installer and checksum to the release
+        run: |
+          $installer = "out/release/artifacts/FdSwarm-$($env:RELEASE_TAG.Substring(1))-windows-x64-setup.exe"
+          gh release upload $env:RELEASE_TAG $installer "$installer.sha256" --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Installer upload failed.' }
