@@ -23,14 +23,29 @@ if (-not (Test-Path -LiteralPath $Iscc -PathType Leaf)) {
   throw 'Install Inno Setup 6 or set ISCC to the full path of ISCC.exe.'
 }
 
+# Use Java's JAR reader for Mill's executable assemblies. .NET ZipArchive
+# rejects the release JAR's central-directory metadata.
+$jarTool = if ($env:JAVA_HOME_21_X64) {
+  Join-Path $env:JAVA_HOME_21_X64 'bin/jar.exe'
+} else {
+  (Get-Command jar -ErrorAction Stop).Source
+}
+$entries = @(& $jarTool tf $AssemblyJar)
+if ($LASTEXITCODE -ne 0) { throw 'Cannot list release JAR entries.' }
+foreach ($entry in @('META-INF/MANIFEST.MF', 'fdswarm/FdSwarm.class', 'FDSwarmDocs/index.html')) {
+  if ($entries -cnotcontains $entry) { throw "JAR is missing $entry" }
+}
+
 # version.txt is restored to SNAPSHOT after release; the JAR is authoritative.
-$jar = [IO.Compression.ZipFile]::OpenRead($AssemblyJar)
+$inspectionDir = Join-Path ([IO.Path]::GetTempPath()) "fdswarm-jar-$([guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Path $inspectionDir | Out-Null
 try {
-  $manifest = $jar.GetEntry('META-INF/MANIFEST.MF')
-  if (-not $manifest) { throw 'The JAR has no manifest.' }
-  $reader = [IO.StreamReader]::new($manifest.Open())
-  try { $manifestText = $reader.ReadToEnd() -replace "\r?\n ", '' }
-  finally { $reader.Dispose() }
+  Push-Location -LiteralPath $inspectionDir
+  try {
+    & $jarTool xf $AssemblyJar META-INF/MANIFEST.MF FDSwarmDocs/index.html
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot extract release manifest and documentation.' }
+  } finally { Pop-Location }
+  $manifestText = (Get-Content -LiteralPath (Join-Path $inspectionDir 'META-INF/MANIFEST.MF') -Raw) -replace "\r?\n ", ''
   if ($manifestText -notmatch '(?m)^Implementation-Version: ([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?)\r?$') {
     throw 'The JAR must contain a non-SNAPSHOT Implementation-Version (X.Y.Z or X.Y.Z-build).'
   }
@@ -38,10 +53,10 @@ try {
   if ($ExpectedVersion -and $version -cne $ExpectedVersion) {
     throw "JAR version '$version' does not match requested release '$ExpectedVersion'."
   }
-  if (-not $jar.GetEntry('fdswarm/FdSwarm.class')) { throw 'JAR is missing the application main class.' }
-  $docs = $jar.GetEntry('FDSwarmDocs/index.html')
-  if (-not $docs -or $docs.Length -eq 0) { throw 'JAR is missing embedded documentation.' }
-} finally { $jar.Dispose() }
+  if ((Get-Item -LiteralPath (Join-Path $inspectionDir 'FDSwarmDocs/index.html')).Length -eq 0) {
+    throw 'JAR contains empty embedded documentation.'
+  }
+} finally { Remove-Item -LiteralPath $inspectionDir -Recurse -Force }
 
 $fileVersion = $version.Replace('-', '.')
 if ($fileVersion.Split('.').Count -eq 3) { $fileVersion += '.0' }
