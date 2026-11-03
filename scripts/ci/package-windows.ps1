@@ -73,10 +73,14 @@ if (-not $RuntimeDirectory) {
   # Keep JavaFX (including WebView) and all runtime modules; no jlink or WiX needed.
   $uri = 'https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&version-feature=21&bitness=64&os=windows&arch=x86&package-type=zip&bundle-type=jdk-full&output=json'
   $releases = @(Invoke-RestMethod -Uri $uri | ForEach-Object { $_ })
-  if ($releases.Count -ne 1) { throw "Expected one Liberica JDK 21 Full release, found $($releases.Count)." }
-  $runtime = $releases[0]
+  # The API can return separate "latest" PSU and CSPU releases. Compare the
+  # numeric components (not version strings) to choose the newest GA runtime.
+  $runtime = $releases | Where-Object { $_.GA -eq $true } |
+    Sort-Object -Property interimVersion, updateVersion, patchVersion, extraVersion, buildVersion -Descending |
+    Select-Object -First 1
+  if (-not $runtime) { throw 'No GA Liberica JDK 21 Full Windows x64 release was returned.' }
   if (-not $runtime.downloadUrl.StartsWith('https://')) { throw 'Runtime download must use HTTPS.' }
-  Write-Host "Bundling Liberica JDK $($runtime.version) Full, Windows x64"
+  Write-Host "Bundling Liberica JDK $($runtime.version) Full, Windows x64 ($($runtime.updateType))"
   $archive = Join-Path $work 'runtime.zip'
   Invoke-WebRequest -Uri $runtime.downloadUrl -OutFile $archive
   # BellSoft's discovery API supplies the archive SHA-1 digest.
