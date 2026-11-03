@@ -258,7 +258,22 @@ fdswrm.jar is the primary artifact of the project. It contains the fdswarm appli
 ```java -jar fdswarm.jar```
 Running this way requires a Java JDK version 21 or higher, with JavaFX be installed.
 
-While this can be
+To build and publish a build-number release interactively, run from the repository root:
+
+```sh
+./mill --no-server Release.scala
+```
+
+The script requires a clean Git working tree and an authenticated GitHub CLI (`gh`).
+It increments `build.number`, builds a version such as `0.0.4-12` in an isolated
+temporary Mill output directory, verifies the JAR version and embedded documentation,
+and saves `release/fdswarm.jar`. It restores `version.txt` to its original snapshot
+version before committing the build number, prompts before pushing the commit,
+and creates or updates the GitHub release with the JAR. It does not run tests;
+run the existing test suites before releasing. If publication fails after the
+commit, the commit and JAR are retained for manual recovery.
+
+Use `./mill --no-server Release.scala --help` for usage.
 
 Build release artifacts locally with the package commands below. Set
 `FDSWARM_VERSION` to a three-part version such as `1.0.0` before building
