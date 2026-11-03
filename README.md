@@ -270,8 +270,8 @@ temporary Mill output directory, verifies the JAR version and embedded documenta
 and saves `release/fdswarm.jar`. It restores `version.txt` to its original snapshot
 version before committing the build number, prompts before pushing the commit,
 creates or updates the GitHub release with the JAR, and then dispatches the Windows
-installer workflow. The workflow must already be on GitHub's default branch and
-in the release commit. The GitHub CLI login needs permission to dispatch Actions.
+installer workflow from GitHub's default branch. The workflow must already be on
+that branch. The GitHub CLI login needs permission to dispatch Actions.
 The release script does not run tests;
 run the existing test suites before releasing. If publication fails after the
 commit, the commit and JAR are retained for manual recovery.
@@ -349,9 +349,13 @@ To retry packaging an already published release (without rerunning `Release.scal
 and incrementing the build number):
 
 ```sh
-gh workflow run windows-installer.yml --ref v0.0.4-12 -f tag=v0.0.4-12
+gh workflow run windows-installer.yml --ref main -f tag=v0.0.4-12
 gh run list --workflow windows-installer.yml
 ```
+
+Packaging scripts come from the selected workflow branch/commit; the application
+JAR always comes from the requested release. This allows packaging fixes to be
+applied to an existing release without rebuilding its JAR.
 
 The workflow can also be started from the GitHub Actions **Run workflow** button.
 It attaches the installer and SHA-256 checksum to the same release and keeps

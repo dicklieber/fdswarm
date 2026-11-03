@@ -36,7 +36,9 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          # Use packaging code from the dispatched workflow, including fixes made
+          # after a release. The application JAR still comes from inputs.tag.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Download the published JAR

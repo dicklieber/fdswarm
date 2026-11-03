@@ -104,7 +104,7 @@ object Release {
       run("gh", "release", "upload", tag, artifact.toString, "--clobber")
       println(s"Published $artifact to GitHub release $tag")
       // Dispatch only after the JAR is available; a release-created event can race its upload.
-      run("gh", "workflow", "run", "windows-installer.yml", "--ref", tag, "-f", s"tag=$tag")
+      run("gh", "workflow", "run", "windows-installer.yml", "-f", s"tag=$tag")
       println(s"Windows installer build queued for $tag. Monitor with: gh run list --workflow windows-installer.yml")
     catch
       case scala.util.control.NonFatal(error) =>
