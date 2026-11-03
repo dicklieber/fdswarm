@@ -21,6 +21,8 @@ object Versions:
   val http4s = "0.23.38"
 
 object common extends CommonSettings with BuildInfo:
+  def scalaVersion = Versions.scala
+
   def buildInfoPackageName = "com.organization"
 
   def buildInfoMembers = Seq(
@@ -62,6 +64,8 @@ object fdswarm
     extends CommonSettings
     with ScoverageModule
     with FdSwarmPackaging:
+
+  def scalaVersion = Versions.scala
 
   override def moduleDeps = Seq(common)
 
@@ -195,6 +199,8 @@ object fdswarm
 
 
 object manager extends CommonSettings:
+  def scalaVersion = Versions.scala
+
   override def moduleDeps = Seq(common)
 
   def mvnDeps = Seq(
@@ -238,15 +244,6 @@ object releaseTool extends ScalaModule:
     override def mvnDeps = super.mvnDeps() ++ Seq(
       mvn"org.scalameta::munit:1.0.3"
     )
-
-object rigctlTool extends CommonSettings:
-  override def moduleDeps = Seq(common)
-
-  def mainClass = Some("rigctltool.RigCtlTool")
-
-  def mvnDeps = Seq(
-    mvn"com.lihaoyi::mainargs:0.7.8"
-  )
 
 object docs extends DocsModule(common, fdswarm)
 

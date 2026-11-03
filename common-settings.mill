@@ -49,8 +49,6 @@ trait CommonSettings extends ScalaModule:
         "org.openjfx" -> "javafx-web"
       )
 
-  def scalaVersion: T[String] = Task { Versions.scala }
-
   def scalacOptions: T[Seq[String]] = Task {
     Seq(
       "-feature",
