@@ -13,6 +13,13 @@ import mill.contrib.scoverage.*
 import mill.scalalib.*
 import scala.jdk.CollectionConverters.*
 
+object Versions:
+  val scala = "3.10.0"
+  val log4j = "2.25.5"
+  val jackson = "2.18.12"
+  val tapir = "1.13.8"
+  val http4s = "0.23.38"
+
 object common extends CommonSettings with BuildInfo:
   def buildInfoPackageName = "com.organization"
 
@@ -31,11 +38,11 @@ object common extends CommonSettings with BuildInfo:
     mvn"io.circe::circe-core:0.14.10",
     mvn"io.circe::circe-generic:0.14.10",
     mvn"io.circe::circe-parser:0.14.10",
-    mvn"com.softwaremill.sttp.tapir:tapir-core_3:$tapirV",
-    mvn"org.apache.logging.log4j:log4j-api:$log4jV",
+    mvn"com.softwaremill.sttp.tapir:tapir-core_3:${Versions.tapir}",
+    mvn"org.apache.logging.log4j:log4j-api:${Versions.log4j}",
     mvn"org.apache.commons:commons-text:1.10.0",
     // CVE-2025-48924: override Commons Text's older transitive version.
-    mvn"org.apache.commons:commons-lang3:${Versions.commonsLang}",
+    mvn"org.apache.commons:commons-lang3:3.18.0",
     mvn"com.lihaoyi::os-lib:0.11.6",
     scalaFxDep,
     mvn"jakarta.inject:jakarta.inject-api:2.0.1",
@@ -94,7 +101,7 @@ object fdswarm
       )
   }
 
-  def scoverageVersion = scoverageV
+  def scoverageVersion = "2.1.1"
 
   /** Preserve the release JAR's manifest/resources while replacing app classes with
     * their instrumented counterparts. Scala 3's coverage runtime is in scala-library.
@@ -126,36 +133,36 @@ object fdswarm
   }
 
   def mvnDeps = Seq(
-    mvn"org.apache.logging.log4j:log4j-api:$log4jV",
-    mvn"org.apache.logging.log4j:log4j-core:$log4jV",
-    mvn"org.apache.logging.log4j:log4j-slf4j2-impl:$log4jV",
-    mvn"org.apache.logging.log4j:log4j-layout-template-json:$log4jV",
-    mvn"com.fasterxml.jackson.core:jackson-databind:$jacksonV",
-    mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonV",
+    mvn"org.apache.logging.log4j:log4j-api:${Versions.log4j}",
+    mvn"org.apache.logging.log4j:log4j-core:${Versions.log4j}",
+    mvn"org.apache.logging.log4j:log4j-slf4j2-impl:${Versions.log4j}",
+    mvn"org.apache.logging.log4j:log4j-layout-template-json:${Versions.log4j}",
+    mvn"com.fasterxml.jackson.core:jackson-databind:${Versions.jackson}",
+    mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}",
     mvn"com.typesafe.scala-logging::scala-logging:3.9.5",
     mvn"org.slf4j:slf4j-api:2.0.16",
     mvn"io.github.classgraph:classgraph:4.8.179",
     mvn"net.codingwell::scala-guice:7.0.0",
     mvn"com.google.inject:guice:7.0.0",
     // CVE-2023-2976: override Guice's older transitive version.
-    mvn"com.google.guava:guava:${Versions.guava}",
+    mvn"com.google.guava:guava:32.0.1-jre",
     mvn"com.google.inject.extensions:guice-assistedinject:7.0.0",
     mvn"com.github.andyglow::typesafe-config-scala:2.0.0",
     mvn"io.circe::circe-core:0.14.10",
     mvn"io.circe::circe-generic:0.14.10",
     mvn"io.circe::circe-parser:0.14.10",
-    mvn"com.softwaremill.sttp.tapir:tapir-core_3:$tapirV",
-    mvn"com.softwaremill.sttp.tapir:tapir-http4s-server_3:$tapirV",
-    mvn"com.softwaremill.sttp.tapir:tapir-http4s-client_3:$tapirV",
-    mvn"com.softwaremill.sttp.tapir:tapir-json-circe_3:$tapirV",
-    mvn"com.softwaremill.sttp.tapir::tapir-swagger-ui-bundle:$tapirV",
-    mvn"org.http4s:http4s-ember-server_3:$http4sV",
-    mvn"org.http4s:http4s-ember-client_3:$http4sV",
-    mvn"org.http4s:http4s-dsl_3:$http4sV",
-    mvn"org.http4s:http4s-circe_3:$http4sV",
+    mvn"com.softwaremill.sttp.tapir:tapir-core_3:${Versions.tapir}",
+    mvn"com.softwaremill.sttp.tapir:tapir-http4s-server_3:${Versions.tapir}",
+    mvn"com.softwaremill.sttp.tapir:tapir-http4s-client_3:${Versions.tapir}",
+    mvn"com.softwaremill.sttp.tapir:tapir-json-circe_3:${Versions.tapir}",
+    mvn"com.softwaremill.sttp.tapir::tapir-swagger-ui-bundle:${Versions.tapir}",
+    mvn"org.http4s:http4s-ember-server_3:${Versions.http4s}",
+    mvn"org.http4s:http4s-ember-client_3:${Versions.http4s}",
+    mvn"org.http4s:http4s-dsl_3:${Versions.http4s}",
+    mvn"org.http4s:http4s-circe_3:${Versions.http4s}",
     mvn"org.typelevel:cats-effect_3:3.5.7",
     // JavaFX comes from the Liberica Full JDK, as it does for ScalaFX.
-    mvn"com.dlsc.gemsfx:gemsfx:${Versions.gemsFx}".exclude(
+    mvn"com.dlsc.gemsfx:gemsfx:4.5.0".exclude(
       "org.openjfx" -> "javafx-base",
       "org.openjfx" -> "javafx-controls",
       "org.openjfx" -> "javafx-fxml",
@@ -172,16 +179,16 @@ object fdswarm
 
   object test extends ScoverageTests with TestModule.Munit:
     override def mvnDeps = super.mvnDeps() ++ Seq(
-      mvn"org.apache.logging.log4j:log4j-core:$log4jV",
-      mvn"org.apache.logging.log4j:log4j-core-test:$log4jV",
+      mvn"org.apache.logging.log4j:log4j-core:${Versions.log4j}",
+      mvn"org.apache.logging.log4j:log4j-core-test:${Versions.log4j}",
       mvn"org.mockito:mockito-core:4.11.0",
       mvn"org.objenesis:objenesis:3.3",
-      mvn"com.softwaremill.sttp.tapir:tapir-http4s-client_3:$tapirV",
-      mvn"org.http4s:http4s-ember-client_3:$http4sV"
+      mvn"com.softwaremill.sttp.tapir:tapir-http4s-client_3:${Versions.tapir}",
+      mvn"org.http4s:http4s-ember-client_3:${Versions.http4s}"
     )
 
-    def scalaVersion = scalaV
-    def munitVersion = munitV
+    def scalaVersion = Versions.scala
+    def munitVersion = "1.0.0"
     override def testReportXml = Some("test-report.xml")
     override def forkWorkingDir = Task { moduleDir / os.up / os.up }
     override def testSandboxWorkingDir = false
@@ -191,10 +198,10 @@ object manager extends CommonSettings:
   override def moduleDeps = Seq(common)
 
   def mvnDeps = Seq(
-    mvn"org.apache.logging.log4j:log4j-api:$log4jV",
-    mvn"org.apache.logging.log4j:log4j-core:$log4jV",
-    mvn"org.apache.logging.log4j:log4j-slf4j2-impl:$log4jV",
-    mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonV",
+    mvn"org.apache.logging.log4j:log4j-api:${Versions.log4j}",
+    mvn"org.apache.logging.log4j:log4j-core:${Versions.log4j}",
+    mvn"org.apache.logging.log4j:log4j-slf4j2-impl:${Versions.log4j}",
+    mvn"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}",
     scalaFxDep,
     mvn"io.circe::circe-core:0.14.10",
     mvn"io.circe::circe-generic:0.14.10",
@@ -204,7 +211,7 @@ object manager extends CommonSettings:
     mvn"net.codingwell::scala-guice:7.0.0",
     mvn"com.google.inject:guice:7.0.0",
     // CVE-2023-2976: override Guice's older transitive version.
-    mvn"com.google.guava:guava:${Versions.guava}"
+    mvn"com.google.guava:guava:32.0.1-jre"
   )
 
   def mainClass = Some("manager.ManagerApp")
@@ -253,4 +260,4 @@ object scripts extends ScalaModule:
   override def forkWorkingDir = Task { moduleDir / os.up }
 
   object test extends ScalaTests with TestModule.Munit:
-    def munitVersion = Versions.munit
+    def munitVersion = "1.0.0"
