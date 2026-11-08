@@ -63,6 +63,19 @@ class QsoStoreTest extends FunSuite:
     val result = QsoStore.potentialDupCallsigns(callsigns, "WA9")
     assertEquals(result.map(_.value), Seq("WA9ZZZ"))
 
+  test("containsDuplicate requires an exact callsign on the same band and mode"):
+    val qso = qsoForStamp("2026-06-27T19:24:00Z")
+    def duplicate(call: String, bandMode: String): Boolean =
+      QsoStore.containsDuplicate(Seq(qso), Callsign(call), BandMode(bandMode))
+
+    assert(duplicate("wa9abc", "20M SSB"))
+    assert(!duplicate("WA9AB", "20m SSB"))
+    assert(!duplicate("WA9ABC/P", "20m SSB"))
+    assert(!duplicate("WA9XYZ", "20m SSB"))
+    assert(!duplicate("WA9ABC", "40m SSB"))
+    assert(!duplicate("WA9ABC", "20m CW"))
+    assert(!QsoStore.containsDuplicate(Seq.empty, qso.callsign, qso.bandMode))
+
   test("isBeforeContestStart rejects only QSOs stamped before contest start"):
     val contestStart = Instant.parse("2026-01-24T19:00:00Z")
 

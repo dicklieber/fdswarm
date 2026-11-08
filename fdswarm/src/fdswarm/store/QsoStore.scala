@@ -129,6 +129,9 @@ class QsoStore @Inject() (
 
   def hasQsos: Boolean = map.nonEmpty
 
+  def containsDuplicate(callsign: Callsign, bandMode: BandMode): Boolean =
+    QsoStore.containsDuplicate(map.valuesIterator, callsign, bandMode)
+
   def potentialDups(startOfCallsign: String, _bandmode: BandMode): DupInfo =
     val allPotentialDupCallsigns = QsoStore.potentialDupCallsigns(
       callsigns = map.valuesIterator.map(_.callsign),
@@ -266,6 +269,13 @@ object QsoStore extends LazyStructuredLogging:
 
   private[store] def sameBandMode(left: BandMode, right: BandMode): Boolean =
     left.band == right.band && left.mode == right.mode
+
+  private[store] def containsDuplicate(
+      qsos: IterableOnce[Qso],
+      callsign: Callsign,
+      bandMode: BandMode
+  ): Boolean =
+    qsos.iterator.exists(qso => qso.callsign == callsign && sameBandMode(qso.bandMode, bandMode))
 
   private[store] def potentialDupCallsigns(
       callsigns: IterableOnce[Callsign],

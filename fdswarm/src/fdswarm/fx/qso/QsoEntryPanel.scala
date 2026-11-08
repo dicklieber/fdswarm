@@ -181,21 +181,35 @@ class QsoEntryPanel @Inject()(
     sectionField.requestFocus()
     sectionField.end()
 
-  callsignField.text.onChange { (_, _, newValue) =>
-    if newValue.length < 3 then dupPanel.clear
+  private def refreshDuplicates(): Unit =
+    val callsign = callsignField.text.value
+    val bandMode = selectedBandModeStore.selected.value
+    if callsign.length < 3 then dupPanel.clear
+    else if qsoStore.containsDuplicate(Callsign(callsign), bandMode) then
+      dupPanel.showDuplicate(Callsign(callsign), bandMode)
     else
-      val dupInfo =
-        qsoStore.potentialDups(newValue, selectedBandModeStore.selected.value)
-      dupPanel.show(dupInfo)
+      dupPanel.show(qsoStore.potentialDups(callsign, bandMode))
+
+  callsignField.text.onChange { (_, _, _) => refreshDuplicates() }
+  selectedBandModeStore.selected.onChange { (_, _, _) => refreshDuplicates() }
+  qsoStore.qsoCollection.onChange { (_, _) =>
+    if callsignField.text.value.nonEmpty then refreshDuplicates()
   }
 
   callsignField.onDoneFunction = chForNext =>
     Platform.runLater {
-      contestClassField.text = if chForNext.trim.isEmpty then "" else chForNext
-
-      contestClassField.requestFocus()
-      contestClassField.end()
+      if callsignField.canAdvance then
+        contestClassField.text = if chForNext.trim.isEmpty then "" else chForNext
+        contestClassField.requestFocus()
+        contestClassField.end()
     }
+  contestClassField.focused.onChange { (_, _, focused) =>
+    if focused && !callsignField.canAdvance then
+      Platform.runLater {
+        if contestClassField.focused.value && !callsignField.canAdvance then callsignField.requestFocus()
+      }
+  }
+
   contestClassField.onDoneFunction = chForNext =>
     Platform.runLater {
       sectionField.text = if chForNext.trim.isEmpty then "" else chForNext

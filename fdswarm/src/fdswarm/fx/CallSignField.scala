@@ -19,7 +19,6 @@
 package fdswarm.fx
 
 import _root_.scalafx.scene.control.{TextField, TextFormatter}
-import _root_.scalafx.scene.input.KeyCode
 import fdswarm.bandmodes.SelectedBandModeManager
 import fdswarm.model.Callsign
 import fdswarm.store.QsoStore
@@ -51,8 +50,8 @@ class CallSignField @Inject() (
     else null
   )
 
-  override def isTransitionKey(key: KeyCode): Boolean =
-    super.isTransitionKey(key)
+  override def canAdvance: Boolean =
+    !qsoStore.containsDuplicate(Callsign(text.value), selectedBsndModeStore.selected.value)
 
   def isValid(str: String): Boolean =
     Callsign.isValid(str)

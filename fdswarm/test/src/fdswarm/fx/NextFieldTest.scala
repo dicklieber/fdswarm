@@ -18,10 +18,14 @@
 
 package fdswarm.fx
 
-import munit.FunSuite
+import fdswarm.JavaFxTestKit
+import fdswarm.support.TempDirFileHelperSuite
+import scalafx.beans.property.BooleanProperty
+import scalafx.scene.control.TextField
+import javafx.scene.input.KeyEvent
 import scalafx.scene.input.KeyCode
 
-class NextFieldTest extends FunSuite:
+class NextFieldTest extends TempDirFileHelperSuite:
 
   test("NextField.toChar maps basic keys correctly") {
     assertEquals(NextField.toChar(KeyCode.Space), ' ')
@@ -36,4 +40,39 @@ class NextFieldTest extends FunSuite:
   test("NextField.toChar returns space for unknown keys") {
     assertEquals(NextField.toChar(KeyCode.Shift), ' ')
     assertEquals(NextField.toChar(KeyCode.F1), ' ')
+  }
+
+  test("blocked advancement consumes forward keys with automatic transitions enabled or disabled") {
+    JavaFxTestKit.runOnFx {
+      val config = new UserConfig(fileHelper)
+      var blocked = true
+      val field = new TextField with NextField:
+        override def userConfig: UserConfig = config
+        override def isValid(str: String): Boolean = true
+        override def canAdvance: Boolean = !blocked
+      field.text = "WA9ABC"
+      var advances = 0
+      field.onDoneFunction = _ => advances += 1
+
+      for enabled <- Seq(true, false) do
+        config.getProperty[BooleanProperty]("useNextField").value = enabled
+        for key <- Seq(javafx.scene.input.KeyCode.ENTER, javafx.scene.input.KeyCode.TAB) do
+          field.delegate.fireEvent(new KeyEvent(
+            KeyEvent.KEY_PRESSED, "", "", key, false, false, false, false
+          ))
+        if enabled then
+          for key <- Seq(javafx.scene.input.KeyCode.SPACE, javafx.scene.input.KeyCode.DIGIT1) do
+            field.delegate.fireEvent(new KeyEvent(
+              KeyEvent.KEY_PRESSED, "", "", key, false, false, false, false
+            ))
+      assertEquals(advances, 0)
+      assertEquals(field.text.value, "WA9ABC")
+      blocked = false
+      config.getProperty[BooleanProperty]("useNextField").value = true
+      field.delegate.fireEvent(new KeyEvent(
+        KeyEvent.KEY_PRESSED, "", "", javafx.scene.input.KeyCode.ENTER,
+        false, false, false, false
+      ))
+      assertEquals(advances, 1)
+    }
   }

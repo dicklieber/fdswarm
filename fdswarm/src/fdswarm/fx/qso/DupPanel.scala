@@ -19,6 +19,7 @@
 package fdswarm.fx.qso
 
 import fdswarm.bandmodes.SelectedBandModeManager
+import fdswarm.model.{BandMode, Callsign}
 import fdswarm.fx.GridColumns
 import fdswarm.fx.bandmodes.BandModeStore
 import fdswarm.logging.LazyStructuredLogging
@@ -46,8 +47,31 @@ class DupPanel @Inject()(
   private var titleLabel: Label = uninitialized
   private val showingPotentialDuplicates = BooleanProperty(false)
 
+  private var lastDuplicate: Option[(Callsign, BandMode)] = None
+
+  protected def beep(): Unit = java.awt.Toolkit.getDefaultToolkit.beep()
+
+  def showDuplicate(callsign: Callsign, bandMode: BandMode): Unit =
+    Platform.runLater {
+      val duplicate = (callsign, bandMode)
+      val shouldBeep = !lastDuplicate.contains(duplicate)
+      lastDuplicate = Some(duplicate)
+      titleLabel.text = "Duplicate"
+      grid.children.clear()
+      val label = new Label(s"$callsign already logged on $bandMode") {
+        styleClass += "duplicate-qso"
+        wrapText = true
+      }
+      grid.add(label, 0, 0)
+      showingPotentialDuplicates.value = true
+      root.visible = true
+      root.managed = true
+      if shouldBeep then beep()
+    }
+
   def show(styledMessage: StyledMessage): Unit =
     Platform.runLater {
+      lastDuplicate = None
       showingPotentialDuplicates.value = false
       titleLabel.text = "Saving Qso"
       grid.children.clear()
@@ -62,6 +86,7 @@ class DupPanel @Inject()(
 
   def show(dupInfo: DupInfo): Unit =
     Platform.runLater {
+      lastDuplicate = None
       titleLabel.text = "Potential Duplicates"
       grid.children.clear()
       if (dupInfo.totalDups > 0) {
@@ -101,6 +126,7 @@ class DupPanel @Inject()(
    */
   def show(title: String, items: Seq[(String, String)]): Unit =
     Platform.runLater {
+      lastDuplicate = None
       showingPotentialDuplicates.value = false
       titleLabel.text = title
       grid.children.clear()
@@ -121,6 +147,7 @@ class DupPanel @Inject()(
 
   def clear: Unit =
     Platform.runLater {
+      lastDuplicate = None
       showingPotentialDuplicates.value = false
       root.visible = false
       root.managed = false

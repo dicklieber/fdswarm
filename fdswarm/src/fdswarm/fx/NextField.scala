@@ -59,6 +59,9 @@ trait NextField extends TextInputControl with WithDisposition:
   def isTransitionKey(key: KeyCode): Boolean =
     key.isDigitKey || key == KeyCode.Space || key == KeyCode.Enter || key == KeyCode.Tab
 
+  /** Whether forward traversal is currently allowed, independently of syntax validation. */
+  def canAdvance: Boolean = true
+
   var onDoneFunction: String => Unit =
     (_) => {}
 
@@ -72,6 +75,9 @@ trait NextField extends TextInputControl with WithDisposition:
 
       if (isBackwardTab) {
         // Preserve normal reverse focus traversal.
+      } else if (!canAdvance && (key == KeyCode.Tab || key == KeyCode.Enter ||
+          (isFieldValid && isTransitionKey(key) && useNextField))) {
+        event.consume()
       } else if (isFieldValid && isTransitionKey(key) && useNextField) {
         event.consume()
         val str: String =

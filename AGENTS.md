@@ -116,11 +116,11 @@ abstractions, or dependencies.
 This project uses Mill 2.0, not sbt.
 
 - Never run sbt commands.
-- Do not run Mill builds or tests unless explicitly requested.
+- Run appropriate Mill builds and tests by default when implementing changes.
 - Do not modify build dependencies without approval.
 - Do not modify build configuration unnecessarily.
 
-When explicitly requested to run Mill:
+When running Mill:
 
 - Prefer `--no-server`.
 - Prefer an output directory outside the repository.
@@ -363,8 +363,7 @@ For distributed behavior, consider:
 - Repeated synchronization.
 - Conflicting updates.
 
-Codex should write tests but leave their execution to
-the developer unless explicitly requested.
+Codex should write and run appropriate tests by default when implementing changes.
 
 Do not claim tests passed unless they were actually executed.
 
