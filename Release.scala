@@ -38,6 +38,19 @@ object Release {
     check(sys.props("os.name").toLowerCase(java.util.Locale.ROOT).contains("mac"),
       "Releases must run on macOS to build the DMG alongside the JAR.")
 
+    val identities = capture("security", "find-identity", "-v", "-p", "codesigning")
+      .out.text().linesIterator.flatMap { line =>
+        val start = line.indexOf("\"Developer ID Application:")
+        Option.when(start >= 0)(line.substring(start + 1).takeWhile(_ != '"'))
+      }.toVector
+    val signingIdentity = sys.env.get("JPACKAGE_MAC_SIGNING_KEY_USER_NAME")
+      .filter(_.nonEmpty).getOrElse {
+        check(identities.size == 1, "Expected one Developer ID Application identity; set JPACKAGE_MAC_SIGNING_KEY_USER_NAME to select one.")
+        identities.head.stripPrefix("Developer ID Application: ")
+      }
+    val notaryProfile = sys.env.getOrElse("FDSWARM_NOTARY_PROFILE", "fdswarm-notary")
+    run("xcrun", "notarytool", "history", "--keychain-profile", notaryProfile)
+
     val originalVersion = os.read(versionFile)
     val snapshotVersion = originalVersion.trim
     check(snapshotVersion.matches(raw"\d+\.\d+\.\d+-SNAPSHOT"),
@@ -70,7 +83,11 @@ object Release {
     def mill(target: String): Unit =
       os.proc("./mill", "--no-server", target).call(
         cwd = root, env = Map("MILL_OUTPUT_DIR" -> buildOutput.toString) ++
-          Option.when(target == "fdswarm.macDmg")("FDSWARM_ASSEMBLY_JAR" -> artifact.toString),
+          (if target == "fdswarm.macDmg" then Map(
+            "FDSWARM_ASSEMBLY_JAR" -> artifact.toString,
+            "JPACKAGE_MAC_SIGN" -> "true",
+            "JPACKAGE_MAC_SIGNING_KEY_USER_NAME" -> signingIdentity
+          ) else Map.empty[String, String]),
         stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
       ()
 
@@ -104,6 +121,9 @@ object Release {
       check(os.isFile(dmgPath), s"DMG not found: $dmgPath")
       run("hdiutil", "verify", dmgPath.toString)
       os.copy.over(dmgPath, dmgArtifact)
+      run("./scripts/ci/notarize-macos.sh", dmgArtifact.toString, notaryProfile,
+        if signingIdentity.startsWith("Developer ID Application: ") then signingIdentity
+        else s"Developer ID Application: $signingIdentity")
       val hash = capture("shasum", "-a", "256", dmgArtifact.toString)
       check(hash.exitCode == 0, "Cannot calculate DMG checksum.")
       os.write.over(dmgChecksum, s"${hash.out.text().takeWhile(!_.isWhitespace)}  $dmgName\n")

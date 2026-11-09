@@ -317,9 +317,22 @@ The DMG is written to:
 out/fdswarm/macDmg.dest/jpackage/
 ```
 
-The DMG is currently unsigned unless `JPACKAGE_MAC_SIGN` and
-`JPACKAGE_MAC_SIGNING_KEY_USER_NAME` are configured; it is not notarized.
-An unsigned application may require approval in macOS Privacy & Security.
+Releases require a valid Developer ID Application certificate and private key in
+Keychain. The release command selects the only valid Developer ID Application
+identity, or uses `JPACKAGE_MAC_SIGNING_KEY_USER_NAME` when explicitly configured.
+Store notarization credentials once with `xcrun notarytool store-credentials
+fdswarm-notary`. Set `FDSWARM_NOTARY_PROFILE` to use another Keychain profile.
+
+The release command signs the app and DMG, submits the DMG to Apple, waits for
+acceptance, staples and validates the ticket, and checks Gatekeeper before
+calculating the checksum or publishing. Credentials remain in Keychain.
+Notarization responses and failure logs are retained alongside the DMG in `release/`.
+Standalone `macDmg` builds remain unsigned unless `JPACKAGE_MAC_SIGN` and
+`JPACKAGE_MAC_SIGNING_KEY_USER_NAME` are set. To notarize a signed DMG manually:
+
+```sh
+./scripts/ci/notarize-macos.sh path/to/FdSwarm.dmg fdswarm-notary
+```
 
 ## Windows Installer
 
