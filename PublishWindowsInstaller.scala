@@ -7,18 +7,17 @@ object PublishWindowsInstaller:
   case class Result(exitCode: Int = 0, output: String = "")
 
   private def execute(args: Seq[String]): Result =
-    val watch = args.take(2) == Seq("run", "watch")
     val result = os.proc(Seq("gh") ++ args).call(
       check = false, stdin = os.Inherit, stderr = os.Inherit,
-      stdout = if watch then os.Inherit else os.Pipe
+      stdout = os.Pipe
     )
-    Result(result.exitCode, if watch then "" else result.out.text().trim)
+    Result(result.exitCode, result.out.text().trim)
 
   def publish(
       tag: String,
       ref: String = "main",
       gh: Seq[String] => Result = execute,
-      pause: () => Unit = () => Thread.sleep(2000)
+      pause: () => Unit = () => Thread.sleep(10000)
   ): Unit =
     require(tag.matches(raw"v\d+\.\d+\.\d+(?:-\d+)?"),
       "Expected a release tag such as v0.0.4-30.")
@@ -41,25 +40,43 @@ object PublishWindowsInstaller:
       }
 
     // Ignore successful runs from earlier attempts at packaging this tag.
+    println(s"Preparing Windows installer workflow for $tag (ref $ref)...")
     val previous = latestRun()
+    println(s"Dispatching $workflow...")
     checked("workflow", "run", workflow, "--ref", ref, "-f", s"tag=$tag")
     var runId = Option.empty[Long]
-    for attempt <- 0 until 60 if runId.isEmpty do
+    for attempt <- 0 until 12 if runId.isEmpty do
+      println(s"Waiting for GitHub to register the Windows run (${attempt * 10}s elapsed)...")
       val candidate = latestRun()
       if candidate > previous then runId = Some(candidate)
-      else if attempt < 59 then pause()
+      else if attempt < 11 then pause()
     val id = runId.getOrElse {
       throw new IllegalStateException(
         s"Windows workflow dispatched for $tag, but no new run appeared within two minutes. " +
           s"Inspect with: gh run list --workflow $workflow")
     }
     println(s"Waiting for Windows installer: run $id ($tag)")
-    val watched = gh(Seq("run", "watch", id.toString, "--exit-status", "--compact", "--interval", "10"))
-    if watched.exitCode != 0 then
+    val started = System.nanoTime()
+    val progressQuery = """([.status, (.conclusion // ""), .url] | @tsv),
+      |(.jobs[]? | .name + ": " + .status + " " + (.conclusion // "") +
+      |  ([.steps[]? | select(.status == "in_progress") | " — " + .name] | join("")))""".stripMargin
+    var conclusion = Option.empty[String]
+    for poll <- 0 until 360 if conclusion.isEmpty do
+      val progress = checked("run", "view", id.toString, "--json", "status,conclusion,url,jobs", "--jq", progressQuery)
+      val lines = progress.linesIterator.toVector
+      val state = lines.headOption.getOrElse("").split("\t", -1)
+      check(state.length == 3, s"Cannot read Windows workflow progress: $progress")
+      val elapsed = (System.nanoTime() - started) / 1000000000L
+      println(s"Windows installer: ${state(0)} (${elapsed}s elapsed) — ${state(2)}")
+      lines.drop(1).foreach(line => println(s"  $line"))
+      if state(0) == "completed" then conclusion = Some(state(1))
+      else if poll < 359 then pause()
+    check(conclusion.isDefined, s"Stopped waiting after one hour; Windows run $id may still be running. Inspect with: gh run view $id")
+    if conclusion.get != "success" then
       val logs = gh(Seq("run", "view", id.toString, "--log-failed"))
       System.err.println(logs.output)
       throw new IllegalStateException(
-        s"Windows installer failed. Retry: ./mill --no-server PublishWindowsInstaller.scala $tag $ref")
+        s"Windows installer ${conclusion.get}. Retry: ./mill --no-server PublishWindowsInstaller.scala $tag $ref")
 
     val installer = s"FdSwarm-${tag.stripPrefix("v")}-windows-x64-setup.exe"
     val assets = checked("release", "view", tag, "--json", "assets", "--jq",

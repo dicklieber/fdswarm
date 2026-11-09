@@ -18,7 +18,7 @@ Downloads and unpacks BellSoft Liberica JDK 21 Full runtimes for:
   - Linux aarch64
 
 By default, runtimes are written under fdswarm-runtimes for
-scripts/publish-zip-installers.sh.
+BuildZipInstallers.scala and PublishZipInstallers.scala.
 
 Options:
   --dest DIR        Directory for downloaded archives and unpacked runtimes.

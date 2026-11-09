@@ -264,20 +264,34 @@ To build and publish a build-number release interactively, run from the reposito
 ./mill --no-server Release.scala
 ```
 
+At startup, the script asks three questions, each defaulting to yes:
+
+- Publish macOS DMG?
+- Publish Windows installer?
+- Publish ZIP installers?
+
+The JAR is always built and published, including when all three choices are no.
 The script requires a clean Git working tree and an authenticated GitHub CLI (`gh`).
-It increments `build.number`, builds a version such as `0.0.4-12` in an isolated
-temporary Mill output directory, verifies the JAR version and embedded documentation,
-and saves `release/fdswarm.jar`. On the release Mac it also builds and verifies
-`release/FdSwarm-<version>-macos-<architecture>.dmg` and writes its SHA-256 checksum.
-The release command requires macOS with Liberica JDK 21 Full on `PATH`; the DMG
-bundles Java/JavaFX for that Mac's architecture (`aarch64` or `x64`).
-It restores `version.txt` to its original snapshot
-version before committing the build number, prompts before pushing the commit,
-creates or updates the GitHub release with the JAR, DMG, and checksum, and then dispatches the Windows
-installer workflow from the release tag. It waits for that run to succeed and
-verifies that the Windows installer and checksum are attached before reporting
-completion. A failed Windows run prints its failed-step logs and fails the release
-command; the already uploaded JAR and DMG remain available. The GitHub CLI login needs permission to dispatch Actions.
+It increments `build.number`, builds the release in an isolated temporary Mill output
+directory, verifies the JAR version and documentation, and saves `release/fdswarm.jar`.
+It restores the snapshot version, commits the build number, pushes the commit, and
+publishes the selected artifacts without further confirmation prompts.
+
+DMG publishing requires macOS, Liberica JDK 21 Full on `PATH`, and signing/notarization
+credentials. It produces `release/FdSwarm-<version>-macos-<architecture>.dmg` and a
+SHA-256 checksum. When DMG publishing is disabled, those credentials are not required.
+
+ZIP publishing builds all five platforms from that same JAR using local runtimes
+under `fdswarm-runtimes/` (or `FDSWARM_RUNTIMES_DIR`). Run
+`./scripts/fetch-liberica-runtimes.sh` once to prepare them. Missing runtimes fail
+preflight before the build number changes. ZIPs are retained in `release/`.
+
+Windows publishing dispatches the workflow from the release tag, prints status,
+elapsed time, a run link, and the current job/step every ten seconds, and verifies
+the installer and checksum are attached. The publisher is called directly from the
+release script, avoiding another Mill startup while waiting for Windows.
+A failed run prints its failed-step logs and fails the release command; already
+uploaded artifacts remain available. The GitHub CLI login needs permission to dispatch Actions.
 The release script does not run tests;
 run the existing test suites before releasing. If publication fails after the
 commit, the commit and local release artifacts are retained for manual recovery.
@@ -319,7 +333,7 @@ The DMG is written to:
 out/fdswarm/macDmg.dest/jpackage/
 ```
 
-Releases require a valid Developer ID Application certificate and private key in
+DMG publishing requires a valid Developer ID Application certificate and private key in
 Keychain. The release command selects the only valid Developer ID Application
 identity, or uses `JPACKAGE_MAC_SIGNING_KEY_USER_NAME` when explicitly configured.
 Store notarization credentials once with `xcrun notarytool store-credentials
@@ -406,6 +420,30 @@ Installers are written to `out/release/artifacts`.
 
 Zip distributions are plain file-copy bundles. They do not use `jpackage`, MSI, DMG, PKG, WiX, or app-image.
 
+`BuildZipInstallers.scala` and `PublishZipInstallers.scala` replace the former
+`scripts/release-zips.sh` and `scripts/publish-zip-installers.sh`. The builder has no
+GitHub dependency; the publisher reuses it and never creates a different release.
+Both require all five local runtime images. To build without uploading:
+
+```sh
+./mill --no-server BuildZipInstallers.scala release/fdswarm.jar
+```
+
+To publish ZIPs for an existing release, downloading its JAR first:
+
+```sh
+./mill --no-server PublishZipInstallers.scala v0.0.4-32
+```
+
+Supply a local JAR as the second argument to skip downloading it. Both scripts accept
+runtime and output directory arguments; see `--help`. The JAR version must match
+the target tag. ZIP outputs are retained for inspection or retry, and unrelated
+artifacts are preserved. Run the offline packaging and release-selection checks with:
+
+```sh
+./mill --no-server ZipInstallersTest.scala + ReleaseTest.scala
+```
+
 Each zip contains:
 
 ```text
@@ -415,7 +453,7 @@ FdSwarm/
     fdswarm.bat
     install-start-menu-shortcut.bat on Windows
   lib/
-    fdswarm-all.jar
+    fdswarm.jar
   runtime/
     <bundled platform JDK>
   conf/
@@ -427,7 +465,10 @@ folder to add a per-user `FdSwarm` shortcut to the Windows Start Menu.
 
 Use BellSoft Liberica JDK 21 Full archives from https://bell-sw.com/pages/downloads/#jdk-21-lts. Use the Full JDK because FdSwarm is a JavaFX app and the Full bundle includes LibericaFX.
 
-### Local Zip Builds
+### Existing Mill Distribution Tasks
+
+The existing `fdswarm.distAll` tasks remain available; these use `fdswarm-all.jar`
+in their bundles and can fetch missing runtimes automatically.
 
 Build all zip distributions:
 
