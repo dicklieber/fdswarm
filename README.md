@@ -282,9 +282,11 @@ credentials. It produces `release/FdSwarm-<version>-macos-<architecture>.dmg` an
 SHA-256 checksum. When DMG publishing is disabled, those credentials are not required.
 
 ZIP publishing builds all five platforms from that same JAR using local runtimes
-under `fdswarm-runtimes/` (or `FDSWARM_RUNTIMES_DIR`). Run
-`./scripts/fetch-liberica-runtimes.sh` once to prepare them. Missing runtimes fail
-preflight before the build number changes. ZIPs are retained in `release/`.
+under `fdswarm-runtimes/` (or `FDSWARM_RUNTIMES_DIR`). If any are missing, the release
+script prompts before fetching these large downloads. Existing runtimes are reused;
+only missing platforms are fetched. Declining cancels the release before the build
+number changes. No fetch prompt appears when all runtimes are present or ZIP
+publishing is disabled. ZIPs are retained in `release/`.
 
 Windows publishing dispatches the workflow from the release tag, prints status,
 elapsed time, a run link, and the current job/step every ten seconds, and verifies

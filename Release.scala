@@ -22,6 +22,24 @@ object Release {
           choose(label)
     Publishing(choose("Publish macOS DMG"), choose("Publish Windows installer"), choose("Publish ZIP installers"))
 
+  /** Return false when the user declines an expensive download, before release state changes. */
+  def prepareZipRuntimes(root: os.Path, read: String => String, fetch: () => Unit): Boolean =
+    val missing = BuildZipInstallers.missingRuntimes(root)
+    if missing.isEmpty then true
+    else
+      println(s"Missing ZIP runtimes under $root: ${missing.mkString(", ")}")
+      val answer = read("Fetch missing Liberica JDK 21 Full runtimes? This is a large download. [y/N]: ")
+      if answer == null then false
+      else answer.trim.toLowerCase(java.util.Locale.ROOT) match
+        case "y" | "yes" | "ok" =>
+          fetch()
+          BuildZipInstallers.runtimes(root) // Never continue with an incomplete download.
+          true
+        case "" | "n" | "no" => false
+        case _ =>
+          println("Enter yes or no.")
+          prepareZipRuntimes(root, read, fetch)
+
   def main(args: Array[String]): Unit =
     if args.toSeq == Seq("--help") then
       println("Usage: ./mill --no-server Release.scala\nChoose macOS DMG, Windows installer, and ZIP publishing at startup. The JAR is always published. DMG publishing requires macOS.")
@@ -66,7 +84,11 @@ object Release {
     val notaryProfile = sys.env.getOrElse("FDSWARM_NOTARY_PROFILE", "fdswarm-notary")
     if selected.mac then run("xcrun", "notarytool", "history", "--keychain-profile", notaryProfile)
     val runtimeRoot = os.Path(sys.env.getOrElse("FDSWARM_RUNTIMES_DIR", "fdswarm-runtimes"), root)
-    if selected.zips then BuildZipInstallers.runtimes(runtimeRoot)
+    if selected.zips && !prepareZipRuntimes(runtimeRoot,
+        label => scala.io.StdIn.readLine(label),
+        () => run("./scripts/fetch-liberica-runtimes.sh", "--dest", runtimeRoot.toString, "--missing-only")) then
+      println("Release cancelled; no build number or published artifacts changed.")
+      return
 
     val originalVersion = os.read(versionFile)
     val snapshotVersion = originalVersion.trim

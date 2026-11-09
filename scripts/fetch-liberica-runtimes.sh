@@ -4,11 +4,12 @@ set -euo pipefail
 
 dest="fdswarm-runtimes"
 env_file=""
+missing_only=false
 
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/fetch-liberica-runtimes.sh [--dest DIR] [--env-file FILE]
+  scripts/fetch-liberica-runtimes.sh [--dest DIR] [--env-file FILE] [--missing-only]
 
 Downloads and unpacks BellSoft Liberica JDK 21 Full runtimes for:
   - Windows x64
@@ -23,6 +24,7 @@ BuildZipInstallers.scala and PublishZipInstallers.scala.
 Options:
   --dest DIR        Directory for downloaded archives and unpacked runtimes.
   --env-file FILE   Write optional shell export overrides to FILE.
+  --missing-only    Reuse installed runtimes; fetch only missing platform images.
   -h, --help        Show this help.
 EOF
 }
@@ -36,6 +38,10 @@ while [[ $# -gt 0 ]]; do
     --env-file)
       env_file="$2"
       shift 2
+      ;;
+    --missing-only)
+      missing_only=true
+      shift
       ;;
     -h|--help)
       usage
@@ -141,40 +147,37 @@ write_env() {
   fi
 }
 
-windows_url="$(liberica_url windows x86 zip)"
-windows_archive="$dest/cache/windows-x64.zip"
-windows_dir="$dest/windows-x64"
-download "Liberica JDK 21 Full for Windows x64" "$windows_url" "$windows_archive"
-extract_zip "$windows_archive" "$windows_dir"
-windows_home="$(find_java_home "$windows_dir" java.exe)"
+fetch_runtime() {
+  local platform="$1" os_name="$2" arch="$3" format="$4" executable="$5"
+  local directory="$dest/$platform" archive="$dest/cache/$platform.$format"
+  local existing="" url
+  if [[ -d "$directory" ]]; then
+    existing="$(find "$directory" -type f -path "*/bin/$executable" -print -quit)"
+  fi
+  if [[ "$missing_only" == true && -n "$existing" ]]; then
+    echo "Reusing runtime: $platform"
+  else
+    url="$(liberica_url "$os_name" "$arch" "$format")"
+    download "Liberica JDK 21 Full for $platform" "$url" "$archive"
+    if [[ "$format" == zip ]]; then
+      extract_zip "$archive" "$directory"
+    else
+      extract_tar_gz "$archive" "$directory"
+    fi
+  fi
+  runtime_home="$(find_java_home "$directory" "$executable")"
+}
 
-windows_arm64_url="$(liberica_url windows arm zip)"
-windows_arm64_archive="$dest/cache/windows-arm64.zip"
-windows_arm64_dir="$dest/windows-arm64"
-download "Liberica JDK 21 Full for Windows ARM64" "$windows_arm64_url" "$windows_arm64_archive"
-extract_zip "$windows_arm64_archive" "$windows_arm64_dir"
-windows_arm64_home="$(find_java_home "$windows_arm64_dir" java.exe)"
-
-macos_url="$(liberica_url macos arm tar.gz)"
-macos_archive="$dest/cache/macos-aarch64.tar.gz"
-macos_dir="$dest/macos-aarch64"
-download "Liberica JDK 21 Full for macOS aarch64" "$macos_url" "$macos_archive"
-extract_tar_gz "$macos_archive" "$macos_dir"
-macos_home="$(find_java_home "$macos_dir" java)"
-
-linux_url="$(liberica_url linux x86 tar.gz)"
-linux_archive="$dest/cache/linux-x64.tar.gz"
-linux_dir="$dest/linux-x64"
-download "Liberica JDK 21 Full for Linux x64" "$linux_url" "$linux_archive"
-extract_tar_gz "$linux_archive" "$linux_dir"
-linux_home="$(find_java_home "$linux_dir" java)"
-
-linux_aarch64_url="$(liberica_url linux arm tar.gz)"
-linux_aarch64_archive="$dest/cache/linux-aarch64.tar.gz"
-linux_aarch64_dir="$dest/linux-aarch64"
-download "Liberica JDK 21 Full for Linux aarch64" "$linux_aarch64_url" "$linux_aarch64_archive"
-extract_tar_gz "$linux_aarch64_archive" "$linux_aarch64_dir"
-linux_aarch64_home="$(find_java_home "$linux_aarch64_dir" java)"
+fetch_runtime windows-x64 windows x86 zip java.exe
+windows_home="$runtime_home"
+fetch_runtime windows-arm64 windows arm zip java.exe
+windows_arm64_home="$runtime_home"
+fetch_runtime macos-aarch64 macos arm tar.gz java
+macos_home="$runtime_home"
+fetch_runtime linux-x64 linux x86 tar.gz java
+linux_home="$runtime_home"
+fetch_runtime linux-aarch64 linux arm tar.gz java
+linux_aarch64_home="$runtime_home"
 
 echo
 echo "Runtime homes:"

@@ -19,15 +19,24 @@ object BuildZipInstallers:
       value
     }
 
-  def runtimes(root: os.Path): Seq[(String, os.Path)] =
-    platforms.map { platform =>
-      val directory = root / platform
-      require(os.isDir(directory), s"Missing runtime: $directory. Run scripts/fetch-liberica-runtimes.sh first.")
+  def runtimeHome(root: os.Path, platform: String): Option[os.Path] =
+    val directory = root / platform
+    if !os.isDir(directory) then None
+    else
       val executable = if platform.startsWith("windows-") then "java.exe" else "java"
       val homes = os.walk(directory).filter(p => os.isFile(p) && p.last == executable && (p / os.up).last == "bin")
         .map(_ / os.up / os.up)
-      require(homes.size == 1, s"Expected one bin/$executable under $directory; found ${homes.size}")
-      platform -> homes.head
+      require(homes.size <= 1, s"Expected one bin/$executable under $directory; found ${homes.size}")
+      homes.headOption
+
+  def missingRuntimes(root: os.Path): Seq[String] =
+    platforms.filter(platform => runtimeHome(root, platform).isEmpty)
+
+  def runtimes(root: os.Path): Seq[(String, os.Path)] =
+    platforms.map { platform =>
+      platform -> runtimeHome(root, platform).getOrElse {
+        throw new IllegalArgumentException(s"Missing runtime: ${root / platform}. Run scripts/fetch-liberica-runtimes.sh first.")
+      }
     }
 
   def build(jar: os.Path, runtimeRoot: os.Path, output: os.Path, repo: os.Path = os.pwd): Seq[os.Path] =
