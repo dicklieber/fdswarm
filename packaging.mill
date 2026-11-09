@@ -62,7 +62,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, assembly())
+      getJpackageInput(Task.dest, assembly(), installerJarOverride())
 
     val baseArgs = Seq(
       "jpackage",
@@ -94,6 +94,16 @@ trait FdSwarmPackaging extends JpackageModule:
     if exit != 0 then
       throw new RuntimeException(s"jpackage failed with exit code $exit")
 
+    val arch = sys.props("os.arch") match
+      case "aarch64" | "arm64" => "aarch64"
+      case "x86_64" | "amd64" => "x64"
+      case other => throw new RuntimeException(s"Unsupported macOS architecture: $other")
+    val produced = os.list(dest).filter(_.ext == "dmg")
+    require(produced.size == 1, s"Expected one DMG in $dest, found ${produced.size}")
+    val renamed = dest / s"${jpackageName()}-$artifactVersion-macos-$arch.dmg"
+    os.move(produced.head, renamed, replaceExisting = true)
+    println(s"DMG: $renamed")
+
     PathRef(dest)
   }
 
@@ -107,7 +117,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, assembly())
+      getJpackageInput(Task.dest, assembly(), installerJarOverride())
 
     val baseArgs = Seq(
       "jpackage",
@@ -156,12 +166,17 @@ trait FdSwarmPackaging extends JpackageModule:
       Seq("--mac-sign", "--mac-signing-key-user-name", signingKey.get)
     else Seq.empty
 
+  private def installerJarOverride = Task.Input {
+    sys.env.get("FDSWARM_ASSEMBLY_JAR").map(raw => PathRef(envPath(raw)))
+  }
+
   private def getJpackageInput(
       dest: os.Path,
-      assemblyJar: => PathRef
+      assemblyJar: => PathRef,
+      jarOverride: Option[PathRef]
     ): (os.Path, String) =
 
-    val jarFromEnv = sys.env.get("FDSWARM_ASSEMBLY_JAR").map(envPath)
+    val jarFromEnv = jarOverride.map(_.path)
     val inputDir = dest / "jpackage-input"
     os.makeDir.all(inputDir)
 
@@ -210,7 +225,7 @@ trait FdSwarmPackaging extends JpackageModule:
     os.makeDir.all(dest)
 
     val (inputDir, mainJarName) =
-      getJpackageInput(Task.dest, assembly())
+      getJpackageInput(Task.dest, assembly(), installerJarOverride())
 
     val baseArgs = Seq(
       "jpackage",

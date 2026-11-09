@@ -9,7 +9,7 @@ import scala.util.Using
 object Release {
   def main(args: Array[String]): Unit =
     if args.toSeq == Seq("--help") then
-      println("Usage: ./mill --no-server Release.scala\nInteractively build and publish fdswarm.jar to GitHub.")
+      println("Usage: ./mill --no-server Release.scala\nInteractively build and publish fdswarm.jar and a macOS DMG to GitHub. Requires macOS.")
       return
     require(args.isEmpty, "No arguments expected (or use --help).")
 
@@ -35,6 +35,9 @@ object Release {
     check(capture("gh", "auth", "status").exitCode == 0,
       "GitHub CLI must be installed and authenticated. Run: gh auth login")
 
+    check(sys.props("os.name").toLowerCase(java.util.Locale.ROOT).contains("mac"),
+      "Releases must run on macOS to build the DMG alongside the JAR.")
+
     val originalVersion = os.read(versionFile)
     val snapshotVersion = originalVersion.trim
     check(snapshotVersion.matches(raw"\d+\.\d+\.\d+-SNAPSHOT"),
@@ -47,8 +50,16 @@ object Release {
     val tag = s"v$releaseVersion"
     val artifact = root / "release" / "fdswarm.jar"
 
+    val macArch = sys.props("os.arch") match
+      case "aarch64" | "arm64" => "aarch64"
+      case "x86_64" | "amd64" => "x64"
+      case other => throw new IllegalStateException(s"Unsupported macOS architecture: $other")
+    val dmgName = s"FdSwarm-$releaseVersion-macos-$macArch.dmg"
+    val dmgArtifact = artifact / os.up / dmgName
+    val dmgChecksum = artifact / os.up / s"$dmgName.sha256"
+
     println(s"Snapshot version: $snapshotVersion\nRelease version : $releaseVersion\nTag             : $tag\nArtifact        : $artifact")
-    println("Build steps     : clean, fdswarm.assembly (isolated temporary Mill output directory)")
+    println("Build steps     : clean, fdswarm.assembly, fdswarm.macDmg (isolated temporary Mill output directory)")
     if !confirm("Build and publish this release") then
       println("Release cancelled.")
       return
@@ -58,7 +69,8 @@ object Release {
     var releaseCommit = ""
     def mill(target: String): Unit =
       os.proc("./mill", "--no-server", target).call(
-        cwd = root, env = Map("MILL_OUTPUT_DIR" -> buildOutput.toString),
+        cwd = root, env = Map("MILL_OUTPUT_DIR" -> buildOutput.toString) ++
+          Option.when(target == "fdswarm.macDmg")("FDSWARM_ASSEMBLY_JAR" -> artifact.toString),
         stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
       ()
 
@@ -87,6 +99,15 @@ object Release {
       run("./scripts/ci/verify-docs-in-jar.sh", jarPath.toString)
       os.copy.over(jarPath, artifact, createFolders = true)
 
+      mill("fdswarm.macDmg")
+      val dmgPath = buildOutput / "fdswarm" / "macDmg.dest" / "jpackage" / dmgName
+      check(os.isFile(dmgPath), s"DMG not found: $dmgPath")
+      run("hdiutil", "verify", dmgPath.toString)
+      os.copy.over(dmgPath, dmgArtifact)
+      val hash = capture("shasum", "-a", "256", dmgArtifact.toString)
+      check(hash.exitCode == 0, "Cannot calculate DMG checksum.")
+      os.write.over(dmgChecksum, s"${hash.out.text().takeWhile(!_.isWhitespace)}  $dmgName\n")
+
       // Commit the incremented build number while retaining the development version.
       os.write.over(versionFile, originalVersion)
       run("git", "add", "version.txt", "build.number")
@@ -101,15 +122,15 @@ object Release {
 
       if capture("gh", "release", "view", tag).exitCode != 0 then
         run("gh", "release", "create", tag, "--target", releaseCommit, "--title", tag, "--generate-notes")
-      run("gh", "release", "upload", tag, artifact.toString, "--clobber")
-      println(s"Published $artifact to GitHub release $tag")
+      run("gh", "release", "upload", tag, artifact.toString, dmgArtifact.toString, dmgChecksum.toString, "--clobber")
+      println(s"Published JAR, $dmgName, and checksum to GitHub release $tag")
       // Dispatch only after the JAR is available; a release-created event can race its upload.
       run("gh", "workflow", "run", "windows-installer.yml", "-f", s"tag=$tag")
       println(s"Windows installer build queued for $tag. Monitor with: gh run list --workflow windows-installer.yml")
     catch
       case scala.util.control.NonFatal(error) =>
         if committed then
-          System.err.println(s"Release commit $releaseCommit was retained. Check GitHub release $tag before retrying publication. JAR: $artifact")
+          System.err.println(s"Release commit $releaseCommit was retained. Check GitHub release $tag before retrying publication. Artifacts: $artifact, $dmgArtifact, $dmgChecksum")
         throw error
     finally
       try

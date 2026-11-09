@@ -267,14 +267,18 @@ To build and publish a build-number release interactively, run from the reposito
 The script requires a clean Git working tree and an authenticated GitHub CLI (`gh`).
 It increments `build.number`, builds a version such as `0.0.4-12` in an isolated
 temporary Mill output directory, verifies the JAR version and embedded documentation,
-and saves `release/fdswarm.jar`. It restores `version.txt` to its original snapshot
+and saves `release/fdswarm.jar`. On the release Mac it also builds and verifies
+`release/FdSwarm-<version>-macos-<architecture>.dmg` and writes its SHA-256 checksum.
+The release command requires macOS with Liberica JDK 21 Full on `PATH`; the DMG
+bundles Java/JavaFX for that Mac's architecture (`aarch64` or `x64`).
+It restores `version.txt` to its original snapshot
 version before committing the build number, prompts before pushing the commit,
-creates or updates the GitHub release with the JAR, and then dispatches the Windows
+creates or updates the GitHub release with the JAR, DMG, and checksum, and then dispatches the Windows
 installer workflow from GitHub's default branch. The workflow must already be on
 that branch. The GitHub CLI login needs permission to dispatch Actions.
 The release script does not run tests;
 run the existing test suites before releasing. If publication fails after the
-commit, the commit and JAR are retained for manual recovery.
+commit, the commit and local release artifacts are retained for manual recovery.
 
 Use `./mill --no-server Release.scala --help` for usage.
 
@@ -301,17 +305,21 @@ Build the assembly JAR first. This also builds and embeds the documentation site
 ./scripts/ci/verify-docs-in-jar.sh out/fdswarm/assembly.dest/fdswarm.jar
 ```
 
-On macOS, build the PKG installer:
+On macOS, build the DMG:
 
 ```bash
 FDSWARM_ASSEMBLY_JAR=out/fdswarm/assembly.dest/fdswarm.jar ./scripts/ci/package-macos.sh
 ```
 
-The PKG is written to:
+The DMG is written to:
 
 ```text
-out/fdswarm/macPkg.dest/jpackage/
+out/fdswarm/macDmg.dest/jpackage/
 ```
+
+The DMG is currently unsigned unless `JPACKAGE_MAC_SIGN` and
+`JPACKAGE_MAC_SIGNING_KEY_USER_NAME` are configured; it is not notarized.
+An unsigned application may require approval in macOS Privacy & Security.
 
 ## Windows Installer
 

@@ -4,7 +4,7 @@ set -euo pipefail
 
 assembly_jar="${FDSWARM_ASSEMBLY_JAR:-out/fdswarm/assembly.dest/fdswarm.jar}"
 
-echo "Packaging macOS PKG"
+echo "Packaging macOS DMG"
 echo "PWD: $(pwd)"
 echo "FDSWARM_VERSION: ${FDSWARM_VERSION:-}"
 echo "FDSWARM_BUILD: ${FDSWARM_BUILD:-}"
@@ -15,6 +15,6 @@ ls -lh "$assembly_jar"
 ./scripts/ci/verify-docs-in-jar.sh "$assembly_jar"
 
 chmod +x ./mill
-FDSWARM_ASSEMBLY_JAR="$assembly_jar" ./mill --no-daemon fdswarm.macPkg
+FDSWARM_ASSEMBLY_JAR="$assembly_jar" ./mill --no-server fdswarm.macDmg
 
-find out/fdswarm/macPkg.dest -name '*.pkg' -print
+find "${MILL_OUTPUT_DIR:-out}/fdswarm/macDmg.dest" -name '*.dmg' -print
