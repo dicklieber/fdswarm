@@ -274,8 +274,10 @@ bundles Java/JavaFX for that Mac's architecture (`aarch64` or `x64`).
 It restores `version.txt` to its original snapshot
 version before committing the build number, prompts before pushing the commit,
 creates or updates the GitHub release with the JAR, DMG, and checksum, and then dispatches the Windows
-installer workflow from GitHub's default branch. The workflow must already be on
-that branch. The GitHub CLI login needs permission to dispatch Actions.
+installer workflow from the release tag. It waits for that run to succeed and
+verifies that the Windows installer and checksum are attached before reporting
+completion. A failed Windows run prints its failed-step logs and fails the release
+command; the already uploaded JAR and DMG remain available. The GitHub CLI login needs permission to dispatch Actions.
 The release script does not run tests;
 run the existing test suites before releasing. If publication fails after the
 commit, the commit and local release artifacts are retained for manual recovery.
@@ -370,8 +372,13 @@ To retry packaging an already published release (without rerunning `Release.scal
 and incrementing the build number):
 
 ```sh
-gh workflow run windows-installer.yml --ref main -f tag=v0.0.4-12
-gh run list --workflow windows-installer.yml
+./mill --no-server PublishWindowsInstaller.scala v0.0.4-30
+```
+
+Run the offline publication checks with:
+
+```sh
+./mill --no-server PublishWindowsInstallerTest.scala
 ```
 
 Packaging scripts come from the selected workflow branch/commit; the application

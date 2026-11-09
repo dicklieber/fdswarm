@@ -80,8 +80,8 @@ object Release {
     val buildOutput = os.temp.dir(prefix = "fdswarm-release-")
     var committed = false
     var releaseCommit = ""
-    def mill(target: String): Unit =
-      os.proc("./mill", "--no-server", target).call(
+    def mill(target: String, arguments: String*): Unit =
+      os.proc(Seq("./mill", "--no-server", target) ++ arguments).call(
         cwd = root, env = Map("MILL_OUTPUT_DIR" -> buildOutput.toString) ++
           (if target == "fdswarm.macDmg" then Map(
             "FDSWARM_ASSEMBLY_JAR" -> artifact.toString,
@@ -145,8 +145,8 @@ object Release {
       run("gh", "release", "upload", tag, artifact.toString, dmgArtifact.toString, dmgChecksum.toString, "--clobber")
       println(s"Published JAR, $dmgName, and checksum to GitHub release $tag")
       // Dispatch only after the JAR is available; a release-created event can race its upload.
-      run("gh", "workflow", "run", "windows-installer.yml", "-f", s"tag=$tag")
-      println(s"Windows installer build queued for $tag. Monitor with: gh run list --workflow windows-installer.yml")
+      mill("PublishWindowsInstaller.scala", tag, tag)
+      println(s"Release $tag complete: JAR, notarized macOS DMG, and Windows installer published.")
     catch
       case scala.util.control.NonFatal(error) =>
         if committed then

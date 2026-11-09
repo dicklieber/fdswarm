@@ -459,3 +459,8 @@ can understand and evaluate the implementation.
 
 The goal is reliable, understandable, maintainable code,
 not maximum abstraction or minimum line count.
+
+## Scripting Preferences
+
+- Do not generate Python code or Python tests.
+- Prefer Scala Mill scripts for automation and script tests.
